@@ -7,63 +7,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>動物園每日展示</title>
   <style>
-    /* 基本重設與安全區域設定 */
+    /* 既有 CSS … */
+    /* 動物園內容區內左上角選單按鈕（調整 z-index 使其位於面板下方） */
+    #menuBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;  /* 原本是 1003，現在改為 1000 */
+      padding: 8px 16px;
+      font-size: 24px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    /* 遮罩層：用於背景漸變效果 */
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+    }
+    /* 當遮罩層啟動時 */
+    #overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    /* 側邊滑出面板（放在 .content 區域內） */
+    #sidePanel {
+      position: absolute;
+      top: 0;
+      left: -250px;
+      width: 250px;
+      height: 100%;
+      background: #fff;
+      /* 移除陰影：原先 box-shadow: 2px 0 5px rgba(0,0,0,0.3); */
+      transition: left 0.3s ease;
+      z-index: 1002;
+      padding: 20px;
+    }
+    /* 面板開啟時 */
+    #sidePanel.open {
+      left: 0;
+    }
+    /* 面板內按鈕 */
+    #sidePanel button {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      border: none;
+      background: #f8f8f8;
+      font-size: 18px;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    /* 其餘 CSS 保持不變 */
     html, body {
       margin: 0;
       padding: 0;
       overflow: hidden;
       height: 100vh;
-      /* 保留安全區域 */
       padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
       box-sizing: border-box;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
       background: url('{% static "image/background.jpg" %}') no-repeat center center/cover;
       display: flex;
       flex-direction: column;
+      line-height: 1.5;
     }
     *, *::before, *::after {
       box-sizing: inherit;
     }
-    /* 外層玻璃容器，採用 flex 但不置中 */
     .glass-overlay {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      padding: 0;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start; /* 從上開始排列 */
+      justify-content: flex-start;
       align-items: stretch;
       overflow: hidden;
     }
     .glass-background {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(255,255,255,0.2);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.18);
-      z-index: 0;
+      display: none;
     }
-    /* 內層內容區，使用 flex-grow 讓總高度正好扣除上下 margin */
     .content {
       position: relative;
       z-index: 1;
-      background: rgba(255,255,255,0.25);
+      background: #fff;
       padding: 20px;
       border-radius: 15px;
-      box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
       width: 95%;
       max-width: 800px;
       margin: 20px auto;
       flex-grow: 1;
-      /* 移除固定高度設定 */
-      /* height: calc(100vh - 80px); */
       overflow: hidden;
       animation: fadeInUp 1s forwards;
       transform: translateZ(0);
@@ -82,14 +129,13 @@
         transform: translateY(0) translateZ(0);
       }
     }
-    /* 導覽列與按鈕玻璃質感風格 */
     .hall-menu {
       display: flex;
       overflow-x: auto;
       gap: 10px;
-      /* 移除背景與圓角 */
       background: transparent;
-      border-radius: 0;
+      border: 1px solid #ccc;
+      border-radius: 10px;
       padding: 0;
       margin-bottom: 10px;
     }
@@ -97,26 +143,24 @@
       flex-shrink: 0;
       padding: 8px 12px;
       text-decoration: none;
-      color: #333;
-      background: rgba(255,255,255,0.35);
+      color: #666;
+      background: #fff;
       border: none;
       border-radius: 5px;
       white-space: nowrap;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       transition: background 0.3s;
     }
     .hall-menu a.active,
     .hall-menu a:hover {
-      background: rgba(255,255,255,0.5);
+      background: #f8f8f8;
     }
-    /* 上方區：照片與介紹 */
     .top-section {
       display: flex;
       align-items: stretch;
+      border: 1px solid #ccc;
       border-radius: 10px;
       overflow: hidden;
       margin-bottom: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .photo-area {
       flex: 0 0 60%;
@@ -124,8 +168,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      border-right: 1px solid rgba(255,255,255,0.5);
-      background: rgba(255,255,255,0.35);
+      border-right: 1px solid #ccc;
+      background: #fff;
       padding: 10px;
     }
     .photo-area img {
@@ -140,24 +184,23 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      background: rgba(255,255,255,0.35);
+      background: #fff;
     }
     .page-title {
       text-align: center;
       margin-bottom: 10px;
-      color: #333;
+      color: #666;
       font-size: 2rem;
     }
-    /* 表格區域 */
     .table-wrapper {
       margin-top: 10px;
-      background: rgba(255,255,255,0.35);
-      border-radius: 0px;
+      background: #fff;
+      border: none;
+      border-radius: 0;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      flex: 1;  /* 表格區自動填滿剩餘空間 */
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      flex: 1;
     }
     .header-table {
       width: 100%;
@@ -165,29 +208,26 @@
       table-layout: fixed;
     }
     .header-table th {
-      padding: 12px;
-      border: 1px solid rgba(0,0,0,0.1);
-      text-align: left;
-      background: rgba(255,255,255,0.5);
+      padding: 8px;
+      border: none; /* 移除框線 */
+      text-align: center; /* 將文字置中 */
+      background: #e0f7fa; /* 使用淺藍色填滿 */
       white-space: normal;
       word-break: break-all;
       overflow-wrap: break-word;
+      line-height: 1.5;
+      vertical-align: middle;
+      font-size: 17px;
+      color: #666;
+      font-weight: normal;
     }
     .header-table th:nth-child(1),
     .body-table td:nth-child(1) {
-      width: 5em;
+      width: 6ch;
     }
     .header-table th:nth-child(2),
     .body-table td:nth-child(2) {
-      /* 動態寬度 */
-    }
-    .header-table th:nth-child(3),
-    .body-table td:nth-child(3) {
-      width: 10.5ch;
-    }
-    .header-table th:nth-child(4),
-    .body-table td:nth-child(4) {
-      width: 7ch;
+      width: 9em;
     }
     .body-wrapper {
       flex: 1;
@@ -200,20 +240,82 @@
       table-layout: fixed;
     }
     .body-table td {
-      padding: 12px;
-      border: 1px solid rgba(0,0,0,0.1);
+      padding: 8px;
+      border: 1px solid #ccc;
       text-align: left;
       white-space: normal;
       word-break: break-all;
       overflow-wrap: break-word;
-      background: rgba(255,255,255,0.35);
+      background: #fff;
+      line-height: 1.5;
+      vertical-align: middle;
+      font-size: 18px;
+      color: #666;
     }
     .body-table tr:hover {
-      background: rgba(255,255,255,0.5);
+      background: #f8f8f8;
       cursor: pointer;
     }
     .time-slot {
       display: inline-block;
+    }
+    .beautician-cell {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100%;
+      text-align: left;
+    }
+    .beautician-cell .labels {
+      margin-bottom: 4px;
+    }
+    .beautician-cell .labels .label {
+      display: inline-block;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #fff;
+      margin-right: 2px;
+    }
+    .beautician-cell .labels .newcomer { background: rgba(40,167,69,0.5); }
+    .beautician-cell .labels .hot { background: rgba(220,53,69,0.5); }
+    .beautician-cell .labels .exclusive { background: rgba(111,66,193,0.5); }
+    .beautician-text .name-size-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    .name-container .name {
+      font-size: 18px;
+      color: #333;
+    }
+    .size-container .size {
+      font-size: 16px;
+      color: #666;
+    }
+    .beautician-text .review-container {
+      margin-top: 4px;
+    }
+    .review-box {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(128,128,128,0.1);
+      color: #666;
+      padding: 6px 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      user-select: none;
+      transition: background 0.3s;
+      border: 1px solid #ccc;
+    }
+    .review-box .count {
+      margin-left: 5px;
+      font-weight: normal;
+      color: #666;
     }
     @media (max-width: 480px) {
       .content {
@@ -226,7 +328,6 @@
         padding: 10px;
       }
     }
-    /* 表單模態框（Modal）：表單部分保持原本設定 */
     .modal {
       display: none;
       position: fixed;
@@ -246,6 +347,7 @@
       width: 90%;
       max-width: 600px;
       position: relative;
+      border: 1px solid rgba(0, 0, 0, 0.2);
     }
     .close-modal {
       position: absolute;
@@ -254,7 +356,7 @@
       font-size: 28px;
       font-weight: bold;
       cursor: pointer;
-      color: #333;
+      color: #666;
     }
     .form-group {
       margin-bottom: 15px;
@@ -270,23 +372,27 @@
       width: 100%;
       padding: 8px;
       box-sizing: border-box;
-      border: 1px solid #ccc;
+      border: 1px solid rgba(0,0,0,0.2);
       border-radius: 4px;
     }
     .form-group textarea {
       resize: vertical;
     }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #999;
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+    }
     button {
       padding: 8px 12px;
       border: none;
       border-radius: 5px;
-      background: rgba(255,255,255,0.35);
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      background: #fff;
       cursor: pointer;
       transition: background 0.3s;
     }
     button:hover {
-      background: rgba(255,255,255,0.5);
+      background: #f8f8f8;
     }
   </style>
 </head>
@@ -294,15 +400,21 @@
   <div class="glass-overlay">
     <div class="glass-background"></div>
     <div class="content">
-      <div class="page-title">動物園 - 動物清單</div>
-      <nav class="hall-menu">
-        <a href="{% url 'home' %}" class="{% if not request.GET.hall_id %}active{% endif %}">全部</a>
-        {% for hall in halls %}
-          <a href="{% url 'home' %}?hall_id={{ hall.id }}" class="{% if request.GET.hall_id|stringformat:"s" == hall.id|stringformat:"s" %}active{% endif %}">
-            {{ hall.name }}
-          </a>
-        {% endfor %}
-      </nav>
+      <!-- 遮罩層 -->
+      <div id="overlay"></div>
+      <!-- 將側邊面板置於 .content 區塊內 -->
+      <div id="sidePanel">
+        <button>每日班表</button>
+        <button>每週班表</button>
+        <button>最新心得</button>
+        <button>找美容師</button>
+        <button>最愛清單</button>
+        <button>待約清單</button>
+      </div>
+      <!-- 動物園方框內的左上角選單按鈕（z-index 已調整） -->
+      <button id="menuBtn">≡</button>
+      <div class="page-title">每日班表</div>
+      <!-- 上方區：照片與介紹 -->
       <section class="top-section">
         <div class="photo-area" id="photoArea">
           {% if animals|length > 0 and animals.0.photo %}
@@ -315,15 +427,23 @@
           <p id="introText">請從下方表格中選擇動物以查看介紹</p>
         </div>
       </section>
+      <!-- 導覽列 -->
+      <nav class="hall-menu">
+        <a href="{% url 'home' %}" class="{% if not request.GET.hall_id %}active{% endif %}">全部</a>
+        {% for hall in halls %}
+          <a href="{% url 'home' %}?hall_id={{ hall.id }}" class="{% if request.GET.hall_id|stringformat:"s" == hall.id|stringformat:"s" %}active{% endif %}">
+            {{ hall.name }}
+          </a>
+        {% endfor %}
+      </nav>
       <!-- 表格區 -->
       <div class="table-wrapper">
         <table class="header-table">
           <thead>
             <tr>
-              <th>名稱</th>
-              <th>時段</th>
-              <th>身材</th>
               <th>台費</th>
+              <th>美容師</th>
+              <th>時段</th>
             </tr>
           </thead>
         </table>
@@ -332,11 +452,29 @@
             <tbody>
               {% for animal in animals %}
               <tr data-photo="{% if animal.photo %}{{ animal.photo.url }}{% else %}{% static 'image/animal_default.jpg' %}{% endif %}"
-                  data-intro="名稱：{{ animal.name }}｜時段：{{ animal.time_slot }}｜身材：{{ animal.size_display }}｜台費：{{ animal.fee }}">
-                <td>{{ animal.name }}</td>
-                <td class="time-cell">{{ animal.time_slot }}</td>
-                <td>{{ animal.size_display }}</td>
+                  data-intro="台費：{{ animal.fee }}｜美容師：{{ animal.name }} {{ animal.size_display }}｜時段：{{ animal.time_slot }}">
                 <td>{{ animal.fee }}</td>
+                <td>
+                  <div class="beautician-cell">
+                    <div class="labels"></div>
+                    <div class="beautician-text">
+                      <div class="name-size-line">
+                        <div class="name-container">
+                          <span class="name">{{ animal.name }}</span>
+                        </div>
+                        <div class="size-container">
+                          <span class="size">{{ animal.size_display }}</span>
+                        </div>
+                      </div>
+                      <div class="review-container">
+                        <div class="review-box" id="reviewBox-{{ animal.id }}">
+                          心得 <span class="count">2</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="time-cell">{{ animal.time_slot }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -392,10 +530,35 @@
       });
     }
 
+    // 隨機產生標籤
+    function generateRandomLabels() {
+      const possibleLabels = [
+        { class: 'newcomer', text: '新人' },
+        { class: 'hot', text: '熱門' },
+        { class: 'exclusive', text: '獨家' }
+      ];
+      document.querySelectorAll('.beautician-cell').forEach(cell => {
+        let count = Math.floor(Math.random() * possibleLabels.length) + 1;
+        let labelsArr = possibleLabels.slice().sort(() => 0.5 - Math.random());
+        let labelsToShow = labelsArr.slice(0, count);
+        const labelsDiv = cell.querySelector('.labels');
+        if(labelsDiv){
+          labelsDiv.innerHTML = '';
+          labelsToShow.forEach(label => {
+            const span = document.createElement('span');
+            span.classList.add('label', label.class);
+            span.textContent = label.text;
+            labelsDiv.appendChild(span);
+          });
+        }
+      });
+    }
+
     window.addEventListener('resize', syncTableColumnWidths);
     document.addEventListener('DOMContentLoaded', function() {
       syncTableColumnWidths();
       processTimeSlotCells();
+      generateRandomLabels();
 
       // 為表格列新增點擊事件，更新上方照片與介紹
       const tableRows = document.querySelectorAll('#animalTable tbody tr');
@@ -407,12 +570,12 @@
           const imgElement = photoArea.querySelector('img');
           if (imgElement) {
             imgElement.src = photoUrl;
-            imgElement.alt = this.cells[0].textContent;
+            imgElement.alt = this.cells[1].querySelector('.beautician-text').textContent;
           } else {
             photoArea.innerHTML = '';
             const newImg = document.createElement('img');
             newImg.src = photoUrl;
-            newImg.alt = this.cells[0].textContent;
+            newImg.alt = this.cells[1].querySelector('.beautician-text').textContent;
             photoArea.appendChild(newImg);
           }
           const introArea = document.getElementById('introArea');
@@ -427,6 +590,21 @@
             introArea.appendChild(newP);
           }
         });
+      });
+
+      // 點擊 MENU 按鈕切換側邊面板與遮罩層
+      const menuBtn = document.getElementById('menuBtn');
+      const sidePanel = document.getElementById('sidePanel');
+      const overlay = document.getElementById('overlay');
+      menuBtn.addEventListener('click', function() {
+        sidePanel.classList.toggle('open');
+        overlay.classList.toggle('open');
+      });
+
+      // 點擊遮罩層關閉面板與遮罩
+      overlay.addEventListener('click', function() {
+        sidePanel.classList.remove('open');
+        overlay.classList.remove('open');
       });
 
       // 表單模態框功能

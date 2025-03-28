@@ -16,10 +16,12 @@
       /* 保留安全區域 */
       padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
       box-sizing: border-box;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
       background: url('{% static "image/background.jpg" %}') no-repeat center center/cover;
       display: flex;
       flex-direction: column;
+      /* 統一全局行高 */
+      line-height: 1.5;
     }
     *, *::before, *::after {
       box-sizing: inherit;
@@ -62,8 +64,6 @@
       max-width: 800px;
       margin: 20px auto;
       flex-grow: 1;
-      /* 移除固定高度設定 */
-      /* height: calc(100vh - 80px); */
       overflow: hidden;
       animation: fadeInUp 1s forwards;
       transform: translateZ(0);
@@ -87,7 +87,6 @@
       display: flex;
       overflow-x: auto;
       gap: 10px;
-      /* 移除背景與圓角 */
       background: transparent;
       border-radius: 0;
       padding: 0;
@@ -152,7 +151,7 @@
     .table-wrapper {
       margin-top: 10px;
       background: rgba(255,255,255,0.35);
-      border-radius: 10px;
+      border-radius: 0px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -172,14 +171,23 @@
       white-space: normal;
       word-break: break-all;
       overflow-wrap: break-word;
+      /* 統一行高與垂直對齊 */
+      line-height: 1.5;
+      vertical-align: middle;
     }
+    /* 調整欄位寬度：
+       第一欄：台費 - 使用原本台費的寬度 (7ch)
+       第二欄：名稱 - 使用原本名稱的寬度 (5em)
+       第三欄：身材 - 使用原本身材的寬度 (10.5ch)
+       第四欄：時段 - 動態寬度
+    */
     .header-table th:nth-child(1),
     .body-table td:nth-child(1) {
-      width: 5em;
+      width: 7ch;
     }
     .header-table th:nth-child(2),
     .body-table td:nth-child(2) {
-      /* 動態寬度 */
+      width: 5em;
     }
     .header-table th:nth-child(3),
     .body-table td:nth-child(3) {
@@ -187,7 +195,7 @@
     }
     .header-table th:nth-child(4),
     .body-table td:nth-child(4) {
-      width: 7ch;
+      /* 動態寬度 */
     }
     .body-wrapper {
       flex: 1;
@@ -207,6 +215,9 @@
       word-break: break-all;
       overflow-wrap: break-word;
       background: rgba(255,255,255,0.35);
+      /* 統一行高與垂直置中 */
+      line-height: 1.5;
+      vertical-align: middle;
     }
     .body-table tr:hover {
       background: rgba(255,255,255,0.5);
@@ -320,10 +331,10 @@
         <table class="header-table">
           <thead>
             <tr>
-              <th>名稱</th>
-              <th>時段</th>
-              <th>身材</th>
               <th>台費</th>
+              <th>名稱</th>
+              <th>身材</th>
+              <th>時段</th>
             </tr>
           </thead>
         </table>
@@ -332,11 +343,11 @@
             <tbody>
               {% for animal in animals %}
               <tr data-photo="{% if animal.photo %}{{ animal.photo.url }}{% else %}{% static 'image/animal_default.jpg' %}{% endif %}"
-                  data-intro="名稱：{{ animal.name }}｜時段：{{ animal.time_slot }}｜身材：{{ animal.size_display }}｜台費：{{ animal.fee }}">
-                <td>{{ animal.name }}</td>
-                <td class="time-cell">{{ animal.time_slot }}</td>
-                <td>{{ animal.size_display }}</td>
+                  data-intro="台費：{{ animal.fee }}｜名稱：{{ animal.name }}｜身材：{{ animal.size_display }}｜時段：{{ animal.time_slot }}">
                 <td>{{ animal.fee }}</td>
+                <td>{{ animal.name }}</td>
+                <td>{{ animal.size_display }}</td>
+                <td class="time-cell">{{ animal.time_slot }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -407,12 +418,12 @@
           const imgElement = photoArea.querySelector('img');
           if (imgElement) {
             imgElement.src = photoUrl;
-            imgElement.alt = this.cells[0].textContent;
+            imgElement.alt = this.cells[1].textContent;
           } else {
             photoArea.innerHTML = '';
             const newImg = document.createElement('img');
             newImg.src = photoUrl;
-            newImg.alt = this.cells[0].textContent;
+            newImg.alt = this.cells[1].textContent;
             photoArea.appendChild(newImg);
           }
           const introArea = document.getElementById('introArea');

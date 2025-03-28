@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>更新班表</title>
+</head>
+<body>
+  <h1>更新班表</h1>
+  {% if messages %}
+    <ul>
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <form method="post" action="{% url 'update_schedule' %}">
+    {% csrf_token %}
+    <label for="hall">選擇館別：</label>
+    <select name="hall" id="hall">
+      {% for hall in halls %}
+        <option value="{{ hall.id }}">{{ hall.name }}</option>
+      {% endfor %}
+    </select>
+    <br><br>
+    <label for="schedule_text">貼上班表：</label>
+    <textarea id="schedule_text" name="schedule_text" rows="15" cols="80" placeholder="請貼上店家傳來的班表內容"></textarea>
+    <br><br>
+    <button type="submit">辨識並更新班表</button>
+  </form>
+</body>
+</html>

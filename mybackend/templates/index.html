@@ -1,0 +1,778 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>動物園每日展示</title>
+  <style>
+    /* 全站基本設定：字型、尺寸與背景 */
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100vh;
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+      box-sizing: border-box;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      background: url('{% static "image/background.jpg" %}') no-repeat center center/cover;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+    *, *::before, *::after {
+      box-sizing: inherit;
+    }
+
+    /* 右上角會員資訊 */
+    .user-info {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: rgba(255,255,255,0.8);
+      padding: 0.5rem 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 0.9rem;
+    }
+    .user-info form {
+      display: inline;
+    }
+    .user-info button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: blue;
+      text-decoration: underline;
+      margin-left: 10px;
+    }
+
+    /* 側邊與遮罩 */
+    #menuBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      padding: 0.5rem 1rem;
+      font-size: 1.5rem;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+    }
+    #overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #sidePanel {
+      position: absolute;
+      top: 0;
+      left: -250px;
+      width: 250px;
+      height: 100%;
+      background: #fff;
+      transition: left 0.3s ease;
+      z-index: 1002;
+      padding: 1.25rem;
+    }
+    #sidePanel.open {
+      left: 0;
+    }
+    #sidePanel button {
+      display: block;
+      width: 100%;
+      margin-bottom: 0.625rem;
+      padding: 0.625rem;
+      border: none;
+      background: #f8f8f8;
+      font-size: 1.125rem;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    /* 主內容區 */
+    .glass-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
+      overflow: hidden;
+    }
+    .glass-background {
+      display: none;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+      background: #fff;
+      padding: 1.25rem;
+      border-radius: 15px;
+      width: 95%;
+      max-width: 500px;
+      margin: 1.25rem auto;
+      flex-grow: 1;
+      overflow: hidden;
+      animation: fadeInUp 1s forwards;
+      transform: translateZ(0);
+      will-change: opacity, transform;
+      background-clip: padding-box;
+      display: flex;
+      flex-direction: column;
+    }
+    @keyframes fadeInUp {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 導覽列 */
+    .hall-menu {
+      display: flex;
+      overflow-x: auto;
+      gap: 0.625rem;
+      background: transparent;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 0;
+      margin-bottom: 0.625rem;
+    }
+    .hall-menu a {
+      flex-shrink: 0;
+      padding: 0.5rem 0.75rem;
+      text-decoration: none;
+      color: #666;
+      background: #fff;
+      border: none;
+      border-radius: 5px;
+      white-space: nowrap;
+      transition: background 0.3s;
+    }
+    .hall-menu a.active,
+    .hall-menu a:hover {
+      background: #f8f8f8;
+    }
+
+    /* 上方區：照片與介紹 */
+    .top-section {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 0.625rem;
+    }
+    .photo-area {
+      flex: 0 0 50%;
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid #ccc;
+      background: #fff;
+      padding: 0.625rem;
+    }
+    .photo-area img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .intro-area {
+      flex: 0 0 50%;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .intro-top {
+      height: 180px !important;
+      overflow-y: auto !important;
+    }
+    .intro-top p {
+      margin: 0;
+      font-size: 1rem;
+      color: #333;
+    }
+    .page-title {
+      text-align: center;
+      margin-bottom: 0.625rem;
+      color: #666;
+      font-size: 2rem;
+    }
+
+    /* 表格區 */
+    .table-wrapper {
+      margin-top: 0.625rem;
+      background: #fff;
+      border: none;
+      border-radius: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .header-table th {
+      padding: 0.5rem;
+      border: none;
+      text-align: left;
+      background: #e0f7fa;
+      white-space: normal;
+      word-break: break-all;
+      overflow-wrap: break-word;
+      line-height: 1.5;
+      vertical-align: middle;
+      font-size: 1.0625rem;
+      color: #666;
+      font-weight: normal;
+    }
+    .header-table th:nth-child(1),
+    .body-table td:nth-child(1) {
+      width: 7ch;
+    }
+    .header-table th:nth-child(2),
+    .body-table td:nth-child(2) {
+      width:  9.5em;
+    }
+    .body-wrapper {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .body-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .body-table td {
+      padding: 0.5rem;
+      border-top: 1px solid #ccc;
+      border-bottom: 1px solid #ccc;
+      text-align: left;
+      white-space: normal;
+      word-break: break-all;
+      overflow-wrap: break-word;
+      background: #fff;
+      line-height: 1.5;
+      vertical-align: middle;
+      font-size: 0.99rem;
+      color: #AAA;
+    }
+    .body-table tr:hover {
+      background: #f8f8f8;
+      cursor: pointer;
+    }
+    .time-slot {
+      display: inline-block;
+    }
+    .beautician-cell {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100%;
+      text-align: left;
+    }
+    .beautician-cell .labels {
+      margin-bottom: 0.25rem;
+    }
+    .beautician-cell .labels .label {
+      display: inline-block;
+      padding: 0.125rem 0.25rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #fff;
+      margin-right: 0.125rem;
+    }
+    .beautician-cell .labels .newcomer {
+      background: rgba(40, 167, 69, 0.5);
+    }
+    .beautician-cell .labels .hot {
+      background: rgba(220, 53, 69, 0.5);
+    }
+    .beautician-cell .labels .exclusive {
+      background: rgba(111, 66, 193, 0.5);
+    }
+    .beautician-text .name-size-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    .name-container .name {
+      font-size: 1.1rem;
+      color: #777;
+    }
+    .size-container .size {
+      font-size: 0.9rem;
+      color: #AAA;
+    }
+    .review-actions {
+      display: flex;
+      align-items: center;
+    }
+    .review-box {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(128, 128, 128, 0.1);
+      color: #999;
+      padding: 0.07rem 0.25rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      user-select: none;
+      transition: background 0.3s;
+      border: 1px solid #ccc;
+    }
+    .review-box .count {
+      margin-left: 0.3125rem;
+      font-weight: normal;
+      color: #999;
+    }
+    .circle-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: none;
+      background-color: #eee;
+      font-size: 1.125rem;
+      line-height: 1;
+      color: #CCC;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 0.5rem;
+    }
+
+    /* 響應式調整 */
+    @media (max-width: 480px) {
+      .content {
+        padding: 0.625rem;
+      }
+      .photo-area {
+        height: 200px;
+      }
+      .intro-area {
+        padding: 0.625rem;
+      }
+    }
+
+    /* 模態框（共用樣式） */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 1.25rem;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 600px;
+      position: relative;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+    }
+    .close-modal {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 1.75rem;
+      font-weight: bold;
+      cursor: pointer;
+      color: #666;
+    }
+    .form-group {
+      margin-bottom: 0.9375rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.3125rem;
+      font-weight: bold;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="password"],
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 0.5rem;
+      box-sizing: border-box;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    .form-group textarea {
+      resize: vertical;
+    }
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #999;
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+    }
+    button {
+      padding: 0.5rem 0.75rem;
+      border: none;
+      border-radius: 5px;
+      background: #fff;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #f8f8f8;
+    }
+  </style>
+</head>
+<body>
+  <!-- 右上角會員資訊：若登入，顯示會員的 first name 與登出按鈕 -->
+  {% if user.is_authenticated %}
+  <div class="user-info">
+    <span>登入中：{{ user.first_name|default:user.username }}</span>
+    <form action="{% url 'logout' %}" method="post">
+      {% csrf_token %}
+      <button type="submit">登出</button>
+    </form>
+  </div>
+  {% endif %}
+  
+  <div class="glass-overlay">
+    <div class="glass-background"></div>
+    <div class="content">
+      <!-- 遮罩層 -->
+      <div id="overlay"></div>
+      <!-- 側邊面板 -->
+      <div id="sidePanel">
+        <button>每日班表</button>
+        <button>每週班表</button>
+        <button>最新心得</button>
+        <button>找美容師</button>
+        <button>最愛清單</button>
+        <button>待約清單</button>
+        <button id="loginBtn">會員登入</button>
+      </div>
+      <!-- 左上角選單按鈕 -->
+      <button id="menuBtn" aria-label="打開選單">≡</button>
+      <div class="page-title">每日班表</div>
+      <!-- 上方區：左側照片、右側介紹區 -->
+      <section class="top-section">
+        <div class="photo-area" id="photoArea">
+          {% if animals|length > 0 and animals.0.photo %}
+            <img src="{{ animals.0.photo.url }}" alt="{{ animals.0.name }}">
+          {% else %}
+            <img src="{% static 'image/animal_default.jpg' %}" alt="預設照片">
+          {% endif %}
+        </div>
+        <div class="intro-area" id="introArea">
+          <!-- 加上預設介紹文字 -->
+          <div class="intro-top">
+            <p id="introductionContent">
+              這裡是介紹內容。如果介紹內容超過容器高度，就會出現滾動條。請點選不同項目以測試滾動效果。這裡加入一些長文字來模擬超過容器高度的情況。Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque vel purus ut arcu suscipit finibus. Curabitur malesuada nisl vitae sapien gravida, in suscipit metus tempor. Sed tincidunt sapien non augue fermentum, sit amet convallis erat iaculis. Mauris finibus, urna et porta bibendum, justo justo porttitor massa, sit amet sollicitudin nulla quam nec libero.
+            </p>
+          </div>
+        </div>
+      </section>
+      <!-- 導覽列 -->
+      <nav class="hall-menu">
+        <a href="{% url 'home' %}" class="{% if not request.GET.hall_id %}active{% endif %}">全部</a>
+        {% for hall in halls %}
+          <a href="{% url 'home' %}?hall_id={{ hall.id }}" class="{% if request.GET.hall_id|stringformat:"s" == hall.id|stringformat:"s" %}active{% endif %}">
+            {{ hall.name }}
+          </a>
+        {% endfor %}
+      </nav>
+      <!-- 表格區 -->
+      <div class="table-wrapper">
+        <table class="header-table">
+          <thead>
+            <tr>
+              <th>台費</th>
+              <th>美容師</th>
+              <th>時段</th>
+            </tr>
+          </thead>
+        </table>
+        <div class="body-wrapper">
+          <table class="body-table" id="animalTable">
+            <tbody>
+              {% for animal in animals %}
+              <tr data-photo="{% if animal.photo %}{{ animal.photo.url }}{% else %}{% static 'image/animal_default.jpg' %}{% endif %}"
+                  data-intro="{{ animal.introduction|default:'尚無介紹' }}">
+                <td>{{ animal.fee }}</td>
+                <td>
+                  <div class="beautician-cell">
+                    <div class="labels">
+                      {% if animal.is_newcomer %}
+                        <span class="label newcomer">新人</span>
+                      {% endif %}
+                      {% if animal.is_hot %}
+                        <span class="label hot">熱門</span>
+                      {% endif %}
+                      {% if animal.is_exclusive %}
+                        <span class="label exclusive">獨家</span>
+                      {% endif %}
+                    </div>
+                    <div class="beautician-text">
+                      <div class="name-size-line">
+                        <div class="name-container">
+                          <span class="name">{{ animal.name }}</span>
+                        </div>
+                        <div class="size-container">
+                          <span class="size">{{ animal.size_display }}</span>
+                        </div>
+                      </div>
+                      <div class="review-actions">
+                        <!-- 顯示已審核評論數，使用 view 中 annotate 的 approved_review_count -->
+                        <div class="review-box" id="reviewBox-{{ animal.id }}" data-animal-id="{{ animal.id }}">
+                          心得 <span class="count">{{ animal.approved_review_count }}</span>
+                        </div>
+                        <button class="circle-btn" disabled aria-label="新增">+</button>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="time-cell">{{ animal.time_slot }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- 如果有登入錯誤訊息，顯示於此 -->
+      {% if login_error %}
+      <div style="color: red; text-align: center;">{{ login_error }}</div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <!-- 登入模態框 -->
+  <div id="loginModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <span class="close-modal" id="closeLoginModal" aria-label="關閉">&times;</span>
+      <h2>會員登入</h2>
+      <form id="loginForm" action="{% url 'login' %}" method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="username">帳號：</label>
+          <input type="text" id="username" name="username" placeholder="請輸入帳號">
+        </div>
+        <div class="form-group">
+          <label for="password">密碼：</label>
+          <input type="password" id="password" name="password" placeholder="請輸入密碼">
+        </div>
+        <button type="submit">登入</button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- 心得評論模態框 -->
+  <div id="reviewModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <span class="close-modal" id="closeReviewModal" aria-label="關閉">&times;</span>
+      <h2>心得評論</h2>
+      <div id="reviewList" style="max-height:300px; overflow:auto; margin-bottom:1rem;"></div>
+      <form id="reviewForm">
+        {% csrf_token %}
+        <textarea name="content" id="reviewContent" placeholder="請輸入心得..." rows="4" style="width:100%;"></textarea>
+        <button type="submit">提交評論</button>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    // 取得 CSRF Token 函式
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    // 同步表頭與表身欄位寬度
+    function syncTableColumnWidths() {
+      const headerTable = document.querySelector('.header-table');
+      const bodyTable = document.querySelector('.body-table');
+      const headerCells = headerTable.querySelectorAll('th');
+      const firstBodyRow = bodyTable.querySelector('tr');
+      if (!firstBodyRow) return;
+      const bodyCells = firstBodyRow.querySelectorAll('td');
+      headerCells.forEach((th, index) => {
+        const cellWidth = bodyCells[index].getBoundingClientRect().width;
+        th.style.width = cellWidth + "px";
+      });
+    }
+    // 處理時段欄：以 "." 分割，並包入 span
+    function processTimeSlotCells() {
+      document.querySelectorAll('.time-cell').forEach(function(td) {
+        let text = td.textContent.trim();
+        let tokens = text.split('.').filter(token => token.trim() !== '');
+        tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
+        td.innerHTML = tokens.join('');
+      });
+    }
+    // 取得並顯示心得評論
+    function loadReviews(animalId) {
+      fetch(`/add_review/?animal_id=${animalId}`)
+      .then(response => response.json())
+      .then(data => {
+        const reviewList = document.getElementById('reviewList');
+        reviewList.innerHTML = "";
+        data.reviews.forEach(review => {
+          const p = document.createElement('p');
+          p.textContent = `${review.user}：${review.content} (${review.created_at})`;
+          reviewList.appendChild(p);
+        });
+      });
+    }
+    // 提交心得評論
+    function submitReview(animalId, content) {
+      const formData = new FormData();
+      formData.append('animal_id', animalId);
+      formData.append('content', content);
+      fetch("/add_review/", {
+        method: "POST",
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if(data.success) {
+          alert(data.message);
+          loadReviews(animalId);
+          document.getElementById('reviewContent').value = "";
+          // 更新評論數，這裡直接重新載入頁面
+          location.reload();
+        } else {
+          alert(data.error);
+        }
+      });
+    }
+    window.addEventListener('resize', syncTableColumnWidths);
+    document.addEventListener('DOMContentLoaded', function() {
+      syncTableColumnWidths();
+      processTimeSlotCells();
+      // 為表格列新增點擊事件，更新上方照片與介紹區
+      const tableRows = document.querySelectorAll('#animalTable tbody tr');
+      tableRows.forEach(function(row) {
+        row.addEventListener('click', function() {
+          const photoUrl = this.getAttribute('data-photo');
+          const photoArea = document.getElementById('photoArea');
+          const imgElement = photoArea.querySelector('img');
+          if (imgElement) {
+            imgElement.src = photoUrl;
+            imgElement.alt = this.cells[1].querySelector('.beautician-text').textContent;
+          } else {
+            photoArea.innerHTML = '';
+            const newImg = document.createElement('img');
+            newImg.src = photoUrl;
+            newImg.alt = this.cells[1].querySelector('.beautician-text').textContent;
+            photoArea.appendChild(newImg);
+          }
+          const introText = this.getAttribute('data-intro');
+          document.getElementById('introductionContent').innerText = introText;
+        });
+      });
+      // 為 review-box 加上點擊事件，打開心得評論模態框
+      document.querySelectorAll('.review-box').forEach(function(box) {
+        box.addEventListener('click', function(e) {
+          const animalId = this.getAttribute('data-animal-id');
+          document.getElementById('reviewModal').style.display = 'block';
+          loadReviews(animalId);
+          document.getElementById('reviewForm').setAttribute('data-animal-id', animalId);
+          e.stopPropagation();
+        });
+      });
+      // 菜單與遮罩功能
+      const menuBtn = document.getElementById('menuBtn');
+      const sidePanel = document.getElementById('sidePanel');
+      const overlay = document.getElementById('overlay');
+      menuBtn.addEventListener('click', function() {
+        sidePanel.classList.toggle('open');
+        overlay.classList.toggle('open');
+      });
+      overlay.addEventListener('click', function() {
+        sidePanel.classList.remove('open');
+        overlay.classList.remove('open');
+      });
+      // 登入模態框功能
+      const loginModal = document.getElementById('loginModal');
+      const loginBtn = document.getElementById('loginBtn');
+      const closeLoginModal = document.getElementById('closeLoginModal');
+      loginBtn.addEventListener('click', function() {
+        loginModal.style.display = 'block';
+      });
+      closeLoginModal.addEventListener('click', function() {
+        loginModal.style.display = 'none';
+      });
+      // 監聽關閉心得評論模態框
+      const closeReviewModal = document.getElementById('closeReviewModal');
+      closeReviewModal.addEventListener('click', function() {
+        document.getElementById('reviewModal').style.display = 'none';
+      });
+      window.addEventListener('click', function(e) {
+        if (e.target == loginModal) {
+          loginModal.style.display = 'none';
+        }
+        if (e.target == document.getElementById('reviewModal')) {
+          document.getElementById('reviewModal').style.display = 'none';
+        }
+      });
+      // 處理 reviewForm 提交
+      document.getElementById('reviewForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const animalId = this.getAttribute('data-animal-id');
+        const content = document.getElementById('reviewContent').value;
+        if(content.trim() === ""){
+          alert("評論內容不能為空！");
+          return;
+        }
+        submitReview(animalId, content);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,15 +1,13 @@
 from django.contrib import admin
 from django.urls import path, include
-from myapp.views import home  # 匯入 home view
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/animals/', include('myapp.urls')),
-    path('', home, name='home'),
+    # 導入 myapp 的 URL 設定
+    path('', include('myapp.urls')),
 ]
-
-from django.conf import settings
-from django.conf.urls.static import static
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

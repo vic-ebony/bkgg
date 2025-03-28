@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>班表上傳</title>
+</head>
+<body>
+    <h1>上傳班表圖片</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="hall">選擇館別：</label>
+        <select name="hall" required>
+            {% for hall in halls %}
+                <option value="{{ hall.id }}">{{ hall.name }}</option>
+            {% endfor %}
+        </select>
+        <br>
+
+        <label for="schedule_image">選擇班表圖片：</label>
+        <input type="file" name="schedule_image" required>
+        <br>
+
+        <button type="submit">上傳圖片</button>
+    </form>
+
+    {% if messages %}
+        <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
