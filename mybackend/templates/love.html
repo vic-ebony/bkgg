@@ -3,486 +3,744 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <!-- 讓網頁在各種裝置上適當縮放 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>動物園每日展示</title>
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"> -->
   <style>
-    /* 既有 CSS … */
-    /* 動物園內容區內左上角選單按鈕 */
+    /* 全站基本設定：字型、尺寸與背景 */
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden; /* 防止水平滾動 */
+      height: 100vh;
+      /* 處理瀏海屏安全區域 */
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+      box-sizing: border-box;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 16px; /* 基本字體大小 */
+      background: url('{% static "image/background.jpg" %}') no-repeat center center/cover;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6; /* 增加行高提升易讀性 */
+    }
+    *, *::before, *::after { box-sizing: inherit; }
+
+    /* 互動元素焦點樣式 */
+    a:focus, button:focus, input:focus, select:focus, textarea:focus {
+      outline: 2px solid dodgerblue;
+      outline-offset: 2px;
+    }
+    /* 僅鍵盤操作時顯示焦點輪廓 */
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+        outline: 2px solid dodgerblue;
+        outline-offset: 2px;
+    }
+
+
+    /* 右上角會員資訊 */
+    .user-info {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255,255,255,0.85); /* 稍微提高不透明度 */
+      padding: 0.5rem 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1rem; /* 略微加大 */
+      white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .user-info form { display: inline; }
+    .user-info button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: blue;
+      text-decoration: underline;
+      margin-left: 10px;
+      font-size: 1rem; /* 確保與周圍文字一致 */
+      padding: 0; /* 移除預設 padding */
+    }
+
+    /* 側邊欄與遮罩 */
     #menuBtn {
       position: absolute;
       top: 10px;
       left: 10px;
-      z-index: 1000;
-      padding: 8px 16px;
-      font-size: 24px;
-      background: #fff;
+      z-index: 1001; /* 比 user-info 低一點 */
+      padding: 0.5rem 0.8rem;
+      font-size: 1.8rem; /* 加大圖標 */
+      background: rgba(255,255,255,0.85);
       border: 1px solid #ccc;
       border-radius: 5px;
       cursor: pointer;
+      line-height: 1; /* 確保圖標垂直居中 */
     }
-    /* 遮罩層：背景漸變效果 */
     #overlay {
-      position: absolute;
+      position: fixed; /* 改為 fixed 以覆蓋整個 viewport */
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0,0,0,0.5); /* 加深遮罩 */
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.3s ease;
       z-index: 1000;
     }
-    #overlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    /* 側邊滑出面板 */
+    #overlay.open { opacity: 1; pointer-events: auto; }
     #sidePanel {
-      position: absolute;
+      position: fixed; /* 改為 fixed */
       top: 0;
-      left: -250px;
-      width: 250px;
+      left: -280px; /* 稍微加寬 */
+      width: 280px;
       height: 100%;
       background: #fff;
       transition: left 0.3s ease;
       z-index: 1002;
-      padding: 20px;
+      padding: 1.5rem; /* 增加內邊距 */
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      overflow-y: auto; /* 如果內容過長可以滾動 */
     }
-    #sidePanel.open {
-      left: 0;
-    }
+    #sidePanel.open { left: 0; }
     #sidePanel button {
       display: block;
       width: 100%;
-      margin-bottom: 10px;
-      padding: 10px;
+      margin-bottom: 0.8rem; /* 增加按鈕間距 */
+      padding: 0.8rem 1rem;
       border: none;
-      background: #f8f8f8;
-      font-size: 18px;
+      background: #f0f0f0; /* 淺灰色背景 */
+      font-size: 1.2rem; /* 加大字體 */
       text-align: left;
       cursor: pointer;
       border-radius: 5px;
+      transition: background-color 0.2s;
     }
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      height: 100vh;
-      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
-      box-sizing: border-box;
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      background: url('{% static "image/background.jpg" %}') no-repeat center center/cover;
-      display: flex;
-      flex-direction: column;
-      line-height: 1.5;
+    #sidePanel button:hover {
+      background-color: #e0e0e0;
     }
-    *, *::before, *::after {
-      box-sizing: inherit;
+
+    /* 待約清單按鈕與容器 */
+    #pendingListBtn {
+        /* 樣式繼承自 #sidePanel button */
+        position: relative; /* For count positioning if needed */
     }
+    #pendingListContainer {
+      border-top: 1px solid #ccc;
+      margin-top: 0.5rem;
+      padding-top: 0.8rem; /* 增加 padding */
+      max-height: 250px; /* 增加最大高度 */
+      overflow-y: auto;
+      display: none; /* 預設隱藏 */
+      font-size: 1.1rem; /* 待約項目字體 */
+    }
+     #pendingListContainer div { /* 待約項目樣式 */
+        padding: 0.4rem 0;
+        border-bottom: 1px dashed #eee; /* 分隔線 */
+     }
+     #pendingListContainer div:last-child {
+         border-bottom: none;
+     }
+
+    /* 主內容區 */
     .glass-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      flex-grow: 1; /* 佔據 html, body 剩餘空間 */
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
-      align-items: stretch;
-      overflow: hidden;
+      overflow: hidden; /* 防止內部元素溢出觸發滾動 */
+      position: relative; /* 為了 content 的絕對定位 */
     }
-    .glass-background {
-      display: none;
-    }
+
     .content {
       position: relative;
       z-index: 1;
-      background: #fff;
-      padding: 20px;
+      background: rgba(255, 255, 255, 0.95); /* 輕微透明感 */
+      padding: 1rem; /* 手機上稍微減少 padding */
       border-radius: 15px;
       width: 95%;
-      max-width: 800px;
-      margin: 20px auto;
+      max-width: 600px; /* 可略微增加最大寬度 */
+      margin: 1rem auto; /* 上下間距 */
       flex-grow: 1;
-      overflow: hidden;
-      animation: fadeInUp 1s forwards;
-      transform: translateZ(0);
-      will-change: opacity, transform;
-      background-clip: padding-box;
+      overflow: hidden; /* 內部滾動由子元素控制 */
       display: flex;
       flex-direction: column;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      /* backdrop-filter: blur(5px); /* 可選：增加玻璃模糊效果 */
+      /* -webkit-backdrop-filter: blur(5px); */
     }
-    @keyframes fadeInUp {
-      0% { opacity: 0; transform: translateY(20px) translateZ(0); }
-      100% { opacity: 1; transform: translateY(0) translateZ(0); }
-    }
+
+    /* 導覽列 */
     .hall-menu {
       display: flex;
-      overflow-x: auto;
-      gap: 10px;
+      overflow-x: auto; /* 水平滾動 */
+      gap: 0.75rem; /* 增加間隔 */
       background: transparent;
       border: 1px solid #ccc;
       border-radius: 10px;
-      padding: 0;
-      margin-bottom: 10px;
+      padding: 0.5rem; /* 增加內邊距 */
+      margin-bottom: 1rem; /* 增加下方間距 */
+      -webkit-overflow-scrolling: touch; /* iOS 滾動優化 */
     }
     .hall-menu a {
       flex-shrink: 0;
-      padding: 8px 12px;
+      padding: 0.6rem 1rem; /* 增加 padding */
       text-decoration: none;
-      color: #666;
+      color: #555; /* 加深顏色 */
       background: #fff;
-      border: none;
-      border-radius: 5px;
+      border: 1px solid #ddd; /* 添加細邊框 */
+      border-radius: 8px; /* 更圓潤的邊角 */
       white-space: nowrap;
-      transition: background 0.3s;
+      transition: background 0.3s, color 0.3s;
+      font-size: 1.05rem; /* 略微加大 */
     }
     .hall-menu a.active,
     .hall-menu a:hover {
-      background: #f8f8f8;
+      background: #e0f7fa; /* 活躍/懸停時的背景色 */
+      color: #007bff;
+      border-color: #bce8f1;
     }
+
+    /* 上方區：照片與介紹 */
     .top-section {
       display: flex;
-      align-items: stretch;
+      align-items: stretch; /* 確保子元素等高 */
       border: 1px solid #ccc;
       border-radius: 10px;
       overflow: hidden;
-      margin-bottom: 10px;
+      margin-bottom: 1rem; /* 增加下方間距 */
+      background: #fff; /* 確保背景 */
+      min-height: 200px; /* 設置最小高度 */
     }
     .photo-area {
-      flex: 0 0 60%;
-      height: 300px;
+      flex: 0 0 45%; /* 照片區域稍微小一點 */
+      min-height: 200px; /* 同上 */
       display: flex;
       align-items: center;
       justify-content: center;
       border-right: 1px solid #ccc;
-      background: #fff;
-      padding: 10px;
+      padding: 0.75rem;
     }
     .photo-area img {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
+      display: block; /* 避免圖片下方小間隙 */
+      border-radius: 5px; /* 圖片加圓角 */
     }
-    /* 介紹區：右側，分上下兩欄 */
+    .photo-area p { /* '尚無照片' 提示樣式 */
+      color: #888;
+      font-size: 1.1rem;
+    }
     .intro-area {
-      flex: 0 0 40%;
-      padding: 20px;
+      flex: 0 0 55%; /* 介紹區域稍大 */
+      padding: 1rem; /* 增加內邊距 */
       display: flex;
       flex-direction: column;
+      min-height: 200px; /* 同上 */
+      overflow: hidden; /* 防止內部溢出 */
     }
     .intro-top {
-      flex: 4; /* 約80% */
-      /* 移除預設文字內容 */
-      /* 目前不做自動更新，由資料庫未來提供 */
+      flex: 1;
+      overflow-y: auto; /* 介紹文字過長時可滾動 */
+      -webkit-overflow-scrolling: touch; /* iOS 滾動優化 */
+      font-size: 1.05rem; /* 介紹文字大小 */
+      color: #333;
     }
-    .intro-bottom {
-      flex: 1; /* 約20% */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    .intro-top p { margin: 0; }
+
+
     .page-title {
       text-align: center;
-      margin-bottom: 10px;
-      color: #666;
-      font-size: 2rem;
+      margin-bottom: 1rem; /* 增加下方間距 */
+      color: #555;
+      font-size: 1.8rem; /* 加大標題 */
+      font-weight: bold;
     }
+
+    /* 表格區 */
     .table-wrapper {
-      margin-top: 10px;
+      margin-top: 0; /* 移除與上方 nav 的間距，因 nav 已有 margin-bottom */
       background: #fff;
-      border: none;
+      border: none; /* 移除外層 border */
       border-radius: 0;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      flex: 1;
+      flex: 1; /* 佔滿 content 剩餘空間 */
+      min-height: 0; /* 解決 flex 佈局滾動問題 */
     }
     .header-table {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
+      table-layout: fixed; /* 固定佈局，確保寬度設定生效 */
+      flex-shrink: 0; /* 防止表頭被壓縮 */
     }
     .header-table th {
-      padding: 8px;
-      border: none;
-      text-align: center;
-      background: #e0f7fa;
+      padding: 0.75rem 0.5rem; /* 增加垂直 padding */
+      border-bottom: 2px solid #ccc; /* 加強底部邊框 */
+      text-align: left;
+      background: #e9ecef; /* 標頭背景色 */
       white-space: normal;
-      word-break: break-all;
+      word-break: break-word; /* 自動換行 */
       overflow-wrap: break-word;
-      line-height: 1.5;
+      line-height: 1.4; /* 適當行高 */
       vertical-align: middle;
-      font-size: 17px;
-      color: #666;
-      font-weight: normal;
+      font-size: 1.1rem; /* 加大標頭字體 */
+      color: #495057; /* 標頭文字顏色 */
+      font-weight: bold; /* 加粗標頭 */
     }
-    .header-table th:nth-child(1),
-    .body-table td:nth-child(1) {
-      width: 6ch;
-    }
-    .header-table th:nth-child(2),
-    .body-table td:nth-child(2) {
-      width: 9em;
-    }
+
+    /* 使用百分比定義欄寬，更具彈性 */
+    .header-table th:nth-child(1), /* 台費 */
+    .body-table td:nth-child(1) { width: 15%; text-align: center;}
+    .header-table th:nth-child(2), /* 美容師 */
+    .body-table td:nth-child(2) { width: 50%; }
+    .header-table th:nth-child(3), /* 時段 */
+    .body-table td:nth-child(3) { width: 35%; }
+
     .body-wrapper {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
+      flex: 1; /* 佔滿 table-wrapper 剩餘空間 */
+      min-height: 0; /* 解決 flex 佈局滾動問題 */
+      overflow-y: auto; /* 內容超出時垂直滾動 */
+      overflow-x: auto; /* 內容超出時水平滾動 (保險起見) */
+      -webkit-overflow-scrolling: touch; /* iOS 滾動優化 */
+      border-bottom: 1px solid #dee2e6; /* 底部加一條線 */
     }
     .body-table {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
+      table-layout: fixed; /* 固定佈局，與表頭對應 */
     }
     .body-table td {
-      padding: 8px;
-      border: 1px solid #ccc;
+      padding: 0.75rem 0.5rem; /* 增加垂直 padding */
+      border-top: 1px solid #dee2e6; /* 使用更淺的分割線 */
       text-align: left;
       white-space: normal;
-      word-break: break-all;
+      word-break: break-word;
       overflow-wrap: break-word;
       background: #fff;
-      line-height: 1.5;
-      vertical-align: middle;
-      font-size: 18px;
-      color: #666;
+      line-height: 1.5; /* 確保行高 */
+      vertical-align: middle; /* 垂直居中 */
+      font-size: 1.15rem; /* 加大內容字體 */
+      color: #444; /* 加深內容顏色 */
     }
-    .body-table tr:hover {
-      background: #f8f8f8;
-      cursor: pointer;
-    }
-    .time-slot {
-      display: inline-block;
-    }
-    /* 修改：美容師欄位加入 relative 以供內部按鈕絕對定位 */
+    .body-table tr:hover { background: #f8f9fa; cursor: pointer; }
+    .time-slot { display: inline-block; margin-right: 0.3em; } /* 時段微調 */
+
     .beautician-cell {
-      position: relative;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: flex-start;
-      height: 100%;
-      text-align: left;
-    }
-    .beautician-cell .labels {
-      margin-bottom: 4px;
+      gap: 0.3rem; /* 標籤和文字間加點距離 */
     }
     .beautician-cell .labels .label {
       display: inline-block;
-      padding: 2px 4px;
+      padding: 0.2rem 0.4rem; /* 調整 padding */
       border-radius: 4px;
-      font-size: 12px;
+      font-size: 0.85rem; /* 加大標籤字體 */
       font-weight: bold;
       color: #fff;
-      margin-right: 2px;
+      margin-right: 0.25rem;
+      line-height: 1.2; /* 調整行高 */
     }
-    .beautician-cell .labels .newcomer { background: rgba(40,167,69,0.5); }
-    .beautician-cell .labels .hot { background: rgba(220,53,69,0.5); }
-    .beautician-cell .labels .exclusive { background: rgba(111,66,193,0.5); }
+    .beautician-cell .labels .newcomer { background: rgba(40, 167, 69, 0.8); } /* 加深透明度 */
+    .beautician-cell .labels .hot { background: rgba(220, 53, 69, 0.8); }
+    .beautician-cell .labels .exclusive { background: rgba(111, 66, 193, 0.8); }
+
     .beautician-text .name-size-line {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: baseline; /* 基線對齊 */
       width: 100%;
+      gap: 0.5rem; /* 名字和大小間加點距離 */
     }
     .name-container .name {
-      font-size: 18px;
-      color: #333;
+        font-size: 1.25rem; /* 加大名字 */
+        color: #212529; /* 更深的黑色 */
+        font-weight: 500; /* 中等粗細 */
+        flex-grow: 1; /* 讓名字佔據更多空間 */
+        word-break: break-all; /* 需要時換行 */
     }
     .size-container .size {
-      font-size: 16px;
-      color: #666;
+        font-size: 1rem; /* 大小字體 */
+        color: #888; /* 淺灰色 */
+        white-space: nowrap; /* 防止大小換行 */
+        flex-shrink: 0; /* 防止被壓縮 */
     }
-    /* 表格內的心得與＋按鈕容器 */
+
     .review-actions {
       display: flex;
       align-items: center;
+      margin-top: 0.4rem; /* 與上方文字的間距 */
+      gap: 0.6rem; /* 按鈕間距 */
     }
     .review-box {
       display: inline-flex;
       align-items: center;
-      background: rgba(128,128,128,0.1);
-      color: #666;
-      padding: 6px 6px;
-      border-radius: 8px;
+      background: #f0f0f0; /* 淺灰背景 */
+      color: #555; /* 文字顏色 */
+      padding: 0.25rem 0.5rem; /* 調整 padding */
+      border-radius: 12px; /* 更圓的邊角 */
       cursor: pointer;
-      font-size: 14px;
+      font-size: 1rem; /* 加大心得按鈕字體 */
       user-select: none;
       transition: background 0.3s;
       border: 1px solid #ccc;
+      min-width: 70px; /* 最小寬度，避免數字變化時跳動 */
+      justify-content: center; /* 內容居中 */
     }
+     .review-box:hover {
+        background: #e0e0e0;
+     }
     .review-box .count {
-      margin-left: 5px;
-      font-weight: normal;
-      color: #666;
+        margin-left: 0.3rem;
+        font-weight: bold; /* 加粗數字 */
+        color: #333; /* 數字顏色 */
     }
-    /* 原本的圓形 + 按鈕樣式 */
     .circle-btn {
-      width: 28px;
+      width: 28px; /* 加大按鈕 */
       height: 28px;
       border-radius: 50%;
-      border: none;
-      background-color: #f8f8f8;
-      font-size: 18px;
+      border: 1px solid #ccc; /* 加邊框 */
+      background-color: #fff;
+      font-size: 1.4rem; /* 加大加號 */
       line-height: 1;
-      color: #666;
+      color: #888; /* 灰色加號 */
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: background-color 0.2s, color 0.2s;
     }
-    /* 新增：懸浮在美容師欄位內右上角的 + 按鈕容器 */
-    .dropdown.floating-dropdown {
-      position: absolute;
-      top: 0;
-      right: 0;
+    .circle-btn:hover {
+        background-color: #f0f0f0;
+        color: #555;
     }
-    /* 下拉選單相關 */
-    .dropdown {
-      position: relative;
-      display: inline-block;
-    }
+
+    /* 下拉選單 */
     .dropdown-menu {
-      display: none;
-      position: absolute;
-      top: 35px;
-      right: 0;
       background: #fff;
       border: 1px solid #ccc;
       border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      z-index: 1000;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+      z-index: 1100;
+      position: absolute;
+      display: none;
+      min-width: 120px; /* 最小寬度 */
+      padding: 0.5rem 0; /* 上下 padding */
     }
     .dropdown-menu button {
       display: block;
       width: 100%;
-      padding: 10px;
-      background: #fff;
+      padding: 0.6rem 1.2rem; /* 調整 padding */
+      background: none;
       border: none;
       text-align: left;
       cursor: pointer;
+      font-size: 1.05rem; /* 選單項字體 */
+      color: #333;
+      white-space: nowrap;
     }
     .dropdown-menu button:hover {
-      background: #f8f8f8;
+      background: #f8f9fa;
     }
-    @media (max-width: 480px) {
-      .content { padding: 10px; }
-      .photo-area { height: 200px; }
-      .intro-area { padding: 10px; }
+
+    /* 心得卡片樣式 */
+    .review-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.2rem; /* 增加 padding */
+      margin-bottom: 1rem;
+      background: #fff; /* 白色背景 */
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
-    /* 登入模態框 */
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start; /* 頂部對齊 */
+      border-bottom: 1px solid #eee; /* 淺色分隔線 */
+      padding-bottom: 0.8rem; /* 增加底部 padding */
+      margin-bottom: 1rem;
+      font-size: 1rem; /* 頭部文字大小 */
+      color: #555;
+    }
+    .review-user-info { display: flex; flex-direction: column; gap: 0.2rem; }
+    .review-user { color: #333; font-weight: bold; }
+    .review-total { font-size: 0.9rem; color: #666; }
+    .review-date { font-size: 0.9rem; color: #888; white-space: nowrap; }
+    .review-body { display: flex; flex-direction: column; gap: 0.8rem; /* 增加行間距 */ }
+    .review-line {
+      display: flex;
+      align-items: flex-start; /* 標籤與值頂部對齊 */
+      font-size: 1.05rem; /* 內容文字大小 */
+      line-height: 1.5; /* 確保行高 */
+    }
+    .review-label {
+      flex: 0 0 60px; /* 標籤固定寬度 */
+      font-weight: bold;
+      color: #333;
+    }
+    .review-value {
+      flex: 1;
+      overflow-wrap: break-word;
+      word-break: break-word; /* break-all 可能太強制 */
+      color: #555;
+      white-space: pre-wrap; /* 保留換行和空格 */
+    }
+
+    /* Modal 通用樣式 */
     .modal {
       display: none;
       position: fixed;
-      z-index: 10;
+      z-index: 1050; /* 提高層級 */
       left: 0;
       top: 0;
       width: 100%;
       height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.4);
+      overflow: hidden; /* 防止 modal 本身滾動 */
+      background-color: rgba(0, 0, 0, 0.6); /* 加深背景 */
     }
     .modal-content {
-      background-color: #fefefe;
-      margin: 5% auto;
-      padding: 20px;
-      border-radius: 8px;
-      width: 90%;
+      background-color: #fff;
+      margin: 1rem auto; /* 調整邊距 */
+      padding: 1.5rem; /* 增加 padding */
+      border-radius: 10px; /* 圓角 */
+      width: 95%;
       max-width: 600px;
+      height: calc(100vh - 2rem); /* 計算高度，留出邊距 */
+      max-height: calc(100vh - 2rem); /* 確保最大高度 */
+      display: flex;
+      flex-direction: column;
+      overflow: hidden; /* 內部滾動由子元素控制 */
       position: relative;
-      border: 1px solid rgba(0, 0, 0, 0.2);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .modal h2 { /* Modal 標題樣式 */
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        font-size: 1.6rem;
+        color: #333;
+        text-align: center;
+    }
+    /* Modal 內部滾動區域 */
+    #reviewList {
+      flex: 1; /* 佔據剩餘空間 */
+      overflow-y: auto; /* 允許滾動 */
+      -webkit-overflow-scrolling: touch;
+      padding-right: 0.5rem; /* 給滾動條留點空間 */
+      margin: 0 0 1rem 0; /* 調整 margin */
+    }
+    #reviewForm { /* 表單也應該能滾動 */
+       flex: 1;
+       overflow-y: auto;
+       -webkit-overflow-scrolling: touch;
+       padding: 0.5rem;
     }
     .close-modal {
       position: absolute;
-      top: 10px;
+      top: 15px; /* 微調位置 */
       right: 15px;
-      font-size: 28px;
+      font-size: 2rem; /* 加大關閉按鈕 */
       font-weight: bold;
       cursor: pointer;
-      color: #666;
+      color: #888; /* 顏色 */
+      line-height: 1;
+      padding: 0.2rem; /* 增加點擊區域 */
     }
-    .form-group {
-      margin-bottom: 15px;
+    .close-modal:hover {
+      color: #333;
     }
+
+    /* 表單元素樣式 */
+    .form-group { margin-bottom: 1.2rem; /* 增加間距 */ }
     .form-group label {
       display: block;
-      margin-bottom: 5px;
+      margin-bottom: 0.5rem; /* 標籤與輸入框間距 */
       font-weight: bold;
+      font-size: 1.05rem; /* 標籤字體 */
+      color: #495057;
     }
     .form-group input[type="text"],
     .form-group input[type="password"],
+    .form-group input[type="number"],
     .form-group textarea,
     .form-group select {
       width: 100%;
-      padding: 8px;
+      padding: 0.75rem; /* 增加 padding */
       box-sizing: border-box;
-      border: 1px solid rgba(0,0,0,0.2);
-      border-radius: 4px;
+      border: 1px solid #ced4da; /* 邊框顏色 */
+      border-radius: 5px; /* 圓角 */
+      font-size: 1.05rem; /* 輸入文字大小 */
+      line-height: 1.5;
+      background-color: #fff;
+      transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
     }
-    .form-group textarea { resize: vertical; }
-    input:focus, textarea:focus, select:focus {
-      outline: none;
-      border-color: #999;
-      box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: #80bdff;
+      outline: 0;
+      box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
     }
-    button {
-      padding: 8px 12px;
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px; /* 最小高度 */
+    }
+    .form-group input[type="number"] { /* 針對數字輸入框 */
+      -moz-appearance: textfield;
+    }
+    .form-group input::-webkit-outer-spin-button,
+    .form-group input::-webkit-inner-spin-button { /* 隱藏數字輸入框的上下箭頭 */
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* 表單按鈕 */
+    .modal-content button[type="submit"] {
+      display: block; /* 獨佔一行 */
+      width: 100%;
+      padding: 0.8rem 1rem;
       border: none;
       border-radius: 5px;
-      background: #fff;
+      background: #007bff; /* 主題藍色 */
+      color: white;
+      font-size: 1.2rem; /* 加大提交按鈕字體 */
       cursor: pointer;
-      transition: background 0.3s;
+      transition: background-color 0.3s;
+      margin-top: 1.5rem; /* 與上方元素間距 */
     }
-    button:hover { background: #f8f8f8; }
+    .modal-content button[type="submit"]:hover {
+      background: #0056b3; /* 加深懸停顏色 */
+    }
+    /* 勾選框組 */
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem; /* 增加選項間距 */
+    }
+    .checkbox-group label {
+      cursor: pointer;
+      display: inline-flex; /* 讓 input 和文字對齊 */
+      align-items: center;
+      gap: 0.4rem; /* input 和文字的間距 */
+      font-size: 1rem; /* 選項文字大小 */
+      font-weight: normal; /* 非粗體 */
+      color: #333;
+    }
+     .checkbox-group input[type="checkbox"] {
+        width: 1.2em; /* 增大勾選框 */
+        height: 1.2em;
+        cursor: pointer;
+     }
+
+    /* 手機橫屏或小平板優化 */
+    @media (min-width: 481px) and (max-width: 768px) {
+      .content {
+        padding: 1.2rem;
+      }
+       .photo-area { flex-basis: 40%; }
+       .intro-area { flex-basis: 60%; }
+       .header-table th:nth-child(1), .body-table td:nth-child(1) { width: 12%; }
+       .header-table th:nth-child(2), .body-table td:nth-child(2) { width: 53%; }
+       .header-table th:nth-child(3), .body-table td:nth-child(3) { width: 35%; }
+    }
+
+    /* 非常小的手機屏幕 */
+    @media (max-width: 480px) {
+      .content { padding: 0.8rem; }
+      .photo-area, .intro-area { min-height: 180px; /* 減小高度 */ }
+      .intro-area { padding: 0.8rem; }
+      .page-title { font-size: 1.6rem; }
+      .header-table th { font-size: 1rem; padding: 0.6rem 0.4rem; }
+      .body-table td { font-size: 1.05rem; padding: 0.6rem 0.4rem; }
+      .name-container .name { font-size: 1.15rem; }
+      .size-container .size { font-size: 0.9rem; }
+      .review-box { font-size: 0.9rem; min-width: 60px; padding: 0.2rem 0.4rem;}
+      .circle-btn { width: 24px; height: 24px; font-size: 1.2rem; }
+      .modal-content { padding: 1rem; }
+      .modal h2 { font-size: 1.4rem; }
+      .form-group label, .form-group input, .form-group textarea, .form-group select { font-size: 1rem; padding: 0.6rem; }
+      .checkbox-group label { font-size: 0.95rem; }
+      .modal-content button[type="submit"] { font-size: 1.1rem; padding: 0.7rem; }
+
+      /* 在非常窄的屏幕上，照片和介紹垂直堆疊 */
+       .top-section {
+          flex-direction: column;
+       }
+       .photo-area {
+         flex-basis: auto; /* 取消 basis */
+         width: 100%; /* 佔滿寬度 */
+         border-right: none;
+         border-bottom: 1px solid #ccc; /* 加底部邊框 */
+         min-height: 180px; /* 保留最小高度 */
+         padding: 0.5rem;
+       }
+       .intro-area {
+         flex-basis: auto; /* 取消 basis */
+         width: 100%; /* 佔滿寬度 */
+         min-height: 150px; /* 可以稍微小一點 */
+         padding: 0.8rem;
+       }
+       .intro-top {
+         font-size: 1rem; /* 調整字體大小 */
+       }
+    }
   </style>
 </head>
 <body>
+  {% if user.is_authenticated %}
+  <div class="user-info">
+    <span>登入中：{{ user.first_name|default:user.username }}</span>
+    <form action="{% url 'logout' %}" method="post" style="display: inline;">
+      {% csrf_token %}
+      <button type="submit">登出</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <button id="menuBtn" aria-label="打開選單">≡</button>
+  <div id="overlay"></div>
+  <div id="sidePanel">
+    <button>每日班表</button>
+    <button>每週班表</button>
+    <button>最新心得</button>
+    <button>找美容師</button>
+    <button>最愛清單</button>
+    <button id="pendingListBtn" data-count="0">待約清單 (0)</button>
+    <!-- 待約清單容器 -->
+    <div id="pendingListContainer">
+      <!-- 新增的待約美容師項目會顯示在這裡 -->
+    </div>
+    {% if not user.is_authenticated %}
+      <button id="loginBtn">會員登入</button>
+    {% endif %}
+  </div>
+
   <div class="glass-overlay">
-    <div class="glass-background"></div>
     <div class="content">
-      <!-- 遮罩層 -->
-      <div id="overlay"></div>
-      <!-- 側邊面板 -->
-      <div id="sidePanel">
-        <button>每日班表</button>
-        <button>每週班表</button>
-        <button>最新心得</button>
-        <button>找美容師</button>
-        <button>最愛清單</button>
-        <button>待約清單</button>
-        <button id="loginBtn">會員登入</button>
-      </div>
-      <!-- 左上角選單按鈕 -->
-      <button id="menuBtn">≡</button>
       <div class="page-title">每日班表</div>
-      <!-- 上方區：左側照片、右側介紹區 -->
       <section class="top-section">
         <div class="photo-area" id="photoArea">
           {% if animals|length > 0 and animals.0.photo %}
             <img src="{{ animals.0.photo.url }}" alt="{{ animals.0.name }}">
           {% else %}
-            <img src="{% static 'image/animal_default.jpg' %}" alt="預設照片">
+            <p>尚無照片</p>
           {% endif %}
         </div>
         <div class="intro-area" id="introArea">
-          <!-- 上方80%：介紹內容，先暫時不填入資料 -->
-          <div class="intro-top"></div>
-          <!-- 下方20%：放置 + 按鈕，置中對齊（此處不採用懸浮效果）-->
-          <div class="intro-bottom">
-            <div class="dropdown">
-              <button class="circle-btn">+</button>
-              <div class="dropdown-menu">
-                <button class="dropdown-item" onclick="addToFavorites('intro')">新增最愛名單</button>
-                <button class="dropdown-item" onclick="addToPending('intro')">新增待約名單</button>
-              </div>
-            </div>
+          <div class="intro-top">
+            {% if animals|length > 0 %}
+              <p id="introductionContent">{{ animals.0.introduction|default:'尚無介紹'|linebreaksbr }}</p>
+            {% else %}
+              <p id="introductionContent">尚無介紹</p>
+            {% endif %}
           </div>
         </div>
       </section>
-      <!-- 導覽列 -->
       <nav class="hall-menu">
         <a href="{% url 'home' %}" class="{% if not request.GET.hall_id %}active{% endif %}">全部</a>
         {% for hall in halls %}
@@ -491,7 +749,7 @@
           </a>
         {% endfor %}
       </nav>
-      <!-- 表格區 -->
+
       <div class="table-wrapper">
         <table class="header-table">
           <thead>
@@ -506,12 +764,24 @@
           <table class="body-table" id="animalTable">
             <tbody>
               {% for animal in animals %}
-              <tr data-photo="{% if animal.photo %}{{ animal.photo.url }}{% else %}{% static 'image/animal_default.jpg' %}{% endif %}"
-                  data-intro="台費：{{ animal.fee }}｜美容師：{{ animal.name }} {{ animal.size_display }}｜時段：{{ animal.time_slot }}">
+              <tr data-photo="{% if animal.photo %}{{ animal.photo.url }}{% else %}尚無照片{% endif %}"
+                  data-intro="{{ animal.introduction|default:'尚無介紹'|escapejs }}"
+                  data-animal-id="{{ animal.id }}"
+                  data-animal-name="{{ animal.name|escapejs }}">
                 <td>{{ animal.fee }}</td>
                 <td>
                   <div class="beautician-cell">
-                    <div class="labels"></div>
+                    <div class="labels">
+                      {% if animal.is_newcomer %}
+                        <span class="label newcomer">新人</span>
+                      {% endif %}
+                      {% if animal.is_hot %}
+                        <span class="label hot">熱門</span>
+                      {% endif %}
+                      {% if animal.is_exclusive %}
+                        <span class="label exclusive">獨家</span>
+                      {% endif %}
+                    </div>
                     <div class="beautician-text">
                       <div class="name-size-line">
                         <div class="name-container">
@@ -521,177 +791,852 @@
                           <span class="size">{{ animal.size_display }}</span>
                         </div>
                       </div>
-                      <!-- 表格內心得按鈕 -->
                       <div class="review-actions">
-                        <div class="review-box" id="reviewBox-{{ animal.id }}">
-                          心得 <span class="count">2</span>
+                        <div class="review-box" data-animal-id="{{ animal.id }}">
+                          心得 <span class="count">{{ animal.approved_review_count }}</span>
                         </div>
-                      </div>
-                    </div>
-                    <!-- 新增：懸浮在美容師欄位內右上角的 + 按鈕 -->
-                    <div class="dropdown floating-dropdown">
-                      <button class="circle-btn">+</button>
-                      <div class="dropdown-menu">
-                        <button class="dropdown-item" onclick="addToFavorites('{{ animal.id }}')">新增最愛名單</button>
-                        <button class="dropdown-item" onclick="addToPending('{{ animal.id }}')">新增待約名單</button>
+                        <button class="circle-btn plus-menu-btn" aria-label="更多選項">+</button>
                       </div>
                     </div>
                   </div>
                 </td>
                 <td class="time-cell">{{ animal.time_slot }}</td>
               </tr>
+              {% empty %}
+              <tr>
+                  <td colspan="3" style="text-align: center; padding: 2rem; color: #888;">目前沒有符合條件的班表資訊。</td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
+
+      {% if login_error %}
+      <div style="color: red; text-align: center; margin-top: 1rem;">{{ login_error }}</div>
+      {% endif %}
     </div>
   </div>
-  <!-- 登入模態框 -->
-  <div id="loginModal" class="modal">
+
+  <!-- 登入 Modal -->
+  <div id="loginModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
     <div class="modal-content">
-      <span class="close-modal" id="closeLoginModal">&times;</span>
-      <h2>會員登入</h2>
-      <form id="loginForm">
+      <span class="close-modal" id="closeLoginModal" aria-label="關閉">×</span>
+      <h2 id="loginModalTitle">會員登入</h2>
+      <form id="loginForm" action="{% url 'login' %}" method="POST">
+        {% csrf_token %}
         <div class="form-group">
           <label for="username">帳號：</label>
-          <input type="text" id="username" name="username" placeholder="請輸入帳號">
+          <input type="text" id="username" name="username" placeholder="請輸入帳號" required>
         </div>
         <div class="form-group">
           <label for="password">密碼：</label>
-          <input type="password" id="password" name="password" placeholder="請輸入密碼">
+          <input type="password" id="password" name="password" placeholder="請輸入密碼" required>
         </div>
         <button type="submit">登入</button>
       </form>
     </div>
   </div>
+
+  <!-- 心得 Modal -->
+  <div id="reviewModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="reviewModalTitle">
+    <div class="modal-content">
+      <span class="close-modal" id="closeReviewModal" aria-label="關閉">×</span>
+      <h2 id="reviewModalTitle">心得評論</h2>
+      <!-- 心得列表 -->
+      <div id="reviewList">
+          <p style="text-align: center; color: #888;">正在載入心得...</p>
+      </div>
+      <!-- 心得表單 (預設隱藏) -->
+      <form id="reviewForm" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" name="animal_id" id="reviewAnimalId"> <!-- 隱藏欄位傳遞 animal_id -->
+        <!-- 年紀 -->
+        <div class="form-group">
+          <label for="age">年紀</label>
+          <input type="number" id="age" name="age" placeholder="請輸入大約年紀數字, 不可有中文字" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <!-- 顏值 -->
+        <div class="form-group">
+          <label for="looks">顏值</label>
+          <select id="looks" name="looks">
+            <option value="">請選擇</option>
+            <option value="S級 (一見難忘)">S級 (一見難忘)</option>
+            <option value="A級 (出眾)">A級 (出眾)</option>
+            <option value="B級 (優異)">B級 (優異)</option>
+            <option value="C級 (中上)">C級 (中上)</option>
+            <option value="D級 (大眾)">D級 (大眾)</option>
+            <option value="E級 (較平凡)">E級 (較平凡)</option>
+          </select>
+        </div>
+        <!-- 臉蛋（勾選框，最多選3個） -->
+        <div class="form-group">
+          <label>臉蛋（最多選3個）</label>
+          <div id="faceCheckboxes" class="checkbox-group">
+             <!-- Checkbox options -->
+            <label><input type="checkbox" name="face" value="醫美"> 醫美</label>
+            <label><input type="checkbox" name="face" value="可愛"> 可愛</label>
+            <label><input type="checkbox" name="face" value="甜美"> 甜美</label>
+            <label><input type="checkbox" name="face" value="稚嫩"> 稚嫩</label>
+            <label><input type="checkbox" name="face" value="呆萌"> 呆萌</label>
+            <label><input type="checkbox" name="face" value="清秀"> 清秀</label>
+            <label><input type="checkbox" name="face" value="清純"> 清純</label>
+            <label><input type="checkbox" name="face" value="仙氣"> 仙氣</label>
+            <label><input type="checkbox" name="face" value="艷麗"> 艷麗</label>
+            <label><input type="checkbox" name="face" value="性感"> 性感</label>
+            <label><input type="checkbox" name="face" value="古典"> 古典</label>
+            <label><input type="checkbox" name="face" value="個性"> 個性</label>
+            <label><input type="checkbox" name="face" value="鄰家"> 鄰家</label>
+            <label><input type="checkbox" name="face" value="大眾"> 大眾</label>
+            <label><input type="checkbox" name="face" value="平凡"> 平凡</label>
+            <label><input type="checkbox" name="face" value="單眼皮"> 單眼皮</label>
+            <label><input type="checkbox" name="face" value="輕熟"> 輕熟</label>
+            <label><input type="checkbox" name="face" value="熟女"> 熟女</label>
+          </div>
+        </div>
+        <!-- 氣質（勾選框，最多選3個） -->
+        <div class="form-group">
+          <label>氣質（最多選3個）</label>
+          <div id="temperamentCheckboxes" class="checkbox-group">
+            <!-- Checkbox options -->
+            <label><input type="checkbox" name="temperament" value="優雅"> 優雅</label>
+            <label><input type="checkbox" name="temperament" value="成熟"> 成熟</label>
+            <label><input type="checkbox" name="temperament" value="清新"> 清新</label>
+            <label><input type="checkbox" name="temperament" value="自然"> 自然</label>
+            <label><input type="checkbox" name="temperament" value="禮貌"> 禮貌</label>
+            <label><input type="checkbox" name="temperament" value="女友感"> 女友感</label>
+            <label><input type="checkbox" name="temperament" value="女人味"> 女人味</label>
+            <label><input type="checkbox" name="temperament" value="OL"> OL</label>
+            <label><input type="checkbox" name="temperament" value="台妹"> 台妹</label>
+            <label><input type="checkbox" name="temperament" value="普通"> 普通</label>
+          </div>
+        </div>
+        <!-- 體態 -->
+        <div class="form-group">
+          <label for="physique">體態</label>
+          <select id="physique" name="physique">
+             <option value="">請選擇體態</option>
+             <option value="骨感">骨感</option>
+             <option value="瘦">瘦</option>
+             <option value="瘦有肉">瘦有肉</option>
+             <option value="標準">標準</option>
+             <option value="曲線迷人">曲線迷人</option>
+             <option value="瘦偏肉">瘦偏肉</option>
+             <option value="微肉">微肉</option>
+             <option value="棉花糖">棉花糖</option>
+          </select>
+        </div>
+        <!-- 罩杯 -->
+        <div class="form-group">
+          <label for="cup">罩杯</label>
+          <select id="cup" name="cup">
+             <option value="">請選擇</option>
+             <option value="天然">天然</option>
+             <option value="醫美">醫美</option>
+             <option value="自體醫美">自體醫美</option>
+             <option value="不確定">不確定</option>
+          </select>
+          <input type="text" id="cup_size" name="cup_size" placeholder="請填寫罩杯大約大小 A~L英文字母" style="margin-top:0.5rem;" pattern="[A-L a-l]{1}" maxlength="1">
+        </div>
+        <!-- 膚質 -->
+        <div class="form-group">
+            <label for="skin_texture">膚質</label>
+            <select id="skin_texture" name="skin_texture">
+                <option value="">請選擇</option>
+                <option value="絲滑">絲滑</option>
+                <option value="還不錯">還不錯</option>
+                <option value="正常">正常</option>
+                <option value="普通">普通</option>
+            </select>
+        </div>
+        <!-- 膚色 -->
+        <div class="form-group">
+            <label for="skin_color">膚色</label>
+            <select id="skin_color" name="skin_color">
+                <option value="">請選擇</option>
+                <option value="白皙">白皙</option>
+                <option value="偏白">偏白</option>
+                <option value="正常黃">正常黃</option>
+                <option value="偏黃">偏黃</option>
+                <option value="健康黑">健康黑</option>
+            </select>
+        </div>
+        <!-- 音樂 -->
+        <div class="form-group">
+          <label for="music">音樂</label>
+          <select id="music" name="music">
+             <option value="">請選擇</option>
+             <option value="未詢問">未詢問</option>
+             <option value="無此服務">無此服務</option>
+             <option value="可加值">可加值 (費用待填)</option>
+             <option value="自談">可加值 (自談)</option>
+          </select>
+          <input type="number" id="music_price" name="music_price" placeholder="請填寫大約金額數字, 不可有中文字" style="display:none; margin-top:0.5rem;" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <!-- 體育 -->
+        <div class="form-group">
+          <label for="sports">體育</label>
+          <select id="sports" name="sports">
+             <option value="">請選擇</option>
+             <option value="未詢問">未詢問</option>
+             <option value="無此服務">無此服務</option>
+             <option value="可加值">可加值 (費用待填)</option>
+             <option value="自談">可加值 (自談)</option>
+             <option value="體含音">體含音</option>
+          </select>
+          <input type="number" id="sports_price" name="sports_price" placeholder="請填寫大約金額數字, 不可有中文字" style="display:none; margin-top:0.5rem;" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <!-- 尺度 -->
+        <div class="form-group">
+          <label>尺度</label>
+          <div id="scaleCheckboxes" class="checkbox-group">
+             <!-- Checkbox options -->
+            <label><input type="checkbox" name="scale" value="三光"> 三光</label>
+            <label><input type="checkbox" name="scale" value="兩光"> 兩光</label>
+            <label><input type="checkbox" name="scale" value="LG"> LG</label>
+            <label><input type="checkbox" name="scale" value="親"> 親</label>
+            <label><input type="checkbox" name="scale" value="舔"> 舔</label>
+            <label><input type="checkbox" name="scale" value="伸"> 伸</label>
+            <label><input type="checkbox" name="scale" value="摸"> 摸</label>
+            <label><input type="checkbox" name="scale" value="磨"> 磨</label>
+          </div>
+        </div>
+        <!-- 心得 -->
+        <div class="form-group">
+          <label for="content">心得</label>
+          <textarea name="content" id="content" placeholder="請填寫心得" rows="5" required></textarea>
+        </div>
+        <button type="submit" id="submitReviewBtn">提交評論</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 加號按鈕的下拉選單 (動態生成內容) -->
+  <div id="plusDropdown" class="dropdown-menu"></div>
+
+  <!-- <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script> -->
   <script>
-    // 同步表頭與表身欄位寬度
-    function syncTableColumnWidths() {
-      const headerTable = document.querySelector('.header-table');
-      const bodyTable = document.querySelector('.body-table');
-      const headerCells = headerTable.querySelectorAll('th');
-      const firstBodyRow = bodyTable.querySelector('tr');
-      if (!firstBodyRow) return;
-      const bodyCells = firstBodyRow.querySelectorAll('td');
-      headerCells.forEach((th, index) => {
-        const bodyCell = bodyCells[index];
-        const cellWidth = bodyCell.getBoundingClientRect().width;
-        th.style.width = cellWidth + "px";
-      });
+    // 取得 CSRF Token 函式
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
     }
-    // 處理時段欄：以 "." 分割，並包入 span
+
+    // 處理加值金額輸入框顯示/隱藏
+    function setupPriceInputToggle(selectId, inputId) {
+      const select = document.getElementById(selectId);
+      const input = document.getElementById(inputId);
+      if (!select || !input) return; // 確保元素存在
+
+      const toggle = () => {
+        // 修改此處條件以匹配新的選項值
+        if (select.value === "可加值") {
+          input.style.display = "block";
+          input.required = true; // 如果需要費用，設為必填
+        } else {
+          input.style.display = "none";
+          input.value = "";
+          input.required = false; // 非必填
+        }
+      };
+
+      select.addEventListener('change', toggle);
+      toggle(); // 初始化時執行一次
+    }
+
+
+    // 處理時段欄位：以 "." 分割並包入 span
     function processTimeSlotCells() {
-      document.querySelectorAll('.time-cell').forEach(function(td) {
-        let text = td.textContent.trim();
-        let tokens = text.split('.').filter(token => token.trim() !== '');
-        tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
-        td.innerHTML = tokens.join('');
-      });
+        const timeCells = document.querySelectorAll('.time-cell');
+        if (timeCells.length > 0) {
+            timeCells.forEach(function(td) {
+                let text = td.textContent.trim();
+                // 使用正則表達式分割，保留分隔符（點），同時處理多個點或空格
+                let tokens = text.split(/(\d{2}:\d{2}\.)/).filter(token => token && token.trim() !== '');
+                // 重新組合，確保每個 "HH:MM." 都在 span 裡
+                let formattedHtml = '';
+                for (let i = 0; i < tokens.length; i++) {
+                    if (/^\d{2}:\d{2}\.$/.test(tokens[i])) {
+                        formattedHtml += `<span class="time-slot">${tokens[i]}</span> `;
+                    } else {
+                        // 處理不是標準格式的部分，避免遺漏
+                        formattedHtml += tokens[i];
+                    }
+                }
+                td.innerHTML = formattedHtml.trim();
+            });
+        } else {
+            // console.log("No time cells found.");
+        }
     }
-    // 隨機產生標籤
-    function generateRandomLabels() {
-      const possibleLabels = [
-        { class: 'newcomer', text: '新人' },
-        { class: 'hot', text: '熱門' },
-        { class: 'exclusive', text: '獨家' }
-      ];
-      document.querySelectorAll('.beautician-cell').forEach(cell => {
-        let count = Math.floor(Math.random() * possibleLabels.length) + 1;
-        let labelsArr = possibleLabels.slice().sort(() => 0.5 - Math.random());
-        let labelsToShow = labelsArr.slice(0, count);
-        const labelsDiv = cell.querySelector('.labels');
-        if(labelsDiv){
-          labelsDiv.innerHTML = '';
-          labelsToShow.forEach(label => {
-            const span = document.createElement('span');
-            span.classList.add('label', label.class);
-            span.textContent = label.text;
-            labelsDiv.appendChild(span);
-          });
+
+
+    // 更新待約清單
+    function addToPendingList(animalId, beauticianName) {
+      const container = document.getElementById('pendingListContainer');
+      const pendingBtn = document.getElementById('pendingListBtn');
+      if (!container || !pendingBtn) return;
+
+      // 檢查是否已存在
+      if (container.querySelector(`[data-animal-id="${animalId}"]`)) {
+        alert(`${beauticianName} 已在待約清單中！`);
+        return;
+      }
+
+      // 創建新項目
+      const newItem = document.createElement('div');
+      newItem.textContent = beauticianName;
+      newItem.setAttribute('data-animal-id', animalId);
+      // 可以添加移除按鈕等
+      // const removeBtn = document.createElement('button');
+      // removeBtn.textContent = '移除';
+      // removeBtn.onclick = () => { removeFromPendingList(animalId); };
+      // newItem.appendChild(removeBtn);
+      container.appendChild(newItem);
+
+      // 更新計數
+      let count = parseInt(pendingBtn.getAttribute('data-count') || '0');
+      count++;
+      pendingBtn.setAttribute('data-count', count);
+      pendingBtn.textContent = `待約清單 (${count})`;
+
+      // 顯示清單容器 (如果目前是隱藏的)
+       if (container.style.display === 'none' || container.style.display === '') {
+           container.style.display = 'block';
+       }
+      alert(`${beauticianName} 已加入待約清單`); // 提供反饋
+    }
+
+    // 從待約清單移除 (如果需要移除功能)
+    // function removeFromPendingList(animalId) {
+    //   const container = document.getElementById('pendingListContainer');
+    //   const pendingBtn = document.getElementById('pendingListBtn');
+    //   const itemToRemove = container.querySelector(`[data-animal-id="${animalId}"]`);
+    //   if (itemToRemove) {
+    //     container.removeChild(itemToRemove);
+    //     let count = parseInt(pendingBtn.getAttribute('data-count') || '1');
+    //     count = Math.max(0, count - 1); // 確保不小於 0
+    //     pendingBtn.setAttribute('data-count', count);
+    //     pendingBtn.textContent = `待約清單 (${count})`;
+    //   }
+    // }
+
+    // 顯示加號按鈕的下拉選單
+    function showPlusDropdown(triggerBtn) {
+      const dropdown = document.getElementById('plusDropdown');
+      if (!dropdown) return;
+
+      // 清空舊內容
+      dropdown.innerHTML = "";
+
+      // 取得對應行的資料
+      const row = triggerBtn.closest('tr');
+      if (!row) return;
+      const animalId = row.getAttribute('data-animal-id');
+      const animalName = row.getAttribute('data-animal-name'); // 從 data attribute 獲取名字
+      const isLoggedIn = {{ user.is_authenticated|yesno:"true,false" }}; // 檢查用戶是否登入
+
+
+      // 創建按鈕
+      const btnReview = document.createElement('button');
+      btnReview.textContent = "填寫心得";
+      btnReview.onclick = (e) => {
+        e.stopPropagation(); // 防止觸發 body 的點擊事件
+        if (!isLoggedIn) {
+          alert('請先登入才能填寫心得。');
+          openLoginModal();
+          dropdown.style.display = 'none';
+          return;
+        }
+        openReviewModal(animalId, true); // 打開 Review Modal 並顯示表單
+        dropdown.style.display = 'none';
+      };
+
+      const btnAddWait = document.createElement('button');
+      btnAddWait.textContent = "加入待約";
+      btnAddWait.onclick = (e) => {
+        e.stopPropagation();
+         if (!isLoggedIn) {
+           alert('請先登入才能加入待約。');
+           openLoginModal();
+           dropdown.style.display = 'none';
+           return;
+         }
+        // *** 後端串接點：這裡可能需要發送請求到後端 ***
+        addToPendingList(animalId, animalName); // 調用前端更新函數
+        dropdown.style.display = 'none';
+      };
+
+      const btnAddNote = document.createElement('button');
+      btnAddNote.textContent = "加入筆記";
+      btnAddNote.onclick = (e) => {
+        e.stopPropagation();
+         if (!isLoggedIn) {
+           alert('請先登入才能加入筆記。');
+           openLoginModal();
+           dropdown.style.display = 'none';
+           return;
+         }
+        alert("加入筆記功能待開發"); // 提示功能未完成
+        dropdown.style.display = 'none';
+      };
+
+      // 加入按鈕到下拉選單
+      dropdown.appendChild(btnReview);
+      dropdown.appendChild(btnAddWait);
+      dropdown.appendChild(btnAddNote);
+
+      // 定位下拉選單
+      const rect = triggerBtn.getBoundingClientRect();
+      const contentRect = document.querySelector('.content').getBoundingClientRect();
+
+      // 計算相對位置
+      let top = rect.bottom - contentRect.top + window.scrollY;
+      let left = rect.left - contentRect.left + window.scrollX;
+
+      // 邊界檢測 (簡易版)
+      dropdown.style.display = 'block'; // 先顯示才能計算尺寸
+      const dropdownRect = dropdown.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      if (left + dropdownRect.width > viewportWidth - 20) { // 20px buffer
+          left = rect.right - contentRect.left + window.scrollX - dropdownRect.width;
+      }
+       if (top + dropdownRect.height > viewportHeight - 20) {
+           top = rect.top - contentRect.top + window.scrollY - dropdownRect.height;
+       }
+
+      dropdown.style.top = `${top}px`;
+      dropdown.style.left = `${left}px`;
+
+      // 點擊其他地方關閉下拉選單的監聽器 (只在打開時添加)
+      const closeDropdownHandler = (event) => {
+          if (!dropdown.contains(event.target) && event.target !== triggerBtn) {
+              dropdown.style.display = 'none';
+              document.body.removeEventListener('click', closeDropdownHandler, true); // 移除監聽器
+          }
+      };
+      // 使用捕獲階段確保能攔截到 body 上的點擊
+      document.body.addEventListener('click', closeDropdownHandler, true);
+    }
+
+
+    // 限制 Checkbox 最大選擇數量
+    function limitCheckboxSelection(containerId, max) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+
+      container.addEventListener('change', (event) => {
+        if (event.target.type === 'checkbox') {
+          const checked = container.querySelectorAll('input[type="checkbox"]:checked');
+          if (checked.length >= max) {
+            checkboxes.forEach(cb => {
+              if (!cb.checked) {
+                cb.disabled = true;
+              }
+            });
+          } else {
+            checkboxes.forEach(cb => {
+              cb.disabled = false;
+            });
+          }
         }
       });
     }
-    window.addEventListener('resize', syncTableColumnWidths);
-    document.addEventListener('DOMContentLoaded', function() {
-      syncTableColumnWidths();
-      processTimeSlotCells();
-      generateRandomLabels();
-      // 為表格列新增點擊事件，僅更新上方照片，不再更新介紹區
-      const tableRows = document.querySelectorAll('#animalTable tbody tr');
-      tableRows.forEach(function(row) {
-        row.addEventListener('click', function() {
-          const photoUrl = this.getAttribute('data-photo');
-          const photoArea = document.getElementById('photoArea');
-          const imgElement = photoArea.querySelector('img');
-          if (imgElement) {
-            imgElement.src = photoUrl;
-            imgElement.alt = this.cells[1].querySelector('.beautician-text').textContent;
-          } else {
-            photoArea.innerHTML = '';
-            const newImg = document.createElement('img');
-            newImg.src = photoUrl;
-            newImg.alt = this.cells[1].querySelector('.beautician-text').textContent;
-            photoArea.appendChild(newImg);
-          }
+
+    // --- Modal 控制 ---
+    const loginModal = document.getElementById('loginModal');
+    const reviewModal = document.getElementById('reviewModal');
+    const closeLoginModalBtn = document.getElementById('closeLoginModal');
+    const closeReviewModalBtn = document.getElementById('closeReviewModal');
+    const loginBtn = document.getElementById('loginBtn'); // 側邊欄的登入按鈕
+
+    function openLoginModal() {
+        if(loginModal) loginModal.style.display = 'block';
+        // 關閉側邊欄 (如果開啟)
+        const sidePanel = document.getElementById('sidePanel');
+        const overlay = document.getElementById('overlay');
+        if (sidePanel && overlay && sidePanel.classList.contains('open')) {
+            sidePanel.classList.remove('open');
+            overlay.classList.remove('open');
+        }
+    }
+
+    function closeLoginModal() {
+        if(loginModal) loginModal.style.display = 'none';
+    }
+
+    function openReviewModal(animalId, showForm = false) {
+      if (reviewModal) {
+        const reviewForm = document.getElementById('reviewForm');
+        const reviewList = document.getElementById('reviewList');
+        const reviewAnimalIdInput = document.getElementById('reviewAnimalId'); // 獲取隱藏輸入框
+
+        // 設置 animal_id 到表單的隱藏欄位
+        if(reviewAnimalIdInput) {
+            reviewAnimalIdInput.value = animalId;
+        } else {
+            console.error("Hidden input field 'reviewAnimalId' not found in review form.");
+        }
+
+        reviewModal.style.display = 'block';
+        loadReviews(animalId); // 載入心得
+
+        if (showForm && reviewForm) {
+          reviewList.style.display = 'none'; // 隱藏列表
+          reviewForm.style.display = 'flex'; // 顯示表單 (使用 flex 佈局)
+          reviewForm.reset(); // 重置表單
+          // 重置 checkbox 限制
+          ['faceCheckboxes', 'temperamentCheckboxes'].forEach(id => {
+              const container = document.getElementById(id);
+              if(container) {
+                 container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = false);
+              }
+          });
+          setupPriceInputToggle("music", "music_price"); // 重新初始化價格輸入框
+          setupPriceInputToggle("sports", "sports_price");
+          document.getElementById('reviewModalTitle').textContent = '填寫心得'; // 更新標題
+        } else if (reviewList) {
+          reviewList.style.display = 'block'; // 顯示列表
+          if (reviewForm) reviewForm.style.display = 'none'; // 隱藏表單
+          document.getElementById('reviewModalTitle').textContent = '心得評論'; // 更新標題
+        }
+      }
+    }
+
+
+    function closeReviewModal() {
+      if(reviewModal) {
+          reviewModal.style.display = 'none';
+          // 清空列表和表單，避免殘留
+          const reviewList = document.getElementById('reviewList');
+          const reviewForm = document.getElementById('reviewForm');
+          if (reviewList) reviewList.innerHTML = '<p style="text-align: center; color: #888;">正在載入心得...</p>';
+          if (reviewForm) reviewForm.reset();
+      }
+    }
+
+    // --- 心得處理 ---
+    function loadReviews(animalId) {
+        const reviewList = document.getElementById('reviewList');
+        if (!reviewList) return;
+        reviewList.innerHTML = '<p style="text-align: center; color: #888;">正在載入心得...</p>'; // 顯示載入提示
+
+        fetch(`/add_review/?animal_id=${animalId}`) // 確保 URL 正確
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            reviewList.innerHTML = ""; // 清空舊內容
+            if (data.reviews && data.reviews.length > 0) {
+                data.reviews.forEach(review => {
+                    const reviewDiv = document.createElement('div');
+                    reviewDiv.className = "review-card";
+                    // 格式化日期 (如果存在)
+                    let formattedDate = '';
+                    if (review.created_at) {
+                        try {
+                            // 嘗試將 ISO 格式日期轉為本地化日期時間字串
+                            formattedDate = new Date(review.created_at).toLocaleString('zh-TW', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit', hour12: false });
+                        } catch (e) {
+                            console.warn("Could not format date:", review.created_at, e);
+                            formattedDate = review.created_at; // Fallback to original string
+                        }
+                    }
+
+                    // Helper function to create review line safely
+                    const createReviewLine = (label, value) => {
+                        if (value === null || value === undefined || value === '') return ''; // 如果值為空，不顯示該行
+                         // 對於特定字段如 'face', 'temperament', 'scale'，將逗號替換為空格
+                        let displayValue = value;
+                        if (['face', 'temperament', 'scale'].includes(label.toLowerCase()) && typeof value === 'string') {
+                             displayValue = value.replace(/,/g, ' ');
+                        }
+
+                        return `
+                            <div class="review-line">
+                              <div class="review-label"><strong>${label}</strong></div>
+                              <div class="review-value">${displayValue}</div>
+                            </div>
+                        `;
+                    };
+
+                    reviewDiv.innerHTML = `
+                        <div class="review-header">
+                          <div class="review-user-info">
+                            <span class="review-user">${review.user || '匿名'}</span>
+                            <span class="review-total">總心得數：${review.user_review_count || 0}</span>
+                          </div>
+                          <span class="review-date">${formattedDate}</span>
+                        </div>
+                        <div class="review-body">
+                          ${createReviewLine('年紀', review.age)}
+                          ${createReviewLine('顏值', review.looks)}
+                          ${createReviewLine('臉蛋', review.face)}
+                          ${createReviewLine('氣質', review.temperament)}
+                          ${createReviewLine('體態', review.physique)}
+                          ${createReviewLine('罩杯', `${review.cup || ''} ${review.cup_size || ''}`.trim())}
+                          ${createReviewLine('膚質', review.skin_texture)}
+                          ${createReviewLine('膚色', review.skin_color)}
+                          ${createReviewLine('音樂', `${review.music || ''} ${review.music_price ? "(" + review.music_price + ")" : ""}`.trim())}
+                          ${createReviewLine('體育', `${review.sports || ''} ${review.sports_price ? "(" + review.sports_price + ")" : ""}`.trim())}
+                          ${createReviewLine('尺度', review.scale)}
+                          ${createReviewLine('心得', review.content)}
+                        </div>
+                    `;
+                    reviewList.appendChild(reviewDiv);
+                });
+            } else {
+                reviewList.innerHTML = '<p style="text-align: center; color: #888;">目前尚無心得。</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading reviews:', error);
+            reviewList.innerHTML = '<p style="text-align: center; color: red;">無法載入心得，請稍後再試。</p>';
         });
-      });
-      // 點擊 MENU 按鈕切換側邊面板與遮罩層
-      const menuBtn = document.getElementById('menuBtn');
+    }
+
+    function submitReview(formData) {
+        const submitBtn = document.getElementById('submitReviewBtn');
+        if(submitBtn) submitBtn.disabled = true; // 禁用按鈕防止重複提交
+        if(submitBtn) submitBtn.textContent = '提交中...';
+
+        fetch("/add_review/", { // 確保 URL 正確
+            method: "POST",
+            body: formData,
+            headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || '心得提交成功！待審核後即可顯示。');
+                const animalId = formData.get('animal_id'); // 從 FormData 獲取 animal_id
+                if (animalId) {
+                   openReviewModal(animalId, false); // 重新載入心得列表並顯示列表頁
+                   // 更新列表頁對應美容師的心得數 (可選)
+                   const reviewBox = document.querySelector(`.review-box[data-animal-id="${animalId}"] .count`);
+                   if(reviewBox) {
+                       // 注意：後端應返回更新後的總數，或者前端自行+1 (但不準確)
+                       // 假設後端返回了 new_count
+                       // reviewBox.textContent = data.new_count !== undefined ? data.new_count : parseInt(reviewBox.textContent) + 1;
+                       // 暫時不更新，等待審核
+                   }
+                } else {
+                    closeReviewModal(); // 如果沒有 animalId，直接關閉
+                }
+                document.getElementById('reviewForm').reset(); // 重置表單
+            } else {
+                // 處理錯誤，例如顯示後端返回的錯誤信息
+                 let errorMsg = '心得提交失敗。';
+                 if (data.errors) {
+                     // 將字典形式的錯誤轉換為字符串
+                     errorMsg += '\n' + Object.entries(data.errors).map(([field, errors]) => `${field}: ${errors.join(', ')}`).join('\n');
+                 } else if (data.error) {
+                     errorMsg = data.error;
+                 }
+                 alert(errorMsg);
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting review:', error);
+            alert('提交心得時發生錯誤，請檢查網路連線或稍後再試。');
+        })
+        .finally(() => {
+             if(submitBtn) submitBtn.disabled = false; // 重新啟用按鈕
+             if(submitBtn) submitBtn.textContent = '提交評論';
+        });
+    }
+
+
+    // --- DOMContentLoaded 事件 ---
+    document.addEventListener('DOMContentLoaded', function() {
+
+      // 處理時段格式
+      processTimeSlotCells();
+
+      // 設定音樂和體育價格輸入框的顯示邏輯
+      setupPriceInputToggle("music", "music_price");
+      setupPriceInputToggle("sports", "sports_price");
+
+      // 初始化 Checkbox 選擇限制
+      limitCheckboxSelection('faceCheckboxes', 3);
+      limitCheckboxSelection('temperamentCheckboxes', 3);
+
+      // --- 事件監聽器 ---
       const sidePanel = document.getElementById('sidePanel');
       const overlay = document.getElementById('overlay');
-      menuBtn.addEventListener('click', function() {
-        sidePanel.classList.toggle('open');
-        overlay.classList.toggle('open');
-      });
-      // 點擊遮罩層關閉面板與遮罩
-      overlay.addEventListener('click', function() {
-        sidePanel.classList.remove('open');
-        overlay.classList.remove('open');
-      });
-      // 登入模態框功能
-      const loginModal = document.getElementById('loginModal');
-      const loginBtn = document.getElementById('loginBtn');
-      const closeLoginModal = document.getElementById('closeLoginModal');
-      loginBtn.addEventListener('click', function() {
-        loginModal.style.display = 'block';
-      });
-      closeLoginModal.addEventListener('click', function() {
-        loginModal.style.display = 'none';
-      });
-      window.addEventListener('click', function(e) {
-        if (e.target == loginModal) {
-          loginModal.style.display = 'none';
+      const menuBtn = document.getElementById('menuBtn');
+      const tableWrapper = document.querySelector('.table-wrapper'); // 表格容器
+      const animalTableBody = document.getElementById('animalTable')?.querySelector('tbody'); // 表格內容區域
+      const reviewForm = document.getElementById('reviewForm');
+
+      // 側邊欄開關
+      if (menuBtn && sidePanel && overlay) {
+        menuBtn.addEventListener('click', (e) => {
+          e.stopPropagation(); // 防止觸發 body 關閉
+          sidePanel.classList.toggle('open');
+          overlay.classList.toggle('open');
+        });
+
+        overlay.addEventListener('click', () => {
+          sidePanel.classList.remove('open');
+          overlay.classList.remove('open');
+        });
+        // 點擊側邊欄內部不關閉 (如果需要)
+        // sidePanel.addEventListener('click', (e) => e.stopPropagation());
+      }
+
+       // 側邊欄登入按鈕
+       if (loginBtn && loginModal) {
+            loginBtn.addEventListener('click', openLoginModal);
+       }
+
+
+      // 表格相關事件 (使用事件委派)
+      if (tableWrapper) {
+          tableWrapper.addEventListener('click', (e) => {
+              const target = e.target;
+
+              // 點擊心得按鈕
+              const reviewBox = target.closest('.review-box');
+              if (reviewBox) {
+                  e.stopPropagation(); // 防止觸發行點擊
+                  const animalId = reviewBox.getAttribute('data-animal-id');
+                  if (animalId) {
+                      openReviewModal(animalId, false); // 打開 Review Modal 顯示列表
+                  }
+                  return; // 處理完畢
+              }
+
+              // 點擊加號按鈕
+              const plusBtn = target.closest('.plus-menu-btn');
+              if (plusBtn) {
+                  e.stopPropagation(); // 防止觸發行點擊和 body 關閉
+                  showPlusDropdown(plusBtn); // 顯示下拉選單
+                  return; // 處理完畢
+              }
+
+               // 點擊表格行 (排除點擊按鈕和心得框)
+               const tableRow = target.closest('#animalTable tbody tr');
+               if (tableRow && !reviewBox && !plusBtn) {
+                    const photoUrl = tableRow.getAttribute('data-photo');
+                    const introText = tableRow.getAttribute('data-intro');
+                    const animalName = tableRow.getAttribute('data-animal-name'); // 获取名字
+                    const photoArea = document.getElementById('photoArea');
+                    const introContent = document.getElementById('introductionContent');
+
+                    // 更新照片區域
+                    if (photoArea) {
+                        if (photoUrl && photoUrl !== "尚無照片") {
+                            // 檢查是否已有圖片，有則更新 src，沒有則創建
+                            let imgElement = photoArea.querySelector('img');
+                            if (!imgElement) {
+                                photoArea.innerHTML = ''; // 清空可能存在的 '尚無照片' 提示
+                                imgElement = document.createElement('img');
+                                photoArea.appendChild(imgElement);
+                            }
+                            imgElement.src = photoUrl;
+                            imgElement.alt = animalName || '照片'; // 使用美容師名字作為 alt 文字
+                        } else {
+                            photoArea.innerHTML = '<p>尚無照片</p>';
+                        }
+                    }
+
+                    // 更新介紹區域
+                    if (introContent) {
+                        // 使用 innerText 或 textContent 防止 XSS
+                        introContent.innerText = introText || '尚無介紹';
+                    }
+
+                     // 移除其他行的選中效果 (如果有的話)
+                    // document.querySelectorAll('#animalTable tbody tr.selected').forEach(row => row.classList.remove('selected'));
+                    // tableRow.classList.add('selected'); // 添加選中效果
+
+                     // 滾動到頂部 (如果需要)
+                     // window.scrollTo({ top: 0, behavior: 'smooth' });
+               }
+          });
+      }
+
+
+      // Modal 關閉按鈕
+      if (closeLoginModalBtn) {
+        closeLoginModalBtn.addEventListener('click', closeLoginModal);
+      }
+      if (closeReviewModalBtn) {
+        closeReviewModalBtn.addEventListener('click', closeReviewModal);
+      }
+
+      // 點擊 Modal 外部區域關閉
+      window.addEventListener('click', (event) => {
+        if (event.target == loginModal) {
+          closeLoginModal();
+        }
+        if (event.target == reviewModal) {
+          closeReviewModal();
         }
       });
-      // 登入表單提交事件（示範用）
-      document.getElementById('loginForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        alert("登入成功！");
-        loginModal.style.display = 'none';
-      });
-      // 為所有圓形 + 按鈕新增點擊事件（避免事件冒泡影響其他點擊事件）
-      document.querySelectorAll('.circle-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-          e.stopPropagation();
-          const dropdownMenu = this.nextElementSibling;
-          dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
+
+      // 心得表單提交
+      if (reviewForm) {
+        reviewForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // 阻止表單默認提交行為
+            const formData = new FormData(this);
+            // 檢查勾選框數量 (雖然有 disabled 限制，但前端再驗證一次更保險)
+            if (formData.getAll('face').length > 3) {
+                 alert('臉蛋最多只能選擇 3 個！');
+                 return;
+            }
+             if (formData.getAll('temperament').length > 3) {
+                 alert('氣質最多只能選擇 3 個！');
+                 return;
+             }
+
+             // 檢查罩杯大小是否為單一英文字母
+            const cupSizeInput = document.getElementById('cup_size');
+            if (cupSizeInput && cupSizeInput.value && !/^[A-La-l]$/.test(cupSizeInput.value)) {
+                alert('罩杯大小請填寫單一英文字母 (A-L)。');
+                cupSizeInput.focus();
+                return;
+            }
+
+            submitReview(formData);
         });
-      });
-      // 當點擊頁面其他區域時，自動關閉所有下拉選單
-      document.addEventListener('click', function() {
-        document.querySelectorAll('.dropdown-menu').forEach(menu => {
-          menu.style.display = 'none';
+      }
+
+
+      // 待約清單按鈕切換顯示
+      const pendingListBtn = document.getElementById('pendingListBtn');
+      const pendingListContainer = document.getElementById('pendingListContainer');
+      if (pendingListBtn && pendingListContainer) {
+        pendingListBtn.addEventListener('click', function(e) {
+            // 阻止事件冒泡，防止觸發側邊欄關閉等
+            e.stopPropagation();
+            const isDisplayed = pendingListContainer.style.display === 'block';
+            pendingListContainer.style.display = isDisplayed ? 'none' : 'block';
         });
-      });
+      }
     });
-    // 示範新增最愛名單與新增待約名單的函數
-    function addToFavorites(animalId) {
-      alert("新增最愛名單，動物編號：" + animalId);
-    }
-    function addToPending(animalId) {
-      alert("新增待約名單，動物編號：" + animalId);
-    }
+
   </script>
 </body>
 </html>

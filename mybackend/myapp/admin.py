@@ -16,7 +16,7 @@ class AnimalAdmin(admin.ModelAdmin):
         'is_exclusive', 
         'is_hot', 
         'is_newcomer', 
-        'introduction',  # 新增介紹欄位
+        'introduction',
         'photo'
     )
 
@@ -26,7 +26,7 @@ class HallAdmin(admin.ModelAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ('animal', 'user', 'content', 'created_at', 'approved')
+    list_display = ('animal', 'user', 'created_at', 'approved')
     list_filter = ('animal', 'user', 'approved')
     search_fields = ('content',)
-    list_editable = ('approved',)  # 允許直接在列表中修改審核狀態
+    list_editable = ('approved',)
