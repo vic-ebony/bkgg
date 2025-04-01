@@ -168,3 +168,12 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review of {self.animal.name} by {self.user.username}"
+
+# 新增：待約清單模型，用來儲存使用者選取的待約美容師
+class PendingAppointment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='pending_appointments')
+    animal = models.ForeignKey(Animal, on_delete=models.CASCADE)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.animal.name}"

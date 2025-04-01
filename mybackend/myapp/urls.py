@@ -7,5 +7,6 @@ urlpatterns = [
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),
     path('add_review/', views.add_review, name='add_review'),
-    # path('api/animals/', views.AnimalListAPIView.as_view(), name='animal_list_api'),
+    path('add_pending/', views.add_pending_appointment, name='add_pending'),
+    path('remove_pending/', views.remove_pending, name='remove_pending'),
 ]

@@ -1,3 +1,4 @@
+# views.py
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.contrib import messages
@@ -5,10 +6,11 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
+from django.views.decorators.http import require_POST
 import re
 import pytesseract
 from PIL import Image
-from .models import Animal, Hall, Review
+from .models import Animal, Hall, Review, PendingAppointment
 
 # 設定 Tesseract 路徑（請根據實際安裝位置調整）
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
@@ -33,9 +35,15 @@ def home(request):
     else:
         animals = Animal.objects.all()
     animals = animals.order_by('-is_exclusive', '-is_hot', '-is_newcomer', 'name')
-    # 使用 annotate 計算已審核評論數
+    # 為所有 animal 計算已審核評論數
     animals = animals.annotate(approved_review_count=Count('reviews', filter=Q(reviews__approved=True)))
     context = {'animals': animals, 'halls': halls}
+    # 如果使用者已登入，讀取待約清單資料，並手動加入 approved_review_count
+    if request.user.is_authenticated:
+        pending = PendingAppointment.objects.filter(user=request.user).select_related('animal')
+        for appointment in pending:
+            appointment.animal.approved_review_count = appointment.animal.reviews.filter(approved=True).count()
+        context['pending_appointments'] = pending
     if request.GET.get('login_error'):
         context['login_error'] = request.GET.get('login_error')
     return render(request, 'index.html', context)
@@ -136,7 +144,6 @@ def add_review(request):
         except Animal.DoesNotExist:
             return JsonResponse({"success": False, "error": "找不到該動物"})
 
-        # 收集所有表單欄位，注意多選欄位需用 getlist() 取得，再以逗號連接
         age = request.POST.get("age")
         looks = request.POST.get("looks")
         face = ','.join(request.POST.getlist("face"))
@@ -153,13 +160,12 @@ def add_review(request):
         sports_price = request.POST.get("sports_price")
         content = request.POST.get("content", "").strip()
 
-        # 將空字串轉換為 None，避免 DecimalField 轉換錯誤
         if music_price == "":
             music_price = None
         if sports_price == "":
             sports_price = None
 
-        review = Review.objects.create(
+        Review.objects.create(
             animal=animal,
             user=request.user,
             age=age if age else None,
@@ -177,7 +183,7 @@ def add_review(request):
             sports_price=sports_price,
             scale=scale,
             content=content,
-            approved=False  # 預設未審核
+            approved=False
         )
         return JsonResponse({
             "success": True,
@@ -213,3 +219,43 @@ def add_review(request):
             "created_at": timezone.localtime(r.created_at).strftime("%Y-%m-%d")
         } for r in reviews]
         return JsonResponse({"reviews": data})
+
+@login_required
+def add_pending_appointment(request):
+    """
+    POST：新增待約項目（透過 AJAX 傳入 animal_id）
+    """
+    if request.method == "POST":
+        animal_id = request.POST.get("animal_id")
+        if not animal_id:
+            return JsonResponse({"success": False, "error": "缺少動物 ID"})
+        try:
+            animal = Animal.objects.get(id=animal_id)
+        except Animal.DoesNotExist:
+            return JsonResponse({"success": False, "error": "找不到該動物"})
+        if PendingAppointment.objects.filter(user=request.user, animal=animal).exists():
+            return JsonResponse({"success": False, "error": "該美容師已在待約清單中"})
+        PendingAppointment.objects.create(user=request.user, animal=animal)
+        return JsonResponse({"success": True, "message": f"{animal.name} 已加入待約清單"})
+    else:
+        return JsonResponse({"success": False, "error": "只允許 POST 請求"})
+
+@require_POST
+@login_required
+def remove_pending(request):
+    """
+    POST：移除待約項目（透過 AJAX 傳入 animal_id），同步從資料庫刪除待約紀錄。
+    """
+    animal_id = request.POST.get("animal_id")
+    if not animal_id:
+        return JsonResponse({"success": False, "error": "缺少動物 ID"})
+    try:
+        animal = Animal.objects.get(id=animal_id)
+    except Animal.DoesNotExist:
+        return JsonResponse({"success": False, "error": "找不到該動物"})
+    try:
+        pending = PendingAppointment.objects.get(user=request.user, animal=animal)
+        pending.delete()
+        return JsonResponse({"success": True, "message": f"{animal.name} 待約項目已移除"})
+    except PendingAppointment.DoesNotExist:
+        return JsonResponse({"success": False, "error": "該待約項目不存在"})

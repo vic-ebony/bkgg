@@ -177,7 +177,7 @@
       border-color: #bce8f1;
     }
     
-    /* 上方區：照片與介紹 */
+    /* 上方區：照片與介紹，保留你原本針對手機設定的高度 */
     .top-section {
       display: flex;
       align-items: stretch;
@@ -430,11 +430,104 @@
       color: #666;
     }
     #reviewList p { white-space: pre-wrap; word-wrap: break-word; margin: 0.5rem 0; }
-    @media (max-width: 480px) {
-      .content { padding: 0.625rem; }
-      .photo-area, .intro-area { height: 200px; }
-      .intro-area { padding: 0.625rem; }
+    
+    /* 新增待約清單內容樣式 - 緊湊版 */
+    .pending-item {
+      display: flex;
+      align-items: center;
+      border: 1px dashed #888;
+      padding: 0.25rem;
+      margin-bottom: 0.25rem;
     }
+    .pending-thumb {
+      border: 1px dashed #888;
+      padding: 0.125rem;
+      margin-right: 0.25rem;
+    }
+    .pending-thumb img {
+      width: 40px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    .pending-info {
+      flex-grow: 1;
+      border: 1px dashed #888;
+      padding: 0.125rem;
+    }
+    .pending-name {
+      font-weight: bold;
+      margin-bottom: 0.125rem;
+      border: 1px dashed #888;
+      padding: 0.125rem;
+    }
+    .pending-field {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin: 2px 0;
+    }
+    .field-label {
+      width: 30%;
+      text-align: left;
+      font-size: 0.8rem;
+      color: #555;
+    }
+    .field-value {
+      width: 70%;
+      text-align: left;
+      word-break: break-all;
+      font-size: 0.8rem;
+      color: #555;
+    }
+    /* 修正：待約標籤區，顯示新人、熱門、獨家標籤 */
+    .pending-labels {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      margin-top: 0.125rem;
+      border: 1px dashed #888;
+      padding: 0.125rem;
+    }
+    .labels-content span.label {
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #fff;
+      margin-right: 0.25rem;
+      line-height: 1.2;
+    }
+    .label.newcomer { background: rgba(40, 167, 69, 0.4); }
+    .label.hot { background: rgba(220, 53, 69, 0.4); }
+    .label.exclusive { background: rgba(111, 66, 193, 0.4); }
+    .pending-review-btn {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    .pending-remove {
+      flex-shrink: 0;
+      white-space: nowrap;
+      border: 1px dashed #888;
+      padding: 0.125rem;
+      margin-left: 0.25rem;
+    }
+    .remove-btn {
+      background: red;
+      color: #fff;
+      border: none;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    
     /* Modal 樣式 */
     .modal {
       display: none;
@@ -511,92 +604,11 @@
     }
     .checkbox-group label { cursor: pointer; }
     
-    /* 新增待約清單內容樣式 - 緊湊版 */
-    .pending-item {
-      display: flex;
-      align-items: center;
-      border: 1px dashed #888;
-      padding: 0.25rem;
-      margin-bottom: 0.25rem;
-    }
-    .pending-thumb {
-      border: 1px dashed #888;
-      padding: 0.125rem;
-      margin-right: 0.25rem;
-    }
-    .pending-thumb img {
-      width: 40px;
-      height: 40px;
-      object-fit: cover;
-      border-radius: 50%;
-    }
-    .pending-info {
-      flex-grow: 1;
-      border: 1px dashed #888;
-      padding: 0.125rem;
-    }
-    .pending-name {
-      font-weight: bold;
-      margin-bottom: 0.125rem;
-      border: 1px dashed #888;
-      padding: 0.125rem;
-    }
-    /* 將館別、身材、台費、時段各自以 pending-field 呈現，
-       緊湊版調整上下間距為 2px */
-    .pending-field {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin: 2px 0;
-    }
-    .field-label {
-      width: 30%;
-      text-align: left;
-      font-size: 0.8rem;
-      color: #555;
-    }
-    .field-value {
-      width: 70%;
-      text-align: left;
-      word-break: break-all;
-      font-size: 0.8rem;
-      color: #555;
-    }
-    /* 將標籤區修改為左右分佈，右側放心得按鈕，並顯示心得數量 */
-    .pending-labels {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.75rem;
-      margin-top: 0.125rem;
-      border: 1px dashed #888;
-      padding: 0.125rem;
-    }
-    .pending-review-btn {
-      background: #007bff;
-      color: #fff;
-      border: none;
-      padding: 0.2rem 0.4rem;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 0.75rem;
-    }
-    /* 移除按鈕包容器 */
-    .pending-remove {
-      flex-shrink: 0;
-      white-space: nowrap;
-      border: 1px dashed #888;
-      padding: 0.125rem;
-      margin-left: 0.25rem;
-    }
-    .remove-btn {
-      background: red;
-      color: #fff;
-      border: none;
-      padding: 0.2rem 0.4rem;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 0.75rem;
+    /* 保留你原本針對手機設定的高度 */
+    @media (max-width: 480px) {
+      .content { padding: 0.625rem; }
+      .photo-area, .intro-area { height: 200px; }
+      .intro-area { padding: 0.625rem; }
     }
   </style>
 </head>
@@ -621,8 +633,10 @@
         <button>最新心得</button>
         <button>找美容師</button>
         <button>最愛清單</button>
-        <!-- 待約清單按鈕 -->
-        <button id="pendingListBtn" data-count="0">待約清單 (0)</button>
+        <!-- 待約清單按鈕：改用後端傳入數量 -->
+        <button id="pendingListBtn" data-count="{% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %}">
+          待約清單 ({% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %})
+        </button>
         <button id="loginBtn">會員登入</button>
       </div>
       <button id="menuBtn" aria-label="打開選單">≡</button>
@@ -739,7 +753,7 @@
     </div>
   </div>
   
-  <!-- 心得評論 Modal (z-index 提高，置於待約清單上方) -->
+  <!-- 心得評論 Modal (z-index 較高，覆蓋待約清單) -->
   <div id="reviewModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
       <span class="close-modal" id="closeReviewModal" aria-label="關閉">&times;</span>
@@ -910,7 +924,59 @@
       <span class="close-modal" id="closePendingListModal" aria-label="關閉">&times;</span>
       <h2>待約清單</h2>
       <div id="pendingListContent">
-        <!-- 已加入的待約美容師項目會以卡片方式呈現 -->
+        {% if pending_appointments %}
+          {% for appointment in pending_appointments %}
+            <div class="pending-item" data-animal-id="{{ appointment.animal.id }}">
+              <div class="pending-thumb">
+                {% if appointment.animal.photo %}
+                  <img src="{{ appointment.animal.photo.url }}" alt="{{ appointment.animal.name }}">
+                {% else %}
+                  <div style="width:50px;height:50px;background:#ccc;border-radius:50%;margin-right:0.5rem;"></div>
+                {% endif %}
+              </div>
+              <div class="pending-info">
+                <div class="pending-name">{{ appointment.animal.name }}</div>
+                <div class="pending-field">
+                  <div class="field-label">館別</div>
+                  <div class="field-value">{{ appointment.animal.hall.name }}</div>
+                </div>
+                <div class="pending-field">
+                  <div class="field-label">身材</div>
+                  <div class="field-value">{{ appointment.animal.size_display }}</div>
+                </div>
+                <div class="pending-field">
+                  <div class="field-label">台費</div>
+                  <div class="field-value">{{ appointment.animal.fee }}</div>
+                </div>
+                <div class="pending-field">
+                  <div class="field-label">時段</div>
+                  <div class="field-value">{{ appointment.animal.time_slot }}</div>
+                </div>
+                <div class="pending-labels">
+                  <div class="labels-content">
+                    {% if appointment.animal.is_newcomer %}
+                      <span class="label newcomer">新人</span>
+                    {% endif %}
+                    {% if appointment.animal.is_hot %}
+                      <span class="label hot">熱門</span>
+                    {% endif %}
+                    {% if appointment.animal.is_exclusive %}
+                      <span class="label exclusive">獨家</span>
+                    {% endif %}
+                  </div>
+                  <button class="pending-review-btn" onclick="showReviewModal('{{ appointment.animal.id }}')">
+                    心得 ({{ appointment.animal.approved_review_count }})
+                  </button>
+                </div>
+              </div>
+              <div class="pending-remove">
+                <button class="remove-btn" onclick="removePendingItem('{{ appointment.animal.id }}', this)">移除</button>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p>尚無待約項目</p>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -919,7 +985,7 @@
   
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <script>
-    // 新增：打開心得 Modal 的函式，reviewModal z-index 較高可覆蓋待約清單
+    // 打開心得 Modal，覆蓋待約清單
     function showReviewModal(animalId) {
       document.getElementById('reviewModal').style.display = 'block';
       document.getElementById('reviewList').style.display = 'block';
@@ -927,7 +993,7 @@
       loadReviews(animalId);
     }
     
-    // 取得 CSRF Token 函式
+    // 取得 CSRF Token
     function getCookie(name) {
       let cookieValue = null;
       if (document.cookie && document.cookie !== '') {
@@ -943,7 +1009,7 @@
       return cookieValue;
     }
     
-    // 處理音樂與體育加值金額輸入框顯示
+    // 處理音樂與體育加值輸入框顯示
     function togglePriceInput(selectId, inputId) {
       const select = document.getElementById(selectId);
       const input = document.getElementById(inputId);
@@ -981,107 +1047,55 @@
       });
     }
     
-    // 新增待約清單項目（包含縮圖、姓名、館別、身材、台費、時段與標籤，以及新增心得按鈕與心得數量）
+    // 新增待約清單項目：加入待約後重新整理頁面
     function addToPendingList(row) {
-      const pendingContent = document.getElementById('pendingListContent');
-      const pendingBtn = document.getElementById('pendingListBtn');
       const animalId = row.getAttribute('data-animal-id');
-      
-      // 檢查是否已存在
-      if(pendingContent.querySelector('[data-animal-id="'+ animalId +'"]')) {
-        alert("該美容師已在待約清單中！");
-        return;
-      }
-      
-      const beauticianName = row.querySelector('.beautician-text .name').textContent.trim();
-      const fee = row.cells[0].textContent.trim();
-      const rawTimeSlot = row.querySelector('.time-cell').textContent.trim();
-      // 處理時段，依照句點分割後再用 span 包起來
-      const timeSlotProcessed = rawTimeSlot.split('.')
-        .filter(token => token.trim() !== '')
-        .map(token => '<span class="time-slot">' + token + '.</span>')
-        .join('');
-      
-      const photoUrl = row.getAttribute('data-photo');
-      const hall = row.getAttribute('data-hall') || "未知館別";
-      const size = row.querySelector('.size-container .size').textContent.trim();
-      let labelsHTML = "";
-      const labelsContainer = row.querySelector('.labels');
-      if (labelsContainer) {
-        labelsHTML = labelsContainer.innerHTML;
-      }
-      // 取得心得數量，預設 0
-      const reviewCount = row.getAttribute('data-review-count') || "0";
-      
-      // 建立待約項目的 DOM 結構
-      const item = document.createElement('div');
-      item.className = "pending-item";
-      item.setAttribute('data-animal-id', animalId);
-      
-      // 縮圖區塊
-      const thumbDiv = document.createElement('div');
-      thumbDiv.className = "pending-thumb";
-      if(photoUrl && photoUrl !== "尚無照片"){
-        const img = document.createElement('img');
-        img.src = photoUrl;
-        img.alt = beauticianName;
-        thumbDiv.appendChild(img);
-      } else {
-        thumbDiv.innerHTML = '<div style="width:50px;height:50px;background:#ccc;border-radius:50%;margin-right:0.5rem;"></div>';
-      }
-      
-      // 資訊區塊，並加入「心得」按鈕在標籤區塊右側，顯示心得數量
-      const infoDiv = document.createElement('div');
-      infoDiv.className = "pending-info";
-      infoDiv.innerHTML = `
-        <div class="pending-name">${beauticianName}</div>
-        <div class="pending-field">
-          <div class="field-label">館別</div>
-          <div class="field-value">${hall}</div>
-        </div>
-        <div class="pending-field">
-          <div class="field-label">身材</div>
-          <div class="field-value">${size}</div>
-        </div>
-        <div class="pending-field">
-          <div class="field-label">台費</div>
-          <div class="field-value">${fee}</div>
-        </div>
-        <div class="pending-field">
-          <div class="field-label">時段</div>
-          <div class="field-value pending-time">${timeSlotProcessed}</div>
-        </div>
-        <div class="pending-labels">
-          <div class="labels-content">${labelsHTML}</div>
-          <button class="pending-review-btn" onclick="showReviewModal('${animalId}')">心得 (${reviewCount})</button>
-        </div>
-      `;
-      
-      // 移除按鈕包裝容器
-      const removeContainer = document.createElement('div');
-      removeContainer.className = "pending-remove";
-      const removeBtn = document.createElement('button');
-      removeBtn.className = "remove-btn";
-      removeBtn.textContent = "移除";
-      removeBtn.addEventListener('click', function(e) {
-        item.remove();
-        // 更新待約按鈕數量
-        let count = parseInt(pendingBtn.getAttribute('data-count') || '0');
-        count = Math.max(count - 1, 0);
-        pendingBtn.setAttribute('data-count', count);
-        pendingBtn.innerText = `待約清單 (${count})`;
-        e.stopPropagation();
+      fetch("{% url 'add_pending' %}", {
+        method: "POST",
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({ 'animal_id': animalId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error);
+        }
       });
-      removeContainer.appendChild(removeBtn);
-      
-      item.appendChild(thumbDiv);
-      item.appendChild(infoDiv);
-      item.appendChild(removeContainer);
-      pendingContent.appendChild(item);
-      
-      // 更新待約清單按鈕計數
-      let count = parseInt(pendingBtn.getAttribute('data-count') || '0');
-      count++;
+    }
+    
+    // 從後端移除待約項目，並更新前端顯示
+    function removePendingItem(animalId, btnElem) {
+      fetch("{% url 'remove_pending' %}", {
+        method: "POST",
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({ 'animal_id': animalId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const item = btnElem.closest('.pending-item');
+          item.remove();
+          updatePendingCount();
+        } else {
+          alert(data.error);
+        }
+      });
+    }
+    
+    function updatePendingCount() {
+      const pendingItems = document.querySelectorAll('.pending-item');
+      const pendingBtn = document.getElementById('pendingListBtn');
+      const count = pendingItems.length;
       pendingBtn.setAttribute('data-count', count);
       pendingBtn.innerText = `待約清單 (${count})`;
     }
@@ -1135,7 +1149,7 @@
       if(dropdown.style.display === 'block') { dropdown.style.display = 'none'; }
     });
     
-    // 限制勾選框最多選擇數量的函式（用於臉蛋與氣質）
+    // 限制勾選框最多選擇數量（用於臉蛋與氣質）
     function limitCheckboxSelection(containerId, max) {
       const container = document.getElementById(containerId);
       container.addEventListener('change', function() {
@@ -1263,7 +1277,7 @@
       limitCheckboxSelection('temperamentCheckboxes', 3);
     });
     
-    // 取得並以卡片方式呈現完整心得評論（包含所有欄位）
+    // 取得並以卡片方式呈現完整心得評論
     function loadReviews(animalId) {
       fetch(`/add_review/?animal_id=${animalId}`)
       .then(response => response.json())
