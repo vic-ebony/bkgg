@@ -24,7 +24,7 @@
       line-height: 1.5;
     }
     *, *::before, *::after { box-sizing: inherit; }
-    
+
     /* 右上角會員資訊 */
     .user-info {
       position: absolute;
@@ -48,7 +48,7 @@
       text-decoration: underline;
       margin-left: 10px;
     }
-    
+
     /* 側邊與遮罩 */
     #menuBtn {
       position: absolute;
@@ -109,7 +109,7 @@
       margin-bottom: 0.5rem;
       cursor: pointer;
     }
-    
+
     /* 主內容區 */
     .glass-overlay {
       position: absolute;
@@ -146,7 +146,7 @@
       0% { opacity: 0; transform: translateY(20px); }
       100% { opacity: 1; transform: translateY(0); }
     }
-    
+
     /* 導覽列 */
     .hall-menu {
       display: flex;
@@ -176,8 +176,8 @@
       color: #007bff;
       border-color: #bce8f1;
     }
-    
-    /* 上方區：照片與介紹，保留你原本針對手機設定的高度 */
+
+    /* 上方區：照片與介紹，保留原有手機設定 */
     .top-section {
       display: flex;
       align-items: stretch;
@@ -213,14 +213,14 @@
       overflow-y: auto;
     }
     .intro-top p { margin: 0; font-size: 1rem; color: #333; }
-    
+
     .page-title {
       text-align: center;
       margin-bottom: 0.625rem;
       color: #666;
       font-size: 2rem;
     }
-    
+
     /* 表格區 */
     .table-wrapper {
       margin-top: 0;
@@ -259,7 +259,7 @@
     .body-table td:nth-child(2) { width: 50%; }
     .header-table th:nth-child(3),
     .body-table td:nth-child(3) { width: 35%; }
-    
+
     .body-wrapper {
       flex: 1;
       min-height: 0;
@@ -288,7 +288,8 @@
     }
     .body-table tr:hover { background: #f8f9fa; cursor: pointer; }
     .time-slot { display: inline-block; margin-right: 0.3em; }
-    
+
+    /* 每日班表內美容師資料格式 */
     .beautician-cell {
       display: flex;
       flex-direction: column;
@@ -296,20 +297,12 @@
       align-items: flex-start;
       gap: 0.3rem;
     }
-    .beautician-cell .labels .label {
-      display: inline-block;
-      padding: 0.2rem 0.4rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: bold;
-      color: #fff;
-      margin-right: 0.25rem;
-      line-height: 1.2;
+    /* ※ 移植舊版設定：在美容師名稱上方顯示館別 */
+    .beautician-text .hall-info {
+      font-size: 0.85rem;
+      color: #777;
+      margin-bottom: 0.2rem;
     }
-    .beautician-cell .labels .newcomer { background: rgba(40, 167, 69, 0.4); }
-    .beautician-cell .labels .hot { background: rgba(220, 53, 69, 0.4); }
-    .beautician-cell .labels .exclusive { background: rgba(111, 66, 193, 0.4); }
-    
     .beautician-text .name-size-line {
       display: flex;
       justify-content: space-between;
@@ -330,7 +323,6 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    
     .review-actions {
       display: flex;
       align-items: center;
@@ -430,41 +422,37 @@
       color: #666;
     }
     #reviewList p { white-space: pre-wrap; word-wrap: break-word; margin: 0.5rem 0; }
-    
-    /* 新增待約清單內容樣式 - 緊湊版 */
+
+    /* 待約清單卡片 */
     .pending-item {
       display: flex;
       align-items: center;
-      border: 1px dashed #888;
-      padding: 0.25rem;
-      margin-bottom: 0.25rem;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
     }
     .pending-thumb {
-      border: 1px dashed #888;
       padding: 0.125rem;
-      margin-right: 0.25rem;
+      margin-right: 0.5rem;
+      text-align: center;
     }
     .pending-thumb img {
       width: 40px;
       height: 40px;
-      object-fit: cover;
+      object-fit: contain;
       border-radius: 50%;
     }
     .pending-info {
       flex-grow: 1;
-      border: 1px dashed #888;
-      padding: 0.125rem;
-    }
-    .pending-name {
-      font-weight: bold;
-      margin-bottom: 0.125rem;
-      border: 1px dashed #888;
       padding: 0.125rem;
     }
     .pending-field {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       margin: 2px 0;
     }
     .field-label {
@@ -480,24 +468,24 @@
       font-size: 0.8rem;
       color: #555;
     }
-    /* 修正：待約標籤區，顯示新人、熱門、獨家標籤 */
     .pending-labels {
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 0.75rem;
       margin-top: 0.125rem;
-      border: 1px dashed #888;
-      padding: 0.125rem;
     }
-    .labels-content span.label {
+    .pending-tags {
+      display: flex;
+      gap: 0.25rem;
+    }
+    .pending-tags span.label {
       padding: 0.2rem 0.4rem;
       border-radius: 4px;
       font-size: 0.75rem;
       font-weight: bold;
       color: #fff;
-      margin-right: 0.25rem;
-      line-height: 1.2;
+      background: rgba(0,0,0,0.2);
     }
     .label.newcomer { background: rgba(40, 167, 69, 0.4); }
     .label.hot { background: rgba(220, 53, 69, 0.4); }
@@ -514,9 +502,9 @@
     .pending-remove {
       flex-shrink: 0;
       white-space: nowrap;
-      border: 1px dashed #888;
       padding: 0.125rem;
-      margin-left: 0.25rem;
+      margin-left: 0.5rem;
+      border-left: 1px solid #eee;
     }
     .remove-btn {
       background: red;
@@ -527,7 +515,7 @@
       cursor: pointer;
       font-size: 0.75rem;
     }
-    
+
     /* Modal 樣式 */
     .modal {
       display: none;
@@ -540,10 +528,7 @@
       overflow: auto;
       background-color: rgba(0, 0, 0, 0.4);
     }
-    /* 調整心得評論 Modal 的 z-index 較高 */
-    #reviewModal {
-      z-index: 50;
-    }
+    #reviewModal { z-index: 50; }
     .modal-content {
       background-color: #fff;
       margin: 1.25rem auto;
@@ -603,8 +588,8 @@
       gap: 0.5rem;
     }
     .checkbox-group label { cursor: pointer; }
-    
-    /* 保留你原本針對手機設定的高度 */
+
+    /* 保留原有針對手機設定的高度 */
     @media (max-width: 480px) {
       .content { padding: 0.625rem; }
       .photo-area, .intro-area { height: 200px; }
@@ -622,7 +607,7 @@
     </form>
   </div>
   {% endif %}
-  
+
   <div class="glass-overlay">
     <div class="glass-background"></div>
     <div class="content">
@@ -667,7 +652,7 @@
           </a>
         {% endfor %}
       </nav>
-      
+
       <div class="table-wrapper">
         <table class="header-table">
           <thead>
@@ -702,6 +687,8 @@
                       {% endif %}
                     </div>
                     <div class="beautician-text">
+                      <!-- 移植舊版設定：在美容師名稱上方顯示館別 -->
+                      <div class="hall-info">{{ animal.hall.name }}</div>
                       <div class="name-size-line">
                         <div class="name-container">
                           <span class="name">{{ animal.name }}</span>
@@ -726,13 +713,13 @@
           </table>
         </div>
       </div>
-      
+
       {% if login_error %}
       <div style="color: red; text-align: center;">{{ login_error }}</div>
       {% endif %}
     </div>
   </div>
-  
+
   <!-- 會員登入 Modal -->
   <div id="loginModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
@@ -752,7 +739,7 @@
       </form>
     </div>
   </div>
-  
+
   <!-- 心得評論 Modal (z-index 較高，覆蓋待約清單) -->
   <div id="reviewModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
@@ -917,7 +904,7 @@
       </form>
     </div>
   </div>
-  
+
   <!-- 新增待約清單 Modal -->
   <div id="pendingListModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
@@ -931,7 +918,7 @@
                 {% if appointment.animal.photo %}
                   <img src="{{ appointment.animal.photo.url }}" alt="{{ appointment.animal.name }}">
                 {% else %}
-                  <div style="width:50px;height:50px;background:#ccc;border-radius:50%;margin-right:0.5rem;"></div>
+                  <div style="width:40px;height:40px;background:#ccc;border-radius:50%;margin:0 auto;"></div>
                 {% endif %}
               </div>
               <div class="pending-info">
@@ -950,10 +937,10 @@
                 </div>
                 <div class="pending-field">
                   <div class="field-label">時段</div>
-                  <div class="field-value">{{ appointment.animal.time_slot }}</div>
+                  <div class="field-value pending-time">{{ appointment.animal.time_slot }}</div>
                 </div>
                 <div class="pending-labels">
-                  <div class="labels-content">
+                  <div class="pending-tags">
                     {% if appointment.animal.is_newcomer %}
                       <span class="label newcomer">新人</span>
                     {% endif %}
@@ -980,9 +967,9 @@
       </div>
     </div>
   </div>
-  
+
   <div id="plusDropdown" class="dropdown-menu"></div>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <script>
     // 打開心得 Modal，覆蓋待約清單
@@ -1037,13 +1024,23 @@
       });
     }
     
-    // 處理時段欄：以 "." 分割，並包入 span
+    // 處理每日班表時段欄：以 "." 分割，並包入 span
     function processTimeSlotCells() {
       document.querySelectorAll('.time-cell').forEach(function(td) {
         let text = td.textContent.trim();
         let tokens = text.split('.').filter(token => token.trim() !== '');
         tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
         td.innerHTML = tokens.join('');
+      });
+    }
+    
+    // 處理待約清單中時段欄（pending-time）：與每日班表類似
+    function processPendingTimeCells() {
+      document.querySelectorAll('.pending-time').forEach(function(el) {
+        let text = el.textContent.trim();
+        let tokens = text.split('.').filter(token => token.trim() !== '');
+        tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
+        el.innerHTML = tokens.join('');
       });
     }
     
@@ -1167,11 +1164,12 @@
     document.addEventListener('DOMContentLoaded', function() {
       syncTableColumnWidths();
       processTimeSlotCells();
-      
+      processPendingTimeCells();
+
       // 處理音樂與體育加值輸入框顯示
       togglePriceInput("music", "music_price");
       togglePriceInput("sports", "sports_price");
-      
+
       const tableRows = document.querySelectorAll('#animalTable tbody tr');
       tableRows.forEach(function(row) {
         row.addEventListener('click', function() {
@@ -1183,12 +1181,13 @@
             const imgElement = photoArea.querySelector('img');
             if (imgElement) {
               imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.beautician-text').textContent;
+              // 使用舊版設定：以 .name 取得美容師姓名作為圖片 alt 文字
+              imgElement.alt = this.cells[1].querySelector('.name').textContent;
             } else {
               photoArea.innerHTML = '';
               const newImg = document.createElement('img');
               newImg.src = photoUrl;
-              newImg.alt = this.cells[1].querySelector('.beautician-text').textContent;
+              newImg.alt = this.cells[1].querySelector('.name').textContent;
               photoArea.appendChild(newImg);
             }
           }
@@ -1196,7 +1195,7 @@
           document.getElementById('introductionContent').innerText = introText;
         });
       });
-      
+
       document.querySelectorAll('.review-box').forEach(function(box) {
         box.addEventListener('click', function(e) {
           const animalId = this.getAttribute('data-animal-id');
@@ -1208,14 +1207,14 @@
           e.stopPropagation();
         });
       });
-      
+
       document.querySelectorAll('.plus-menu-btn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
           e.stopPropagation();
           showPlusDropdown(this);
         });
       });
-      
+
       const menuBtn = document.getElementById('menuBtn');
       const sidePanel = document.getElementById('sidePanel');
       const overlay = document.getElementById('overlay');
@@ -1227,32 +1226,32 @@
         sidePanel.classList.remove('open');
         overlay.classList.remove('open');
       });
-      
+
       const loginModal = document.getElementById('loginModal');
       const loginBtn = document.getElementById('loginBtn');
       const closeLoginModal = document.getElementById('closeLoginModal');
       loginBtn.addEventListener('click', function() { loginModal.style.display = 'block'; });
       closeLoginModal.addEventListener('click', function() { loginModal.style.display = 'none'; });
-      
+
       const closeReviewModal = document.getElementById('closeReviewModal');
       closeReviewModal.addEventListener('click', function() {
         document.getElementById('reviewModal').style.display = 'none';
         document.getElementById('reviewForm').style.display = 'none';
       });
-      
+
       // 待約清單 Modal 關閉按鈕
       const closePendingListModal = document.getElementById('closePendingListModal');
       closePendingListModal.addEventListener('click', function() {
         document.getElementById('pendingListModal').style.display = 'none';
       });
-      
+
       // 點選待約清單按鈕，顯示待約清單 Modal
       const pendingListBtn = document.getElementById('pendingListBtn');
       pendingListBtn.addEventListener('click', function(e) {
         document.getElementById('pendingListModal').style.display = 'block';
         e.stopPropagation();
       });
-      
+
       window.addEventListener('click', function(e) {
         if (e.target == loginModal) { loginModal.style.display = 'none'; }
         if (e.target == document.getElementById('reviewModal')) {
@@ -1263,7 +1262,7 @@
           document.getElementById('pendingListModal').style.display = 'none';
         }
       });
-      
+
       document.getElementById('reviewForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const animalId = this.getAttribute('data-animal-id');
@@ -1271,12 +1270,12 @@
         formData.append('animal_id', animalId);
         submitReview(animalId, formData);
       });
-      
+
       // 初始化臉蛋與氣質勾選框的最大勾選數限制
       limitCheckboxSelection('faceCheckboxes', 3);
       limitCheckboxSelection('temperamentCheckboxes', 3);
     });
-    
+
     // 取得並以卡片方式呈現完整心得評論
     function loadReviews(animalId) {
       fetch(`/add_review/?animal_id=${animalId}`)
@@ -1350,7 +1349,7 @@
         });
       });
     }
-    
+
     // 提交心得評論（不重新載入頁面）
     function submitReview(animalId, formData) {
       fetch("/add_review/", {

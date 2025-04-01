@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>每日班表</title>
-  <!-- Choices.js 如有需要 -->
+  <title>動物園每日展示</title>
+  <!-- 若其他欄位仍需 Choices.js，可保留；此處主要用勾選框 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
   <style>
     /* 全站基本設定：字型、尺寸與背景 */
@@ -99,6 +99,16 @@
       cursor: pointer;
       border-radius: 5px;
     }
+    /* 待約清單按鈕 */
+    #pendingListBtn {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 0.5rem;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+    }
 
     /* 主內容區 */
     .glass-overlay {
@@ -137,7 +147,37 @@
       100% { opacity: 1; transform: translateY(0); }
     }
 
-    /* 上方照片與介紹區（保留原有手機版設定） */
+    /* 導覽列 */
+    .hall-menu {
+      display: flex;
+      overflow-x: auto;
+      gap: 0.625rem;
+      background: transparent;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 0;
+      margin-bottom: 0.625rem;
+    }
+    .hall-menu a {
+      flex-shrink: 0;
+      padding: 0.5rem 0.75rem;
+      text-decoration: none;
+      color: #666;
+      background: #fff;
+      border: none;
+      border-radius: 5px;
+      white-space: nowrap;
+      transition: background 0.3s;
+      font-size: 1.05rem;
+    }
+    .hall-menu a.active,
+    .hall-menu a:hover {
+      background: #e0f7fa;
+      color: #007bff;
+      border-color: #bce8f1;
+    }
+
+    /* 上方區：照片與介紹，保留原有手機設定 */
     .top-section {
       display: flex;
       align-items: stretch;
@@ -181,7 +221,7 @@
       font-size: 2rem;
     }
 
-    /* 表格區（每日班表） */
+    /* 表格區 */
     .table-wrapper {
       margin-top: 0;
       background: #fff;
@@ -249,7 +289,6 @@
     .body-table tr:hover { background: #f8f9fa; cursor: pointer; }
     .time-slot { display: inline-block; margin-right: 0.3em; }
 
-    /* 每日班表資料排版（不做修改） */
     .beautician-cell {
       display: flex;
       flex-direction: column;
@@ -257,6 +296,20 @@
       align-items: flex-start;
       gap: 0.3rem;
     }
+    .beautician-cell .labels .label {
+      display: inline-block;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #fff;
+      margin-right: 0.25rem;
+      line-height: 1.2;
+    }
+    .beautician-cell .labels .newcomer { background: rgba(40, 167, 69, 0.4); }
+    .beautician-cell .labels .hot { background: rgba(220, 53, 69, 0.4); }
+    .beautician-cell .labels .exclusive { background: rgba(111, 66, 193, 0.4); }
+
     .beautician-text .name-size-line {
       display: flex;
       justify-content: space-between;
@@ -277,6 +330,7 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
+
     .review-actions {
       display: flex;
       align-items: center;
@@ -377,14 +431,17 @@
     }
     #reviewList p { white-space: pre-wrap; word-wrap: break-word; margin: 0.5rem 0; }
 
-    /* 待約清單 Modal 部分（設計仿每日班表，但不含館別導航列） */
+    /* 待約清單卡片樣式調整 */
     .pending-item {
       display: flex;
       align-items: center;
-      border-bottom: 1px solid #eee;
-      padding: 0.5rem 0;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
     }
-    .pending-item:last-child { border-bottom: none; }
     .pending-thumb {
       padding: 0.125rem;
       margin-right: 0.5rem;
@@ -395,7 +452,6 @@
       height: 40px;
       object-fit: contain;
       border-radius: 50%;
-      margin: 0 auto;
     }
     .pending-info {
       flex-grow: 1;
@@ -403,19 +459,24 @@
     }
     .pending-field {
       display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin: 2px 0;
     }
     .field-label {
       width: 30%;
+      text-align: left;
       font-size: 0.8rem;
       color: #555;
     }
     .field-value {
       width: 70%;
+      text-align: left;
+      word-break: break-all;
       font-size: 0.8rem;
       color: #555;
     }
-    /* 將標籤與心得按鈕分左右兩欄 */
+    /* 將標籤和心得數按鈕分左右兩欄 */
     .pending-labels {
       display: flex;
       justify-content: space-between;
@@ -433,6 +494,8 @@
       font-size: 0.75rem;
       font-weight: bold;
       color: #fff;
+      background: rgba(0,0,0,0.2);
+      /* 可依照需求調整背景顏色 */
     }
     .label.newcomer { background: rgba(40, 167, 69, 0.4); }
     .label.hot { background: rgba(220, 53, 69, 0.4); }
@@ -446,8 +509,10 @@
       cursor: pointer;
       font-size: 0.75rem;
     }
+    /* 在待約項目中，僅在移除按鈕左側加入垂直分隔線 */
     .pending-remove {
       flex-shrink: 0;
+      white-space: nowrap;
       padding: 0.125rem;
       margin-left: 0.5rem;
       border-left: 1px solid #eee;
@@ -535,7 +600,7 @@
     }
     .checkbox-group label { cursor: pointer; }
 
-    /* 保留原有手機版設定 */
+    /* 保留原有針對手機設定的高度 */
     @media (max-width: 480px) {
       .content { padding: 0.625rem; }
       .photo-area, .intro-area { height: 200px; }
@@ -564,7 +629,10 @@
         <button>最新心得</button>
         <button>找美容師</button>
         <button>最愛清單</button>
-        <!-- 本頁面為每日班表 -->
+        <!-- 待約清單按鈕：改用後端傳入數量 -->
+        <button id="pendingListBtn" data-count="{% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %}">
+          待約清單 ({% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %})
+        </button>
         <button id="loginBtn">會員登入</button>
       </div>
       <button id="menuBtn" aria-label="打開選單">≡</button>
@@ -595,6 +663,7 @@
           </a>
         {% endfor %}
       </nav>
+
       <div class="table-wrapper">
         <table class="header-table">
           <thead>
@@ -629,8 +698,6 @@
                       {% endif %}
                     </div>
                     <div class="beautician-text">
-                      <!-- 在美容師名稱上方顯示館別 -->
-                      <div class="hall-info">{{ animal.hall.name }}</div>
                       <div class="name-size-line">
                         <div class="name-container">
                           <span class="name">{{ animal.name }}</span>
@@ -655,13 +722,199 @@
           </table>
         </div>
       </div>
+
       {% if login_error %}
       <div style="color: red; text-align: center;">{{ login_error }}</div>
       {% endif %}
     </div>
   </div>
 
-  <!-- 待約清單 Modal：僅在點選後顯示 -->
+  <!-- 會員登入 Modal -->
+  <div id="loginModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <span class="close-modal" id="closeLoginModal" aria-label="關閉">&times;</span>
+      <h2>會員登入</h2>
+      <form id="loginForm" action="{% url 'login' %}" method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="username">帳號：</label>
+          <input type="text" id="username" name="username" placeholder="請輸入帳號">
+        </div>
+        <div class="form-group">
+          <label for="password">密碼：</label>
+          <input type="password" id="password" name="password" placeholder="請輸入密碼">
+        </div>
+        <button type="submit">登入</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 心得評論 Modal (z-index 較高，覆蓋待約清單) -->
+  <div id="reviewModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <span class="close-modal" id="closeReviewModal" aria-label="關閉">&times;</span>
+      <h2>心得評論</h2>
+      <div id="reviewList"></div>
+      <form id="reviewForm" style="display:none;">
+        {% csrf_token %}
+        <!-- 年紀 -->
+        <div class="form-group">
+          <label for="age">年紀</label>
+          <input type="number" id="age" name="age" placeholder="請輸入大約年紀數字, 不可有中文字">
+        </div>
+        <!-- 顏值 -->
+        <div class="form-group">
+          <label for="looks">顏值</label>
+          <select id="looks" name="looks">
+            <option value="">請選擇</option>
+            <option value="S級 (一見難忘)">S級 (一見難忘)</option>
+            <option value="A級 (出眾)">A級 (出眾)</option>
+            <option value="B級 (優異)">B級 (優異)</option>
+            <option value="C級 (中上)">C級 (中上)</option>
+            <option value="D級 (大眾)">D級 (大眾)</option>
+            <option value="E級 (較平凡)">E級 (較平凡)</option>
+          </select>
+        </div>
+        <!-- 臉蛋（勾選框，最多選3個） -->
+        <div class="form-group">
+          <label>臉蛋（最多選3個）</label>
+          <div id="faceCheckboxes" class="checkbox-group">
+            <label><input type="checkbox" name="face" value="醫美"> 醫美</label>
+            <label><input type="checkbox" name="face" value="可愛"> 可愛</label>
+            <label><input type="checkbox" name="face" value="甜美"> 甜美</label>
+            <label><input type="checkbox" name="face" value="稚嫩"> 稚嫩</label>
+            <label><input type="checkbox" name="face" value="呆萌"> 呆萌</label>
+            <label><input type="checkbox" name="face" value="清秀"> 清秀</label>
+            <label><input type="checkbox" name="face" value="清純"> 清純</label>
+            <label><input type="checkbox" name="face" value="仙氣"> 仙氣</label>
+            <label><input type="checkbox" name="face" value="艷麗"> 艷麗</label>
+            <label><input type="checkbox" name="face" value="性感"> 性感</label>
+            <label><input type="checkbox" name="face" value="古典"> 古典</label>
+            <label><input type="checkbox" name="face" value="個性"> 個性</label>
+            <label><input type="checkbox" name="face" value="鄰家"> 鄰家</label>
+            <label><input type="checkbox" name="face" value="大眾"> 大眾</label>
+            <label><input type="checkbox" name="face" value="平凡"> 平凡</label>
+            <label><input type="checkbox" name="face" value="單眼皮"> 單眼皮</label>
+            <label><input type="checkbox" name="face" value="輕熟"> 輕熟</label>
+            <label><input type="checkbox" name="face" value="熟女"> 熟女</label>
+          </div>
+        </div>
+        <!-- 氣質（勾選框，最多選3個） -->
+        <div class="form-group">
+          <label>氣質（最多選3個）</label>
+          <div id="temperamentCheckboxes" class="checkbox-group">
+            <label><input type="checkbox" name="temperament" value="優雅"> 優雅</label>
+            <label><input type="checkbox" name="temperament" value="成熟"> 成熟</label>
+            <label><input type="checkbox" name="temperament" value="清新"> 清新</label>
+            <label><input type="checkbox" name="temperament" value="自然"> 自然</label>
+            <label><input type="checkbox" name="temperament" value="禮貌"> 禮貌</label>
+            <label><input type="checkbox" name="temperament" value="女友感"> 女友感</label>
+            <label><input type="checkbox" name="temperament" value="女人味"> 女人味</label>
+            <label><input type="checkbox" name="temperament" value="OL"> OL</label>
+            <label><input type="checkbox" name="temperament" value="台妹"> 台妹</label>
+            <label><input type="checkbox" name="temperament" value="普通"> 普通</label>
+          </div>
+        </div>
+        <!-- 體態（下拉選單） -->
+        <div class="form-group">
+          <label for="physique">體態</label>
+          <select id="physique" name="physique">
+            <option value="">請選擇體態</option>
+            <option value="骨感">骨感</option>
+            <option value="瘦">瘦</option>
+            <option value="瘦有肉">瘦有肉</option>
+            <option value="標準">標準</option>
+            <option value="曲線迷人">曲線迷人</option>
+            <option value="瘦偏肉">瘦偏肉</option>
+            <option value="微肉">微肉</option>
+            <option value="棉花糖">棉花糖</option>
+          </select>
+        </div>
+        <!-- 罩杯（下拉選單加輸入框） -->
+        <div class="form-group">
+          <label for="cup">罩杯</label>
+          <select id="cup" name="cup">
+            <option value="">請選擇</option>
+            <option value="天然">天然</option>
+            <option value="醫美">醫美</option>
+            <option value="自體醫美">自體醫美</option>
+            <option value="不確定">不確定</option>
+          </select>
+          <input type="text" id="cup_size" name="cup_size" placeholder="請填寫罩杯大約大小 A~L英文字母, 不可有中文字" style="margin-top:0.5rem;" pattern="[A-L]">
+        </div>
+        <!-- 膚質 -->
+        <div class="form-group">
+          <label for="skin_texture">膚質</label>
+          <select id="skin_texture" name="skin_texture">
+            <option value="">請選擇</option>
+            <option value="絲滑">絲滑</option>
+            <option value="還不錯">還不錯</option>
+            <option value="正常">正常</option>
+            <option value="普通">普通</option>
+          </select>
+        </div>
+        <!-- 膚色 -->
+        <div class="form-group">
+          <label for="skin_color">膚色</label>
+          <select id="skin_color" name="skin_color">
+            <option value="">請選擇</option>
+            <option value="白皙">白皙</option>
+            <option value="偏白">偏白</option>
+            <option value="正常黃">正常黃</option>
+            <option value="偏黃">偏黃</option>
+            <option value="健康黑">健康黑</option>
+          </select>
+        </div>
+        <!-- 音樂 -->
+        <div class="form-group">
+          <label for="music">音樂</label>
+          <select id="music" name="music">
+            <option value="">請選擇</option>
+            <option value="未詢問">未詢問</option>
+            <option value="無此服務">無此服務</option>
+            <option value="可加值">可加值 (費用待填)</option>
+            <option value="自談">可加值 (自談)</option>
+          </select>
+          <input type="number" id="music_price" name="music_price" placeholder="請填寫大約金額數字, 不可有中文字" style="display:none; margin-top:0.5rem;">
+        </div>
+        <!-- 體育 -->
+        <div class="form-group">
+          <label for="sports">體育</label>
+          <select id="sports" name="sports">
+            <option value="">請選擇</option>
+            <option value="未詢問">未詢問</option>
+            <option value="無此服務">無此服務</option>
+            <option value="可加值">可加值 (費用待填)</option>
+            <option value="自談">可加值 (自談)</option>
+            <option value="體含音">體含音</option>
+          </select>
+          <input type="number" id="sports_price" name="sports_price" placeholder="請填寫大約金額數字, 不可有中文字" style="display:none; margin-top:0.5rem;">
+        </div>
+        <!-- 尺度 -->
+        <div class="form-group">
+          <label>尺度</label>
+          <div id="scaleCheckboxes" class="checkbox-group">
+            <label><input type="checkbox" name="scale" value="三光"> 三光</label>
+            <label><input type="checkbox" name="scale" value="兩光"> 兩光</label>
+            <label><input type="checkbox" name="scale" value="LG"> LG</label>
+            <label><input type="checkbox" name="scale" value="親"> 親</label>
+            <label><input type="checkbox" name="scale" value="舔"> 舔</label>
+            <label><input type="checkbox" name="scale" value="伸"> 伸</label>
+            <label><input type="checkbox" name="scale" value="摸"> 摸</label>
+            <label><input type="checkbox" name="scale" value="磨"> 磨</label>
+          </div>
+        </div>
+        <!-- 心得 -->
+        <div class="form-group">
+          <label for="content">心得</label>
+          <textarea name="content" id="content" placeholder="請填寫心得" rows="4" style="width:100%;"></textarea>
+        </div>
+        <button type="submit">提交評論</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 新增待約清單 Modal -->
   <div id="pendingListModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
       <span class="close-modal" id="closePendingListModal" aria-label="關閉">&times;</span>
@@ -728,7 +981,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <script>
-    // 打開心得 Modal
+    // 打開心得 Modal，覆蓋待約清單
     function showReviewModal(animalId) {
       document.getElementById('reviewModal').style.display = 'block';
       document.getElementById('reviewList').style.display = 'block';
@@ -752,6 +1005,7 @@
       return cookieValue;
     }
     
+    // 處理音樂與體育加值輸入框顯示
     function togglePriceInput(selectId, inputId) {
       const select = document.getElementById(selectId);
       const input = document.getElementById(inputId);
@@ -765,6 +1019,7 @@
       });
     }
     
+    // 同步表頭與表身欄位寬度
     function syncTableColumnWidths() {
       const headerTable = document.querySelector('.header-table');
       const bodyTable = document.querySelector('.body-table');
@@ -778,6 +1033,7 @@
       });
     }
     
+    // 處理每日班表時段欄：以 "." 分割，並包入 span
     function processTimeSlotCells() {
       document.querySelectorAll('.time-cell').forEach(function(td) {
         let text = td.textContent.trim();
@@ -787,6 +1043,7 @@
       });
     }
     
+    // 處理待約清單中時段欄（pending-time）：與每日班表類似
     function processPendingTimeCells() {
       document.querySelectorAll('.pending-time').forEach(function(el) {
         let text = el.textContent.trim();
@@ -796,6 +1053,7 @@
       });
     }
     
+    // 新增待約清單項目：加入待約後重新整理頁面
     function addToPendingList(row) {
       const animalId = row.getAttribute('data-animal-id');
       fetch("{% url 'add_pending' %}", {
@@ -817,6 +1075,7 @@
       });
     }
     
+    // 從後端移除待約項目，並更新前端顯示
     function removePendingItem(animalId, btnElem) {
       fetch("{% url 'remove_pending' %}", {
         method: "POST",
@@ -847,6 +1106,7 @@
       pendingBtn.innerText = `待約清單 (${count})`;
     }
     
+    // 顯示下拉選單：提供「填寫心得」、「加入待約」、「加入筆記」
     function showPlusDropdown(triggerBtn) {
       const dropdown = document.getElementById('plusDropdown');
       dropdown.innerHTML = "";
@@ -856,15 +1116,20 @@
       btnAddWait.textContent = "加入待約";
       const btnAddNote = document.createElement('button');
       btnAddNote.textContent = "加入筆記";
+      
       dropdown.appendChild(btnReview);
       dropdown.appendChild(btnAddWait);
       dropdown.appendChild(btnAddNote);
+      
       const rect = triggerBtn.getBoundingClientRect();
       dropdown.style.top = rect.bottom + "px";
       dropdown.style.left = rect.left + "px";
       dropdown.style.display = "block";
+      
+      // 取得該美容師所在的 row
       const row = triggerBtn.closest('tr');
       const animalId = row.getAttribute('data-animal-id');
+      
       btnReview.addEventListener('click', function(e) {
         document.getElementById('reviewModal').style.display = 'block';
         document.getElementById('reviewForm').style.display = 'block';
@@ -887,16 +1152,17 @@
     
     document.addEventListener('click', function(e) {
       const dropdown = document.getElementById('plusDropdown');
-      if (dropdown.style.display === 'block') { dropdown.style.display = 'none'; }
+      if(dropdown.style.display === 'block') { dropdown.style.display = 'none'; }
     });
     
+    // 限制勾選框最多選擇數量（用於臉蛋與氣質）
     function limitCheckboxSelection(containerId, max) {
       const container = document.getElementById(containerId);
       container.addEventListener('change', function() {
         const checkboxes = container.querySelectorAll('input[type="checkbox"]');
         const checked = container.querySelectorAll('input[type="checkbox"]:checked');
-        if (checked.length >= max) {
-          checkboxes.forEach(cb => { if (!cb.checked) { cb.disabled = true; } });
+        if(checked.length >= max) {
+          checkboxes.forEach(cb => { if(!cb.checked) { cb.disabled = true; } });
         } else {
           checkboxes.forEach(cb => { cb.disabled = false; });
         }
@@ -908,6 +1174,8 @@
       syncTableColumnWidths();
       processTimeSlotCells();
       processPendingTimeCells();
+
+      // 處理音樂與體育加值輸入框顯示
       togglePriceInput("music", "music_price");
       togglePriceInput("sports", "sports_price");
 
@@ -916,18 +1184,18 @@
         row.addEventListener('click', function() {
           const photoUrl = this.getAttribute('data-photo');
           const photoArea = document.getElementById('photoArea');
-          if (photoUrl === "尚無照片") {
+          if(photoUrl === "尚無照片") {
             photoArea.innerHTML = '<p>尚無照片</p>';
           } else {
             const imgElement = photoArea.querySelector('img');
             if (imgElement) {
               imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.name').textContent;
+              imgElement.alt = this.cells[1].querySelector('.beautician-text').textContent;
             } else {
               photoArea.innerHTML = '';
               const newImg = document.createElement('img');
               newImg.src = photoUrl;
-              newImg.alt = this.cells[1].querySelector('.name').textContent;
+              newImg.alt = this.cells[1].querySelector('.beautician-text').textContent;
               photoArea.appendChild(newImg);
             }
           }
@@ -979,9 +1247,17 @@
         document.getElementById('reviewForm').style.display = 'none';
       });
 
+      // 待約清單 Modal 關閉按鈕
       const closePendingListModal = document.getElementById('closePendingListModal');
       closePendingListModal.addEventListener('click', function() {
         document.getElementById('pendingListModal').style.display = 'none';
+      });
+
+      // 點選待約清單按鈕，顯示待約清單 Modal
+      const pendingListBtn = document.getElementById('pendingListBtn');
+      pendingListBtn.addEventListener('click', function(e) {
+        document.getElementById('pendingListModal').style.display = 'block';
+        e.stopPropagation();
       });
 
       window.addEventListener('click', function(e) {
@@ -1003,10 +1279,12 @@
         submitReview(animalId, formData);
       });
 
+      // 初始化臉蛋與氣質勾選框的最大勾選數限制
       limitCheckboxSelection('faceCheckboxes', 3);
       limitCheckboxSelection('temperamentCheckboxes', 3);
     });
 
+    // 取得並以卡片方式呈現完整心得評論
     function loadReviews(animalId) {
       fetch(`/add_review/?animal_id=${animalId}`)
       .then(response => response.json())
@@ -1080,6 +1358,7 @@
       });
     }
 
+    // 提交心得評論（不重新載入頁面）
     function submitReview(animalId, formData) {
       fetch("/add_review/", {
         method: "POST",
@@ -1091,7 +1370,7 @@
       })
       .then(response => response.json())
       .then(data => {
-        if (data.success) {
+        if(data.success) {
           alert(data.message);
           loadReviews(animalId);
           document.getElementById('reviewForm').reset();
