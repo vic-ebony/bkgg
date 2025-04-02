@@ -671,7 +671,8 @@
                   data-intro="{{ animal.introduction|default:'尚無介紹' }}"
                   data-animal-id="{{ animal.id }}"
                   data-hall="{{ animal.hall.name }}"
-                  data-review-count="{{ animal.approved_review_count }}">
+                  data-review-count="{{ animal.approved_review_count }}"
+                  data-pending="{% if pending_ids and animal.id|stringformat:"s" in pending_ids %}true{% else %}false{% endif %}">
                 <td>{{ animal.fee }}</td>
                 <td>
                   <div class="beautician-cell">
@@ -1066,7 +1067,7 @@
       });
     }
     
-    // 從後端移除待約項目，並更新前端顯示
+    // 從後端移除待約項目（用於待約清單 Modal）
     function removePendingItem(animalId, btnElem) {
       fetch("{% url 'remove_pending' %}", {
         method: "POST",
@@ -1089,6 +1090,32 @@
       });
     }
     
+    // 用於+按鈕下拉選單的待約切換：根據該筆資料目前是否已加入待約，呼叫新增或移除
+    function togglePending(row) {
+      if (row.getAttribute('data-pending') === "true") {
+        const animalId = row.getAttribute('data-animal-id');
+        fetch("{% url 'remove_pending' %}", {
+          method: "POST",
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({ 'animal_id': animalId })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert(data.error);
+          }
+        });
+      } else {
+        addToPendingList(row);
+      }
+    }
+    
     function updatePendingCount() {
       const pendingItems = document.querySelectorAll('.pending-item');
       const pendingBtn = document.getElementById('pendingListBtn');
@@ -1097,14 +1124,17 @@
       pendingBtn.innerText = `待約清單 (${count})`;
     }
     
-    // 顯示下拉選單：提供「填寫心得」、「加入待約」、「加入筆記」
+    // 顯示下拉選單：提供「填寫心得」、「加入待約/移除待約」、「加入筆記」
     function showPlusDropdown(triggerBtn) {
       const dropdown = document.getElementById('plusDropdown');
       dropdown.innerHTML = "";
       const btnReview = document.createElement('button');
       btnReview.textContent = "填寫心得";
       const btnAddWait = document.createElement('button');
-      btnAddWait.textContent = "加入待約";
+      // 取得該筆 row 的待約狀態，決定按鈕顯示文字
+      const row = triggerBtn.closest('tr');
+      const pendingAction = row.getAttribute('data-pending') === "true" ? "移除待約" : "加入待約";
+      btnAddWait.textContent = pendingAction;
       const btnAddNote = document.createElement('button');
       btnAddNote.textContent = "加入筆記";
       
@@ -1117,8 +1147,6 @@
       dropdown.style.left = rect.left + "px";
       dropdown.style.display = "block";
       
-      // 取得該美容師所在的 row
-      const row = triggerBtn.closest('tr');
       const animalId = row.getAttribute('data-animal-id');
       
       btnReview.addEventListener('click', function(e) {
@@ -1130,7 +1158,7 @@
         e.stopPropagation();
       });
       btnAddWait.addEventListener('click', function(e) {
-        addToPendingList(row);
+        togglePending(row);
         dropdown.style.display = 'none';
         e.stopPropagation();
       });
@@ -1181,7 +1209,6 @@
             const imgElement = photoArea.querySelector('img');
             if (imgElement) {
               imgElement.src = photoUrl;
-              // 使用舊版設定：以 .name 取得美容師姓名作為圖片 alt 文字
               imgElement.alt = this.cells[1].querySelector('.name').textContent;
             } else {
               photoArea.innerHTML = '';

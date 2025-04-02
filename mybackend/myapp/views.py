@@ -38,12 +38,15 @@ def home(request):
     # 為所有 animal 計算已審核評論數
     animals = animals.annotate(approved_review_count=Count('reviews', filter=Q(reviews__approved=True)))
     context = {'animals': animals, 'halls': halls}
-    # 如果使用者已登入，讀取待約清單資料，並手動加入 approved_review_count
+    # 如果使用者已登入，讀取待約清單資料
     if request.user.is_authenticated:
         pending = PendingAppointment.objects.filter(user=request.user).select_related('animal')
         for appointment in pending:
             appointment.animal.approved_review_count = appointment.animal.reviews.filter(approved=True).count()
         context['pending_appointments'] = pending
+        # 將所有待約美容師的 ID 轉為字串傳入模板
+        pending_ids = [str(appointment.animal.id) for appointment in pending]
+        context['pending_ids'] = pending_ids
     if request.GET.get('login_error'):
         context['login_error'] = request.GET.get('login_error')
     return render(request, 'index.html', context)
