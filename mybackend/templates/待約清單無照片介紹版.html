@@ -212,8 +212,7 @@
       flex: 1;
       overflow-y: auto;
     }
-    /* 調整換行機制 */
-    .intro-top p { margin: 0; font-size: 1rem; color: #333; white-space: pre-wrap; }
+    .intro-top p { margin: 0; font-size: 1rem; color: #333; }
 
     .page-title {
       text-align: center;
@@ -423,11 +422,6 @@
     }
     #reviewList p { white-space: pre-wrap; word-wrap: break-word; margin: 0.5rem 0; }
 
-    /* 標籤顏色效果 */
-    .label.newcomer { background: rgba(40, 167, 69, 0.4); }
-    .label.hot { background: rgba(220, 53, 69, 0.4); }
-    .label.exclusive { background: rgba(111, 66, 193, 0.4); }
-
     /* Modal 樣式 */
     .modal {
       display: none;
@@ -543,7 +537,7 @@
           {% if animals|length > 0 and animals.0.photo %}
             <img src="{{ animals.0.photo.url }}" alt="{{ animals.0.name }}">
           {% else %}
-            <!-- 空白 -->
+            <p>尚無照片</p>
           {% endif %}
         </div>
         <div class="intro-area" id="introArea">
@@ -579,8 +573,8 @@
           <table class="body-table" id="animalTable">
             <tbody>
               {% for animal in animals %}
-              <tr data-photo="{% if animal.photo %}{{ animal.photo.url }}{% else %}{% endif %}"
-                  data-intro="{% if animal.introduction %}{{ animal.introduction }}{% else %}{% endif %}"
+              <tr data-photo="{% if animal.photo %}{{ animal.photo.url }}{% else %}尚無照片{% endif %}"
+                  data-intro="{{ animal.introduction|default:'尚無介紹' }}"
                   data-animal-id="{{ animal.id }}"
                   data-hall="{{ animal.hall.name }}"
                   data-review-count="{{ animal.approved_review_count }}"
@@ -817,30 +811,11 @@
     </div>
   </div>
 
-  <!-- 新增待約清單 Modal（上方增加與每日班表相同的照片區與介紹區，表格部分保留＋按鈕內待約/移除功能，不含館別BAR與移除按鈕） -->
+  <!-- 新增待約清單 Modal（修改為與每日班表相同的表格版面，不包含館別BAR與移除按鈕） -->
   <div id="pendingListModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
       <span class="close-modal" id="closePendingListModal" aria-label="關閉">&times;</span>
       <h2>待約清單</h2>
-      <!-- 上方照片與介紹區，設計與每日班表一致 -->
-      <section class="top-section">
-        <div class="photo-area" id="pendingPhotoArea">
-          {% if pending_appointments and pending_appointments.0.animal.photo %}
-            <img src="{{ pending_appointments.0.animal.photo.url }}" alt="{{ pending_appointments.0.animal.name }}">
-          {% else %}
-            <!-- 空白 -->
-          {% endif %}
-        </div>
-        <div class="intro-area" id="pendingIntroArea">
-          <div class="intro-top">
-            {% if pending_appointments and pending_appointments.0.animal.introduction %}
-              <p id="pendingIntroductionContent">{{ pending_appointments.0.animal.introduction }}</p>
-            {% else %}
-              <p id="pendingIntroductionContent"></p>
-            {% endif %}
-          </div>
-        </div>
-      </section>
       <div class="table-wrapper">
         <table class="header-table">
           <thead>
@@ -856,8 +831,8 @@
             <tbody>
               {% if pending_appointments %}
                 {% for appointment in pending_appointments %}
-                  <tr data-photo="{% if appointment.animal.photo %}{{ appointment.animal.photo.url }}{% else %}{% endif %}"
-                      data-intro="{% if appointment.animal.introduction %}{{ appointment.animal.introduction }}{% else %}{% endif %}"
+                  <tr data-photo="{% if appointment.animal.photo %}{{ appointment.animal.photo.url }}{% else %}尚無照片{% endif %}"
+                      data-intro="{{ appointment.animal.introduction|default:'尚無介紹' }}"
                       data-animal-id="{{ appointment.animal.id }}"
                       data-hall="{{ appointment.animal.hall.name }}"
                       data-review-count="{{ appointment.animal.approved_review_count }}"
@@ -900,7 +875,7 @@
                 {% endfor %}
               {% else %}
                 <tr>
-                  <td colspan="3" style="text-align:center;"></td>
+                  <td colspan="3" style="text-align:center;">尚無待約項目</td>
                 </tr>
               {% endif %}
             </tbody>
@@ -1113,8 +1088,8 @@
         row.addEventListener('click', function() {
           const photoUrl = this.getAttribute('data-photo');
           const photoArea = document.getElementById('photoArea');
-          if(photoUrl === "") {
-            photoArea.innerHTML = '';
+          if(photoUrl === "尚無照片") {
+            photoArea.innerHTML = '<p>尚無照片</p>';
           } else {
             const imgElement = photoArea.querySelector('img');
             if (imgElement) {
@@ -1129,33 +1104,7 @@
             }
           }
           const introText = this.getAttribute('data-intro');
-          document.getElementById('introductionContent').innerText = introText || '';
-        });
-      });
-
-      // 新增待約清單點選同步上方照片與介紹功能
-      const pendingRows = document.querySelectorAll('#pendingTable tbody tr');
-      pendingRows.forEach(function(row) {
-        row.addEventListener('click', function() {
-          const photoUrl = this.getAttribute('data-photo');
-          const pendingPhotoArea = document.getElementById('pendingPhotoArea');
-          if(photoUrl === "") {
-            pendingPhotoArea.innerHTML = '';
-          } else {
-            const imgElement = pendingPhotoArea.querySelector('img');
-            if (imgElement) {
-              imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.name').textContent;
-            } else {
-              pendingPhotoArea.innerHTML = '';
-              const newImg = document.createElement('img');
-              newImg.src = photoUrl;
-              newImg.alt = this.cells[1].querySelector('.name').textContent;
-              pendingPhotoArea.appendChild(newImg);
-            }
-          }
-          const introText = this.getAttribute('data-intro');
-          document.getElementById('pendingIntroductionContent').innerText = introText || '';
+          document.getElementById('introductionContent').innerText = introText;
         });
       });
 
@@ -1327,9 +1276,9 @@
       .then(data => {
         if(data.success) {
           alert(data.message);
-          // 提交成功後隱藏整個心得 Modal，不再顯示心得面板
-          document.getElementById('reviewModal').style.display = 'none';
+          loadReviews(animalId);
           document.getElementById('reviewForm').reset();
+          document.getElementById('reviewForm').style.display = 'none';
         } else {
           alert(data.error);
         }
