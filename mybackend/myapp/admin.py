@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Animal, Hall, Review, PendingAppointment
+from .models import Animal, Hall, Review, PendingAppointment, Note
 
 @admin.register(Animal)
 class AnimalAdmin(admin.ModelAdmin):
@@ -35,3 +35,8 @@ class ReviewAdmin(admin.ModelAdmin):
 class PendingAppointmentAdmin(admin.ModelAdmin):
     list_display = ('user', 'animal', 'added_at')
     list_filter = ('user', 'animal')
+
+@admin.register(Note)
+class NoteAdmin(admin.ModelAdmin):
+    list_display = ('user', 'animal', 'created_at', 'updated_at')
+    search_fields = ('content',)

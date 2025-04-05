@@ -1,14 +1,14 @@
 {% load static %}
+{% load my_filters %}
 <!DOCTYPE html>
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>動物園每日展示</title>
-  <!-- 若其他欄位仍需 Choices.js，可保留；此處主要用勾選框 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
   <style>
-    /* 全站基本設定：字型、尺寸與背景 */
+    /* 全站基本設定 */
     html, body {
       margin: 0;
       padding: 0;
@@ -24,7 +24,7 @@
       line-height: 1.5;
     }
     *, *::before, *::after { box-sizing: inherit; }
-
+    
     /* 右上角會員資訊 */
     .user-info {
       position: absolute;
@@ -48,7 +48,7 @@
       text-decoration: underline;
       margin-left: 10px;
     }
-
+    
     /* 側邊與遮罩 */
     #menuBtn {
       position: absolute;
@@ -99,6 +99,7 @@
       cursor: pointer;
       border-radius: 5px;
     }
+    
     /* 待約清單按鈕 */
     #pendingListBtn {
       background: #fff;
@@ -109,7 +110,7 @@
       margin-bottom: 0.5rem;
       cursor: pointer;
     }
-
+    
     /* 主內容區 */
     .glass-overlay {
       position: absolute;
@@ -146,8 +147,8 @@
       0% { opacity: 0; transform: translateY(20px); }
       100% { opacity: 1; transform: translateY(0); }
     }
-
-    /* 導覽列（每日班表保留館別BAR） */
+    
+    /* 導覽列 */
     .hall-menu {
       display: flex;
       overflow-x: auto;
@@ -176,7 +177,7 @@
       color: #007bff;
       border-color: #bce8f1;
     }
-
+    
     /* 上方區：照片與介紹 */
     .top-section {
       display: flex;
@@ -212,17 +213,15 @@
       flex: 1;
       overflow-y: auto;
     }
-    /* 調整換行機制 */
     .intro-top p { margin: 0; font-size: 1rem; color: #333; white-space: pre-wrap; }
-
     .page-title {
       text-align: center;
       margin-bottom: 0.625rem;
       color: #666;
       font-size: 2rem;
     }
-
-    /* 表格區（每日班表與待約清單採用相同表格設計） */
+    
+    /* 表格區 */
     .table-wrapper {
       margin-top: 0;
       background: #fff;
@@ -260,7 +259,6 @@
     .body-table td:nth-child(2) { width: 50%; }
     .header-table th:nth-child(3),
     .body-table td:nth-child(3) { width: 35%; }
-
     .body-wrapper {
       flex: 1;
       min-height: 0;
@@ -288,9 +286,13 @@
       color: #444;
     }
     .body-table tr:hover { background: #f8f9fa; cursor: pointer; }
+    /* 如果有筆記的話，筆記那列不顯示上框線 */
+    .body-table tr.note-row td {
+      border-top: none;
+    }
     .time-slot { display: inline-block; margin-right: 0.3em; }
-
-    /* 每日班表內美容師資料格式 */
+    
+    /* 美容師資料格式 */
     .beautician-cell {
       display: flex;
       flex-direction: column;
@@ -422,12 +424,23 @@
       color: #666;
     }
     #reviewList p { white-space: pre-wrap; word-wrap: break-word; margin: 0.5rem 0; }
-
-    /* 標籤顏色效果 */
+    /* 標籤顏色 */
     .label.newcomer { background: rgba(40, 167, 69, 0.4); }
     .label.hot { background: rgba(220, 53, 69, 0.4); }
     .label.exclusive { background: rgba(111, 66, 193, 0.4); }
-
+    
+    /* 筆記顯示區：與表格整體寬度一致 */
+    .note-box {
+      border: none;
+      background: #f9f9f9;
+      padding: 0.5rem;
+      margin-top: 0.1rem;
+      font-size: 0.9rem;
+      color: #333;
+      width: 100%;
+      text-align: left;
+    }
+    
     /* Modal 樣式 */
     .modal {
       display: none;
@@ -440,7 +453,10 @@
       overflow: auto;
       background-color: rgba(0, 0, 0, 0.4);
     }
+    /* 查看心得 Modal */
     #reviewModal { z-index: 50; }
+    /* 填寫心得 Modal */
+    #reviewSubmitModal { z-index: 50; }
     .modal-content {
       background-color: #fff;
       margin: 1.25rem auto;
@@ -500,12 +516,14 @@
       gap: 0.5rem;
     }
     .checkbox-group label { cursor: pointer; }
-
-    /* 保留原有針對手機設定的高度 */
     @media (max-width: 480px) {
       .content { padding: 0.625rem; }
       .photo-area, .intro-area { height: 200px; }
       .intro-area { padding: 0.625rem; }
+    }
+    /* 我的筆記 Modal (與每日班表版型相同) */
+    #myNotesModal .modal-content {
+      max-width: 500px;
     }
   </style>
 </head>
@@ -527,13 +545,14 @@
       <div id="sidePanel">
         <button>每日班表</button>
         <button>每週班表</button>
-        <button>最新心得</button>
+        <button id="latestReviewBtn">最新心得</button>
         <button>找美容師</button>
         <button>最愛清單</button>
-        <!-- 待約清單按鈕：改用後端傳入數量 -->
         <button id="pendingListBtn" data-count="{% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %}">
           待約清單 ({% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %})
         </button>
+        <!-- 新增：我的筆記 按鈕 -->
+        <button id="myNotesBtn">我的筆記</button>
         <button id="loginBtn">會員登入</button>
       </div>
       <button id="menuBtn" aria-label="打開選單">≡</button>
@@ -542,8 +561,6 @@
         <div class="photo-area" id="photoArea">
           {% if animals|length > 0 and animals.0.photo %}
             <img src="{{ animals.0.photo.url }}" alt="{{ animals.0.name }}">
-          {% else %}
-            <!-- 空白 -->
           {% endif %}
         </div>
         <div class="intro-area" id="introArea">
@@ -564,7 +581,6 @@
           </a>
         {% endfor %}
       </nav>
-
       <div class="table-wrapper">
         <table class="header-table">
           <thead>
@@ -579,53 +595,69 @@
           <table class="body-table" id="animalTable">
             <tbody>
               {% for animal in animals %}
-              <tr data-photo="{% if animal.photo %}{{ animal.photo.url }}{% else %}{% endif %}"
-                  data-intro="{% if animal.introduction %}{{ animal.introduction }}{% else %}{% endif %}"
-                  data-animal-id="{{ animal.id }}"
-                  data-hall="{{ animal.hall.name }}"
-                  data-review-count="{{ animal.approved_review_count }}"
-                  data-pending="{% if pending_ids and animal.id|stringformat:"s" in pending_ids %}true{% else %}false{% endif %}">
-                <td>{{ animal.fee }}</td>
-                <td>
-                  <div class="beautician-cell">
-                    <div class="labels">
-                      {% if animal.is_newcomer %}
-                        <span class="label newcomer">新人</span>
-                      {% endif %}
-                      {% if animal.is_hot %}
-                        <span class="label hot">熱門</span>
-                      {% endif %}
-                      {% if animal.is_exclusive %}
-                        <span class="label exclusive">獨家</span>
-                      {% endif %}
-                    </div>
-                    <div class="beautician-text">
-                      <div class="hall-info">{{ animal.hall.name }}</div>
-                      <div class="name-size-line">
-                        <div class="name-container">
-                          <span class="name">{{ animal.name }}</span>
+                {% with animal_id_str=animal.id|stringformat:"s" %}
+                  {% with note=notes_by_animal|get_item:animal_id_str %}
+                    <tr data-photo="{% if animal.photo %}{{ animal.photo.url }}{% else %}{% endif %}"
+                        data-intro="{% if animal.introduction %}{{ animal.introduction }}{% else %}{% endif %}"
+                        data-animal-id="{{ animal.id }}"
+                        data-hall="{{ animal.hall.name }}"
+                        data-review-count="{{ animal.approved_review_count }}"
+                        data-pending="{% if pending_ids and animal.id|stringformat:"s" in pending_ids %}true{% else %}false{% endif %}"
+                        {% if note %}
+                          data-note-id="{{ note.id }}"
+                          data-note-content="{{ note.content }}"
+                        {% endif %}>
+                      <td>{{ animal.fee }}</td>
+                      <td>
+                        <div class="beautician-cell">
+                          <div class="labels">
+                            {% if animal.is_newcomer %}
+                              <span class="label newcomer">新人</span>
+                            {% endif %}
+                            {% if animal.is_hot %}
+                              <span class="label hot">熱門</span>
+                            {% endif %}
+                            {% if animal.is_exclusive %}
+                              <span class="label exclusive">獨家</span>
+                            {% endif %}
+                          </div>
+                          <div class="beautician-text">
+                            <div class="hall-info">{{ animal.hall.name }}</div>
+                            <div class="name-size-line">
+                              <div class="name-container">
+                                <span class="name">{{ animal.name }}</span>
+                              </div>
+                              <div class="size-container">
+                                <span class="size">{{ animal.size_display }}</span>
+                              </div>
+                            </div>
+                            <div class="review-actions">
+                              <div class="review-box" id="reviewBox-{{ animal.id }}" data-animal-id="{{ animal.id }}">
+                                心得 <span class="count">{{ animal.approved_review_count }}</span>
+                              </div>
+                              <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
+                            </div>
+                          </div>
                         </div>
-                        <div class="size-container">
-                          <span class="size">{{ animal.size_display }}</span>
+                      </td>
+                      <td class="time-cell">{{ animal.time_slot }}</td>
+                    </tr>
+                    {% if note %}
+                    <tr class="note-row">
+                      <td colspan="3">
+                        <div class="note-box">
+                          {{ note.content }}
                         </div>
-                      </div>
-                      <div class="review-actions">
-                        <div class="review-box" id="reviewBox-{{ animal.id }}" data-animal-id="{{ animal.id }}">
-                          心得 <span class="count">{{ animal.approved_review_count }}</span>
-                        </div>
-                        <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td class="time-cell">{{ animal.time_slot }}</td>
-              </tr>
+                      </td>
+                    </tr>
+                    {% endif %}
+                  {% endwith %}
+                {% endwith %}
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
-
       {% if login_error %}
       <div style="color: red; text-align: center;">{{ login_error }}</div>
       {% endif %}
@@ -652,20 +684,26 @@
     </div>
   </div>
 
-  <!-- 心得評論 Modal (z-index 較高，覆蓋待約清單) -->
+  <!-- 查看心得 Modal -->
   <div id="reviewModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
       <span class="close-modal" id="closeReviewModal" aria-label="關閉">&times;</span>
       <h2>心得評論</h2>
       <div id="reviewList"></div>
-      <form id="reviewForm" style="display:none;">
+    </div>
+  </div>
+
+  <!-- 填寫心得 Modal -->
+  <div id="reviewSubmitModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <span class="close-modal" id="closeReviewSubmitModal" aria-label="關閉">&times;</span>
+      <h2>填寫心得</h2>
+      <form id="reviewForm">
         {% csrf_token %}
-        <!-- 年紀 -->
         <div class="form-group">
           <label for="age">年紀</label>
           <input type="number" id="age" name="age" placeholder="請輸入大約年紀數字, 不可有中文字">
         </div>
-        <!-- 顏值 -->
         <div class="form-group">
           <label for="looks">顏值</label>
           <select id="looks" name="looks">
@@ -678,7 +716,6 @@
             <option value="E級 (較平凡)">E級 (較平凡)</option>
           </select>
         </div>
-        <!-- 臉蛋（勾選框，最多選3個） -->
         <div class="form-group">
           <label>臉蛋（最多選3個）</label>
           <div id="faceCheckboxes" class="checkbox-group">
@@ -702,7 +739,6 @@
             <label><input type="checkbox" name="face" value="熟女"> 熟女</label>
           </div>
         </div>
-        <!-- 氣質（勾選框，最多選3個） -->
         <div class="form-group">
           <label>氣質（最多選3個）</label>
           <div id="temperamentCheckboxes" class="checkbox-group">
@@ -718,7 +754,6 @@
             <label><input type="checkbox" name="temperament" value="普通"> 普通</label>
           </div>
         </div>
-        <!-- 體態（下拉選單） -->
         <div class="form-group">
           <label for="physique">體態</label>
           <select id="physique" name="physique">
@@ -733,7 +768,6 @@
             <option value="棉花糖">棉花糖</option>
           </select>
         </div>
-        <!-- 罩杯（下拉選單加輸入框） -->
         <div class="form-group">
           <label for="cup">罩杯</label>
           <select id="cup" name="cup">
@@ -745,7 +779,6 @@
           </select>
           <input type="text" id="cup_size" name="cup_size" placeholder="請填寫罩杯大約大小 A~L英文字母, 不可有中文字" style="margin-top:0.5rem;" pattern="[A-L]">
         </div>
-        <!-- 膚質 -->
         <div class="form-group">
           <label for="skin_texture">膚質</label>
           <select id="skin_texture" name="skin_texture">
@@ -756,7 +789,6 @@
             <option value="普通">普通</option>
           </select>
         </div>
-        <!-- 膚色 -->
         <div class="form-group">
           <label for="skin_color">膚色</label>
           <select id="skin_color" name="skin_color">
@@ -768,7 +800,6 @@
             <option value="健康黑">健康黑</option>
           </select>
         </div>
-        <!-- 音樂 -->
         <div class="form-group">
           <label for="music">音樂</label>
           <select id="music" name="music">
@@ -780,7 +811,6 @@
           </select>
           <input type="number" id="music_price" name="music_price" placeholder="請填寫大約金額數字, 不可有中文字" style="display:none; margin-top:0.5rem;">
         </div>
-        <!-- 體育 -->
         <div class="form-group">
           <label for="sports">體育</label>
           <select id="sports" name="sports">
@@ -793,7 +823,6 @@
           </select>
           <input type="number" id="sports_price" name="sports_price" placeholder="請填寫大約金額數字, 不可有中文字" style="display:none; margin-top:0.5rem;">
         </div>
-        <!-- 尺度 -->
         <div class="form-group">
           <label>尺度</label>
           <div id="scaleCheckboxes" class="checkbox-group">
@@ -807,7 +836,6 @@
             <label><input type="checkbox" name="scale" value="磨"> 磨</label>
           </div>
         </div>
-        <!-- 心得 -->
         <div class="form-group">
           <label for="content">心得</label>
           <textarea name="content" id="content" placeholder="請填寫心得" rows="4" style="width:100%;"></textarea>
@@ -817,18 +845,15 @@
     </div>
   </div>
 
-  <!-- 新增待約清單 Modal（上方增加與每日班表相同的照片區與介紹區，表格部分保留＋按鈕內待約/移除功能，不含館別BAR與移除按鈕） -->
+  <!-- 待約清單 Modal -->
   <div id="pendingListModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
       <span class="close-modal" id="closePendingListModal" aria-label="關閉">&times;</span>
       <h2>待約清單</h2>
-      <!-- 上方照片與介紹區，設計與每日班表一致 -->
       <section class="top-section">
         <div class="photo-area" id="pendingPhotoArea">
           {% if pending_appointments and pending_appointments.0.animal.photo %}
             <img src="{{ pending_appointments.0.animal.photo.url }}" alt="{{ pending_appointments.0.animal.name }}">
-          {% else %}
-            <!-- 空白 -->
           {% endif %}
         </div>
         <div class="intro-area" id="pendingIntroArea">
@@ -866,15 +891,9 @@
                     <td>
                       <div class="beautician-cell">
                         <div class="labels">
-                          {% if appointment.animal.is_newcomer %}
-                            <span class="label newcomer">新人</span>
-                          {% endif %}
-                          {% if appointment.animal.is_hot %}
-                            <span class="label hot">熱門</span>
-                          {% endif %}
-                          {% if appointment.animal.is_exclusive %}
-                            <span class="label exclusive">獨家</span>
-                          {% endif %}
+                          {% if appointment.animal.is_newcomer %}<span class="label newcomer">新人</span>{% endif %}
+                          {% if appointment.animal.is_hot %}<span class="label hot">熱門</span>{% endif %}
+                          {% if appointment.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
                         </div>
                         <div class="beautician-text">
                           <div class="hall-info">{{ appointment.animal.hall.name }}</div>
@@ -910,19 +929,145 @@
     </div>
   </div>
 
-  <div id="plusDropdown" class="dropdown-menu"></div>
+  <!-- 最新心得 Modal -->
+  <div id="latestReviewModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <span class="close-modal" id="closeLatestReviewModal" aria-label="關閉">&times;</span>
+      <h2>最新心得</h2>
+      <section class="top-section">
+        <div class="photo-area" id="latestPhotoArea">
+          {% if latest_reviews and latest_reviews.0.animal.photo %}
+            <img src="{{ latest_reviews.0.animal.photo.url }}" alt="{{ latest_reviews.0.animal.name }}">
+          {% endif %}
+        </div>
+        <div class="intro-area" id="latestIntroArea">
+          <div class="intro-top">
+            {% if latest_reviews and latest_reviews.0.animal.introduction %}
+              <p id="latestIntroductionContent">{{ latest_reviews.0.animal.introduction }}</p>
+            {% else %}
+              <p id="latestIntroductionContent"></p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+      <div class="table-wrapper">
+        <table class="header-table">
+          <thead>
+            <tr>
+              <th>台費</th>
+              <th>美容師</th>
+              <th>時段</th>
+            </tr>
+          </thead>
+        </table>
+        <div class="body-wrapper">
+          <table class="body-table" id="latestReviewTable">
+            <tbody>
+              {% if latest_reviews %}
+                {% for review in latest_reviews %}
+                  <tr data-photo="{% if review.animal.photo %}{{ review.animal.photo.url }}{% endif %}"
+                      data-intro="{% if review.animal.introduction %}{{ review.animal.introduction }}{% endif %}"
+                      data-animal-id="{{ review.animal.id }}"
+                      data-hall="{{ review.animal.hall.name }}"
+                      data-review-count="{{ review.animal.approved_review_count }}"
+                      data-pending="false">
+                    <td>{{ review.animal.fee }}</td>
+                    <td>
+                      <div class="beautician-cell">
+                        <div class="labels">
+                          {% if review.animal.is_newcomer %}<span class="label newcomer">新人</span>{% endif %}
+                          {% if review.animal.is_hot %}<span class="label hot">熱門</span>{% endif %}
+                          {% if review.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
+                        </div>
+                        <div class="beautician-text">
+                          <div class="hall-info">{{ review.animal.hall.name }}</div>
+                          <div class="name-size-line">
+                            <div class="name-container">
+                              <span class="name">{{ review.animal.name }}</span>
+                            </div>
+                            <div class="size-container">
+                              <span class="size">{{ review.animal.size_display }}</span>
+                            </div>
+                          </div>
+                          <div class="review-actions">
+                            <div class="review-box" id="reviewBox-{{ review.animal.id }}" data-animal-id="{{ review.animal.id }}">
+                              心得 <span class="count">{{ review.animal.approved_review_count }}</span>
+                            </div>
+                            <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="time-cell">{{ review.animal.time_slot }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="3" style="text-align:center;">無資料</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <!-- 筆記 Modal -->
+  <div id="noteModal" class="modal" role="dialog" aria-modal="true" style="display:none;">
+    <div class="modal-content">
+      <span class="close-modal" id="closeNoteModal" aria-label="關閉">&times;</span>
+      <h2 id="noteModalTitle">加入筆記</h2>
+      <form id="noteForm" action="{% url 'add_note' %}" method="POST">
+        {% csrf_token %}
+        <input type="hidden" id="noteAnimalId" name="animal_id" value="">
+        <div id="noteFormSection">
+          <div class="form-group">
+            <textarea name="content" id="noteContent" rows="4" placeholder="請輸入筆記內容" style="width:100%;"></textarea>
+          </div>
+          <button type="submit" id="saveNoteBtn">儲存筆記</button>
+        </div>
+      </form>
+      <div id="viewNoteSection" style="display:none;">
+         <p id="viewNoteContent"></p>
+         <button id="editNoteBtn">修改筆記</button>
+         <button id="deleteNoteBtn">刪除筆記</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 我的筆記 Modal -->
+  <div id="myNotesModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <span class="close-modal" id="closeMyNotesModal" aria-label="關閉">&times;</span>
+      <h2>我的筆記</h2>
+      <div id="myNotesContent">
+        <table class="header-table">
+          <thead>
+            <tr>
+              <th>美容師</th>
+              <th>筆記內容</th>
+              <th>更新日期</th>
+            </tr>
+          </thead>
+        </table>
+        <div class="body-wrapper">
+          <table class="body-table" id="myNotesTable">
+            <tbody>
+              <!-- 筆記資料由 JavaScript 載入 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- + 下拉選單 -->
+  <div id="plusDropdown" class="dropdown-menu"></div>
+  
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <!-- 全域 getCookie 函式 -->
   <script>
-    // 打開心得 Modal，覆蓋待約清單
-    function showReviewModal(animalId) {
-      document.getElementById('reviewModal').style.display = 'block';
-      document.getElementById('reviewList').style.display = 'block';
-      document.getElementById('reviewForm').style.display = 'none';
-      loadReviews(animalId);
-    }
-    
-    // 取得 CSRF Token
     function getCookie(name) {
       let cookieValue = null;
       if (document.cookie && document.cookie !== '') {
@@ -937,82 +1082,90 @@
       }
       return cookieValue;
     }
-    
-    // 處理音樂與體育加值輸入框顯示
-    function togglePriceInput(selectId, inputId) {
-      const select = document.getElementById(selectId);
-      const input = document.getElementById(inputId);
-      select.addEventListener('change', function() {
-        if (select.value === "可加值") {
-          input.style.display = "block";
-        } else {
-          input.style.display = "none";
-          input.value = "";
-        }
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 新增各 Modal 關閉按鈕的事件監聽
+      document.getElementById('closeLoginModal').addEventListener('click', function() {
+        document.getElementById('loginModal').style.display = 'none';
       });
-    }
-    
-    // 同步表頭與表身欄位寬度
-    function syncTableColumnWidths() {
-      const headerTable = document.querySelector('.header-table');
-      const bodyTable = document.querySelector('.body-table');
-      const headerCells = headerTable.querySelectorAll('th');
-      const firstBodyRow = bodyTable.querySelector('tr');
-      if (!firstBodyRow) return;
-      const bodyCells = firstBodyRow.querySelectorAll('td');
-      headerCells.forEach((th, index) => {
-        const cellWidth = bodyCells[index].getBoundingClientRect().width;
-        th.style.width = cellWidth + "px";
+      document.getElementById('closeReviewModal').addEventListener('click', function() {
+        document.getElementById('reviewModal').style.display = 'none';
       });
-    }
-    
-    // 處理每日班表時段欄：以 "." 分割，並包入 span
-    function processTimeSlotCells() {
-      document.querySelectorAll('.time-cell').forEach(function(td) {
-        let text = td.textContent.trim();
-        let tokens = text.split('.').filter(token => token.trim() !== '');
-        tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
-        td.innerHTML = tokens.join('');
+      document.getElementById('closeReviewSubmitModal').addEventListener('click', function() {
+        document.getElementById('reviewSubmitModal').style.display = 'none';
       });
-    }
-    
-    // 處理待約清單中時段欄（pending-time）：與每日班表類似
-    function processPendingTimeCells() {
-      document.querySelectorAll('.pending-time').forEach(function(el) {
-        let text = el.textContent.trim();
-        let tokens = text.split('.').filter(token => token.trim() !== '');
-        tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
-        el.innerHTML = tokens.join('');
+      document.getElementById('closePendingListModal').addEventListener('click', function() {
+        document.getElementById('pendingListModal').style.display = 'none';
       });
-    }
-    
-    // 新增待約清單項目：加入待約後重新整理頁面
-    function addToPendingList(row) {
-      const animalId = row.getAttribute('data-animal-id');
-      fetch("{% url 'add_pending' %}", {
-        method: "POST",
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': getCookie('csrftoken'),
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({ 'animal_id': animalId })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          location.reload();
-        } else {
-          alert(data.error);
-        }
+      document.getElementById('closeLatestReviewModal').addEventListener('click', function() {
+        document.getElementById('latestReviewModal').style.display = 'none';
       });
-    }
-    
-    // 用於+按鈕下拉選單的待約切換：根據該筆資料目前是否已加入待約，呼叫新增或移除
-    function togglePending(row) {
-      if (row.getAttribute('data-pending') === "true") {
+      document.getElementById('closeNoteModal').addEventListener('click', function() {
+        document.getElementById('noteModal').style.display = 'none';
+      });
+      document.getElementById('closeMyNotesModal').addEventListener('click', function() {
+        document.getElementById('myNotesModal').style.display = 'none';
+      });
+
+      // 重新加入「最新心得」與「待約清單」按鈕事件監聽
+      document.getElementById('latestReviewBtn').addEventListener('click', function(e) {
+        document.getElementById('latestReviewModal').style.display = 'block';
+        e.stopPropagation();
+      });
+      document.getElementById('pendingListBtn').addEventListener('click', function(e) {
+        document.getElementById('pendingListModal').style.display = 'block';
+        e.stopPropagation();
+      });
+
+      // 避免重複宣告變數，只宣告一次 sidePanel、menuBtn、overlay
+      const menuBtn = document.getElementById('menuBtn');
+      const sidePanel = document.getElementById('sidePanel');
+      const overlay = document.getElementById('overlay');
+
+      menuBtn.addEventListener('click', function() {
+        sidePanel.classList.toggle('open');
+        overlay.classList.toggle('open');
+      });
+      overlay.addEventListener('click', function() {
+        sidePanel.classList.remove('open');
+        overlay.classList.remove('open');
+      });
+
+      function syncTableColumnWidths() {
+        const headerTable = document.querySelector('.header-table');
+        const bodyTable = document.querySelector('.body-table');
+        const headerCells = headerTable.querySelectorAll('th');
+        const firstBodyRow = bodyTable.querySelector('tr');
+        if (!firstBodyRow) return;
+        const bodyCells = firstBodyRow.querySelectorAll('td');
+        headerCells.forEach((th, index) => {
+          const cellWidth = bodyCells[index].getBoundingClientRect().width;
+          th.style.width = cellWidth + "px";
+        });
+      }
+      
+      function processTimeSlotCells() {
+        document.querySelectorAll('.time-cell').forEach(function(td) {
+          let text = td.textContent.trim();
+          let tokens = text.split('.').filter(token => token.trim() !== '');
+          tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
+          td.innerHTML = tokens.join('');
+        });
+      }
+      
+      function processPendingTimeCells() {
+        document.querySelectorAll('.pending-time').forEach(function(el) {
+          let text = el.textContent.trim();
+          let tokens = text.split('.').filter(token => token.trim() !== '');
+          tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
+          el.innerHTML = tokens.join('');
+        });
+      }
+      
+      function addToPendingList(row) {
         const animalId = row.getAttribute('data-animal-id');
-        fetch("{% url 'remove_pending' %}", {
+        fetch("{% url 'add_pending' %}", {
           method: "POST",
           headers: {
             'X-Requested-With': 'XMLHttpRequest',
@@ -1029,147 +1182,129 @@
             alert(data.error);
           }
         });
-      } else {
-        addToPendingList(row);
       }
-    }
-    
-    // 顯示下拉選單：提供「填寫心得」、「加入待約/移除待約」、「加入筆記」
-    function showPlusDropdown(triggerBtn) {
-      const dropdown = document.getElementById('plusDropdown');
-      dropdown.innerHTML = "";
-      const btnReview = document.createElement('button');
-      btnReview.textContent = "填寫心得";
-      const btnAddWait = document.createElement('button');
-      // 取得該筆 row 的待約狀態，決定按鈕顯示文字
-      const row = triggerBtn.closest('tr');
-      const pendingAction = row.getAttribute('data-pending') === "true" ? "移除待約" : "加入待約";
-      btnAddWait.textContent = pendingAction;
-      const btnAddNote = document.createElement('button');
-      btnAddNote.textContent = "加入筆記";
       
-      dropdown.appendChild(btnReview);
-      dropdown.appendChild(btnAddWait);
-      dropdown.appendChild(btnAddNote);
-      
-      const rect = triggerBtn.getBoundingClientRect();
-      dropdown.style.top = rect.bottom + "px";
-      dropdown.style.left = rect.left + "px";
-      dropdown.style.display = "block";
-      
-      const animalId = row.getAttribute('data-animal-id');
-      
-      btnReview.addEventListener('click', function(e) {
-        document.getElementById('reviewModal').style.display = 'block';
-        document.getElementById('reviewForm').style.display = 'block';
-        document.getElementById('reviewList').style.display = 'block';
-        document.getElementById('reviewForm').setAttribute('data-animal-id', animalId);
-        dropdown.style.display = 'none';
-        e.stopPropagation();
-      });
-      btnAddWait.addEventListener('click', function(e) {
-        togglePending(row);
-        dropdown.style.display = 'none';
-        e.stopPropagation();
-      });
-      btnAddNote.addEventListener('click', function(e) {
-        alert("加入筆記功能待實作");
-        dropdown.style.display = 'none';
-        e.stopPropagation();
-      });
-    }
-    
-    document.addEventListener('click', function(e) {
-      const dropdown = document.getElementById('plusDropdown');
-      if(dropdown.style.display === 'block') { dropdown.style.display = 'none'; }
-    });
-    
-    // 限制勾選框最多選擇數量（用於臉蛋與氣質）
-    function limitCheckboxSelection(containerId, max) {
-      const container = document.getElementById(containerId);
-      container.addEventListener('change', function() {
-        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-        const checked = container.querySelectorAll('input[type="checkbox"]:checked');
-        if(checked.length >= max) {
-          checkboxes.forEach(cb => { if(!cb.checked) { cb.disabled = true; } });
+      function togglePending(row) {
+        if (row.getAttribute('data-pending') === "true") {
+          const animalId = row.getAttribute('data-animal-id');
+          fetch("{% url 'remove_pending' %}", {
+            method: "POST",
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({ 'animal_id': animalId })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              location.reload();
+            } else {
+              alert(data.error);
+            }
+          });
         } else {
-          checkboxes.forEach(cb => { cb.disabled = false; });
+          addToPendingList(row);
         }
+      }
+      
+      function showPlusDropdown(triggerBtn) {
+        const dropdown = document.getElementById('plusDropdown');
+        dropdown.innerHTML = "";
+        const btnReview = document.createElement('button');
+        btnReview.textContent = "填寫心得";
+        const btnAddWait = document.createElement('button');
+        const row = triggerBtn.closest('tr');
+        const pendingAction = row.getAttribute('data-pending') === "true" ? "移除待約" : "加入待約";
+        btnAddWait.textContent = pendingAction;
+        const btnAddNote = document.createElement('button');
+        if (row.getAttribute('data-note-id')) {
+          btnAddNote.textContent = "查看筆記";
+        } else {
+          btnAddNote.textContent = "加入筆記";
+        }
+        
+        dropdown.appendChild(btnReview);
+        dropdown.appendChild(btnAddWait);
+        dropdown.appendChild(btnAddNote);
+        
+        const rect = triggerBtn.getBoundingClientRect();
+        dropdown.style.top = rect.bottom + "px";
+        dropdown.style.left = rect.left + "px";
+        dropdown.style.display = "block";
+        
+        const animalId = row.getAttribute('data-animal-id');
+        
+        btnReview.addEventListener('click', function(e) {
+          const reviewSubmitModal = document.getElementById('reviewSubmitModal');
+          reviewSubmitModal.style.display = 'block';
+          reviewSubmitModal.setAttribute('data-animal-id', animalId);
+          dropdown.style.display = 'none';
+          e.stopPropagation();
+        });
+        btnAddWait.addEventListener('click', function(e) {
+          togglePending(row);
+          dropdown.style.display = 'none';
+          e.stopPropagation();
+        });
+        btnAddNote.addEventListener('click', function(e) {
+          const noteModal = document.getElementById('noteModal');
+          if (row.getAttribute('data-note-id')) {
+            document.getElementById('noteModalTitle').textContent = "查看筆記";
+            document.getElementById('viewNoteSection').style.display = 'block';
+            document.getElementById('noteFormSection').style.display = 'none';
+            document.getElementById('viewNoteContent').textContent = row.getAttribute('data-note-content');
+            noteModal.setAttribute('data-note-id', row.getAttribute('data-note-id'));
+          } else {
+            document.getElementById('noteModalTitle').textContent = "加入筆記";
+            document.getElementById('noteFormSection').style.display = 'block';
+            document.getElementById('viewNoteSection').style.display = 'none';
+            noteModal.removeAttribute('data-note-id');
+          }
+          document.getElementById('noteAnimalId').value = animalId;
+          noteModal.style.display = 'block';
+          dropdown.style.display = 'none';
+          e.stopPropagation();
+        });
+      }
+      
+      document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('plusDropdown');
+        if(dropdown.style.display === 'block') { dropdown.style.display = 'none'; }
       });
-    }
-    
-    window.addEventListener('resize', syncTableColumnWidths);
-    document.addEventListener('DOMContentLoaded', function() {
+      
+      function limitCheckboxSelection(containerId, max) {
+        const container = document.getElementById(containerId);
+        container.addEventListener('change', function() {
+          const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+          const checked = container.querySelectorAll('input[type="checkbox"]:checked');
+          if(checked.length >= max) {
+            checkboxes.forEach(cb => { if(!cb.checked) { cb.disabled = true; } });
+          } else {
+            checkboxes.forEach(cb => { cb.disabled = false; });
+          }
+        });
+      }
+      
+      window.addEventListener('resize', syncTableColumnWidths);
       syncTableColumnWidths();
       processTimeSlotCells();
       processPendingTimeCells();
-
-      // 處理音樂與體育加值輸入框顯示
+      function togglePriceInput(selectId, inputId) {
+        const select = document.getElementById(selectId);
+        const input = document.getElementById(inputId);
+        select.addEventListener('change', function() {
+          if (select.value === "可加值") {
+            input.style.display = "block";
+          } else {
+            input.style.display = "none";
+            input.value = "";
+          }
+        });
+      }
       togglePriceInput("music", "music_price");
       togglePriceInput("sports", "sports_price");
-
-      const tableRows = document.querySelectorAll('#animalTable tbody tr');
-      tableRows.forEach(function(row) {
-        row.addEventListener('click', function() {
-          const photoUrl = this.getAttribute('data-photo');
-          const photoArea = document.getElementById('photoArea');
-          if(photoUrl === "") {
-            photoArea.innerHTML = '';
-          } else {
-            const imgElement = photoArea.querySelector('img');
-            if (imgElement) {
-              imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.name').textContent;
-            } else {
-              photoArea.innerHTML = '';
-              const newImg = document.createElement('img');
-              newImg.src = photoUrl;
-              newImg.alt = this.cells[1].querySelector('.name').textContent;
-              photoArea.appendChild(newImg);
-            }
-          }
-          const introText = this.getAttribute('data-intro');
-          document.getElementById('introductionContent').innerText = introText || '';
-        });
-      });
-
-      // 新增待約清單點選同步上方照片與介紹功能
-      const pendingRows = document.querySelectorAll('#pendingTable tbody tr');
-      pendingRows.forEach(function(row) {
-        row.addEventListener('click', function() {
-          const photoUrl = this.getAttribute('data-photo');
-          const pendingPhotoArea = document.getElementById('pendingPhotoArea');
-          if(photoUrl === "") {
-            pendingPhotoArea.innerHTML = '';
-          } else {
-            const imgElement = pendingPhotoArea.querySelector('img');
-            if (imgElement) {
-              imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.name').textContent;
-            } else {
-              pendingPhotoArea.innerHTML = '';
-              const newImg = document.createElement('img');
-              newImg.src = photoUrl;
-              newImg.alt = this.cells[1].querySelector('.name').textContent;
-              pendingPhotoArea.appendChild(newImg);
-            }
-          }
-          const introText = this.getAttribute('data-intro');
-          document.getElementById('pendingIntroductionContent').innerText = introText || '';
-        });
-      });
-
-      document.querySelectorAll('.review-box').forEach(function(box) {
-        box.addEventListener('click', function(e) {
-          const animalId = this.getAttribute('data-animal-id');
-          document.getElementById('reviewModal').style.display = 'block';
-          document.getElementById('reviewList').style.display = 'block';
-          document.getElementById('reviewForm').style.display = 'none';
-          loadReviews(animalId);
-          document.getElementById('reviewForm').setAttribute('data-animal-id', animalId);
-          e.stopPropagation();
-        });
-      });
 
       document.querySelectorAll('.plus-menu-btn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
@@ -1178,163 +1313,323 @@
         });
       });
 
-      const menuBtn = document.getElementById('menuBtn');
-      const sidePanel = document.getElementById('sidePanel');
-      const overlay = document.getElementById('overlay');
-      menuBtn.addEventListener('click', function() {
-        sidePanel.classList.toggle('open');
-        overlay.classList.toggle('open');
-      });
-      overlay.addEventListener('click', function() {
-        sidePanel.classList.remove('open');
-        overlay.classList.remove('open');
-      });
-
-      const loginModal = document.getElementById('loginModal');
-      const loginBtn = document.getElementById('loginBtn');
-      const closeLoginModal = document.getElementById('closeLoginModal');
-      loginBtn.addEventListener('click', function() { loginModal.style.display = 'block'; });
-      closeLoginModal.addEventListener('click', function() { loginModal.style.display = 'none'; });
-
-      const closeReviewModal = document.getElementById('closeReviewModal');
-      closeReviewModal.addEventListener('click', function() {
-        document.getElementById('reviewModal').style.display = 'none';
-        document.getElementById('reviewForm').style.display = 'none';
-      });
-
-      // 待約清單 Modal 關閉按鈕
-      const closePendingListModal = document.getElementById('closePendingListModal');
-      closePendingListModal.addEventListener('click', function() {
-        document.getElementById('pendingListModal').style.display = 'none';
+      document.querySelectorAll('#animalTable tbody tr').forEach(function(row) {
+        row.addEventListener('click', function() {
+          const photoUrl = this.getAttribute('data-photo');
+          const photoArea = document.getElementById('photoArea');
+          if(photoUrl === "") {
+            photoArea.innerHTML = '';
+          } else {
+            let imgElement = photoArea.querySelector('img');
+            if(imgElement) {
+              imgElement.src = photoUrl;
+              imgElement.alt = this.cells[1].querySelector('.name').textContent;
+            } else {
+              photoArea.innerHTML = '';
+              imgElement = document.createElement('img');
+              imgElement.src = photoUrl;
+              imgElement.alt = this.cells[1].querySelector('.name').textContent;
+              photoArea.appendChild(imgElement);
+            }
+          }
+          const introText = this.getAttribute('data-intro');
+          document.getElementById('introductionContent').innerText = introText || '';
+        });
       });
 
-      // 點選待約清單按鈕，顯示待約清單 Modal
-      const pendingListBtn = document.getElementById('pendingListBtn');
-      pendingListBtn.addEventListener('click', function(e) {
-        document.getElementById('pendingListModal').style.display = 'block';
+      document.querySelectorAll('#pendingTable tbody tr').forEach(function(row) {
+        row.addEventListener('click', function() {
+          const photoUrl = this.getAttribute('data-photo');
+          const pendingPhotoArea = document.getElementById('pendingPhotoArea');
+          if(photoUrl === "") {
+            pendingPhotoArea.innerHTML = '';
+          } else {
+            let imgElement = pendingPhotoArea.querySelector('img');
+            if(imgElement) {
+              imgElement.src = photoUrl;
+              imgElement.alt = this.cells[1].querySelector('.name').textContent;
+            } else {
+              pendingPhotoArea.innerHTML = '';
+              imgElement = document.createElement('img');
+              imgElement.src = photoUrl;
+              imgElement.alt = this.cells[1].querySelector('.name').textContent;
+              pendingPhotoArea.appendChild(imgElement);
+            }
+          }
+          const introText = this.getAttribute('data-intro');
+          document.getElementById('pendingIntroductionContent').innerText = introText || '';
+        });
+      });
+
+      document.querySelectorAll('#latestReviewTable tbody tr').forEach(function(row) {
+        row.addEventListener('click', function() {
+          const photoUrl = this.getAttribute('data-photo');
+          const latestPhotoArea = document.getElementById('latestPhotoArea');
+          if(photoUrl === "") {
+            latestPhotoArea.innerHTML = '';
+          } else {
+            let imgElement = latestPhotoArea.querySelector('img');
+            if(imgElement) {
+              imgElement.src = photoUrl;
+              imgElement.alt = this.cells[1].querySelector('.name').textContent;
+            } else {
+              latestPhotoArea.innerHTML = '';
+              imgElement = document.createElement('img');
+              imgElement.src = photoUrl;
+              imgElement.alt = this.cells[1].querySelector('.name').textContent;
+              latestPhotoArea.appendChild(imgElement);
+            }
+          }
+          const introText = this.getAttribute('data-intro');
+          document.getElementById('latestIntroductionContent').innerText = introText || '';
+        });
+      });
+
+      document.querySelectorAll('.review-box').forEach(function(box) {
+        box.addEventListener('click', function(e) {
+          const animalId = this.getAttribute('data-animal-id');
+          document.getElementById('reviewModal').style.display = 'block';
+          loadReviews(animalId);
+          e.stopPropagation();
+        });
+      });
+
+      // 我的筆記 Modal 處理
+      document.getElementById('myNotesBtn').addEventListener('click', function(e) {
+        document.getElementById('myNotesModal').style.display = 'block';
+        loadMyNotes();
         e.stopPropagation();
       });
 
       window.addEventListener('click', function(e) {
+        const loginModal = document.getElementById('loginModal');
         if (e.target == loginModal) { loginModal.style.display = 'none'; }
-        if (e.target == document.getElementById('reviewModal')) {
+        if (e.target == document.getElementById('reviewModal')) { 
           document.getElementById('reviewModal').style.display = 'none';
-          document.getElementById('reviewForm').style.display = 'none';
         }
-        if (e.target == document.getElementById('pendingListModal')) {
-          document.getElementById('pendingListModal').style.display = 'none';
+        if (e.target == document.getElementById('reviewSubmitModal')) { 
+          document.getElementById('reviewSubmitModal').style.display = 'none';
+          document.getElementById('reviewForm').reset();
         }
+        if (e.target == document.getElementById('pendingListModal')) { document.getElementById('pendingListModal').style.display = 'none'; }
+        if (e.target == document.getElementById('latestReviewModal')) { document.getElementById('latestReviewModal').style.display = 'none'; }
+        if (e.target == document.getElementById('noteModal')) { document.getElementById('noteModal').style.display = 'none'; }
+        if (e.target == document.getElementById('myNotesModal')) { document.getElementById('myNotesModal').style.display = 'none'; }
       });
 
       document.getElementById('reviewForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        const animalId = this.getAttribute('data-animal-id');
+        const animalId = document.getElementById('reviewSubmitModal').getAttribute('data-animal-id');
         const formData = new FormData(this);
         formData.append('animal_id', animalId);
         submitReview(animalId, formData);
       });
 
-      // 初始化臉蛋與氣質勾選框的最大勾選數限制
-      limitCheckboxSelection('faceCheckboxes', 3);
-      limitCheckboxSelection('temperamentCheckboxes', 3);
-    });
-
-    // 取得並以卡片方式呈現完整心得評論
-    function loadReviews(animalId) {
-      fetch(`/add_review/?animal_id=${animalId}`)
-      .then(response => response.json())
-      .then(data => {
-        const reviewList = document.getElementById('reviewList');
-        reviewList.innerHTML = "";
-        data.reviews.forEach(review => {
-          const reviewDiv = document.createElement('div');
-          reviewDiv.className = "review-card";
-          reviewDiv.innerHTML = `
-            <div class="review-header">
-              <div class="review-user-info">
-                <span class="review-user">${review.user || '匿名'}</span>
-                <span class="review-total">總心得數：${review.totalCount || 0}</span>
-              </div>
-              <span class="review-date">${review.created_at || ''}</span>
-            </div>
-            <div class="review-body">
-              <div class="review-line">
-                <div class="review-label"><strong>年紀</strong></div>
-                <div class="review-value">${review.age || ''}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>顏值</strong></div>
-                <div class="review-value">${review.looks || ''}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>臉蛋</strong></div>
-                <div class="review-value">${review.face || ''}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>氣質</strong></div>
-                <div class="review-value">${review.temperament || ''}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>體態</strong></div>
-                <div class="review-value">${review.physique || ''}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>罩杯</strong></div>
-                <div class="review-value">${review.cup || ''} ${review.cup_size || ''}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>膚質</strong></div>
-                <div class="review-value">${review.skin_texture || ''}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>膚色</strong></div>
-                <div class="review-value">${review.skin_color || ''}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>音樂</strong></div>
-                <div class="review-value">${review.music || ''} ${review.music_price ? "(" + review.music_price + ")" : ""}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>體育</strong></div>
-                <div class="review-value">${review.sports || ''} ${review.sports_price ? "(" + review.sports_price + ")" : ""}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>尺度</strong></div>
-                <div class="review-value">${review.scale || ''}</div>
-              </div>
-              <div class="review-line">
-                <div class="review-label"><strong>心得</strong></div>
-                <div class="review-value">${review.content || ''}</div>
-              </div>
-            </div>
-          `;
-          reviewList.appendChild(reviewDiv);
-        });
-      });
-    }
-
-    // 提交心得評論（不重新載入頁面）
-    function submitReview(animalId, formData) {
-      fetch("/add_review/", {
-        method: "POST",
-        body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': getCookie('csrftoken')
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if(data.success) {
-          alert(data.message);
-          // 提交成功後隱藏整個心得 Modal，不再顯示心得面板
-          document.getElementById('reviewModal').style.display = 'none';
-          document.getElementById('reviewForm').reset();
+      document.getElementById('noteForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const noteModal = document.getElementById('noteModal');
+        const noteId = noteModal.getAttribute('data-note-id');
+        const formData = new FormData(this);
+        if(noteId) {
+          formData.append('note_id', noteId);
+          fetch("{% url 'update_note' %}", {
+            method: "POST",
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') },
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            if(data.success) {
+              alert(data.message);
+              document.querySelectorAll('#animalTable tbody tr').forEach(function(row) {
+                if(row.getAttribute('data-animal-id') === document.getElementById('noteAnimalId').value){
+                  row.setAttribute('data-note-content', data.note_content);
+                }
+              });
+              noteModal.style.display = 'none';
+              document.getElementById('noteForm').reset();
+            } else {
+              alert(data.error);
+            }
+          });
         } else {
-          alert(data.error);
+          fetch("{% url 'add_note' %}", {
+            method: "POST",
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') },
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            if(data.success) {
+              alert(data.message);
+              const animalId = document.getElementById('noteAnimalId').value;
+              document.querySelectorAll('#animalTable tbody tr').forEach(function(row) {
+                if(row.getAttribute('data-animal-id') === animalId){
+                  row.setAttribute('data-note-id', data.note_id);
+                  row.setAttribute('data-note-content', document.getElementById('noteContent').value);
+                }
+              });
+              noteModal.style.display = 'none';
+              document.getElementById('noteForm').reset();
+            } else {
+              alert(data.error);
+            }
+          });
         }
       });
-    }
+
+      document.getElementById('deleteNoteBtn').addEventListener('click', function() {
+        const noteId = document.getElementById('noteModal').getAttribute('data-note-id');
+        if(confirm("確定要刪除筆記嗎？")) {
+          const formData = new FormData();
+          formData.append('note_id', noteId);
+          fetch("{% url 'delete_note' %}", {
+            method: "POST",
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') },
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            if(data.success) {
+              alert(data.message);
+              const animalId = document.getElementById('noteAnimalId').value;
+              document.querySelectorAll('#animalTable tbody tr').forEach(function(row) {
+                if(row.getAttribute('data-animal-id') === animalId){
+                  row.removeAttribute('data-note-id');
+                  row.removeAttribute('data-note-content');
+                }
+              });
+              document.getElementById('noteModal').style.display = 'none';
+            } else {
+              alert(data.error);
+            }
+          });
+        }
+      });
+
+      document.getElementById('editNoteBtn').addEventListener('click', function() {
+        document.getElementById('viewNoteSection').style.display = 'none';
+        document.getElementById('noteFormSection').style.display = 'block';
+        document.getElementById('noteContent').value = document.getElementById('viewNoteContent').textContent;
+        document.getElementById('noteModalTitle').textContent = "修改筆記";
+      });
+      
+      function loadMyNotes() {
+        fetch("{% url 'my_notes_json' %}")
+        .then(response => response.json())
+        .then(data => {
+          const tableBody = document.getElementById("myNotesTable").querySelector("tbody");
+          tableBody.innerHTML = "";
+          if (data.notes.length === 0) {
+            tableBody.innerHTML = "<tr><td colspan='3' style='text-align:center;'>尚無筆記</td></tr>";
+          } else {
+            data.notes.forEach(note => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${note.animal_name}</td>
+                <td>${note.content}</td>
+                <td>${note.updated_at}</td>
+              `;
+              tableBody.appendChild(row);
+            });
+          }
+        });
+      }
+
+      function loadReviews(animalId) {
+        fetch(`/add_review/?animal_id=${animalId}`)
+        .then(response => response.json())
+        .then(data => {
+          const reviewList = document.getElementById('reviewList');
+          reviewList.innerHTML = "";
+          data.reviews.forEach(review => {
+            const reviewDiv = document.createElement('div');
+            reviewDiv.className = "review-card";
+            reviewDiv.innerHTML = `
+              <div class="review-header">
+                <div class="review-user-info">
+                  <span class="review-user">${review.user || '匿名'}</span>
+                  <span class="review-total">總心得數：${review.totalCount || 0}</span>
+                </div>
+                <span class="review-date">${review.created_at || ''}</span>
+              </div>
+              <div class="review-body">
+                <div class="review-line">
+                  <div class="review-label"><strong>年紀</strong></div>
+                  <div class="review-value">${review.age || ''}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>顏值</strong></div>
+                  <div class="review-value">${review.looks || ''}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>臉蛋</strong></div>
+                  <div class="review-value">${review.face || ''}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>氣質</strong></div>
+                  <div class="review-value">${review.temperament || ''}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>體態</strong></div>
+                  <div class="review-value">${review.physique || ''}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>罩杯</strong></div>
+                  <div class="review-value">${review.cup || ''} ${review.cup_size || ''}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>膚質</strong></div>
+                  <div class="review-value">${review.skin_texture || ''}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>膚色</strong></div>
+                  <div class="review-value">${review.skin_color || ''}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>音樂</strong></div>
+                  <div class="review-value">${review.music || ''} ${review.music_price ? "(" + review.music_price + ")" : ""}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>體育</strong></div>
+                  <div class="review-value">${review.sports || ''} ${review.sports_price ? "(" + review.sports_price + ")" : ""}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>尺度</strong></div>
+                  <div class="review-value">${review.scale || ''}</div>
+                </div>
+                <div class="review-line">
+                  <div class="review-label"><strong>心得</strong></div>
+                  <div class="review-value">${review.content || ''}</div>
+                </div>
+              </div>
+            `;
+            reviewList.appendChild(reviewDiv);
+          });
+        });
+      }
+
+      function submitReview(animalId, formData) {
+        fetch("/add_review/", {
+          method: "POST",
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if(data.success) {
+            alert(data.message);
+            document.getElementById('reviewSubmitModal').style.display = 'none';
+            document.getElementById('reviewForm').reset();
+          } else {
+            alert(data.error);
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>

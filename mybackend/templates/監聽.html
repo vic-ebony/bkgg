@@ -1,0 +1,150 @@
+{% load static %}
+{% load my_filters %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>動物園每日展示</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+  <style>
+    /* CSS 內容保持不變... */
+    /* （此處省略相同的 CSS，請保留原有的樣式設定） */
+  </style>
+</head>
+<body>
+  {% if user.is_authenticated %}
+  <div class="user-info">
+    <span>登入中：{{ user.first_name|default:user.username }}</span>
+    <form action="{% url 'logout' %}" method="post">
+      {% csrf_token %}
+      <button type="submit">登出</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="glass-overlay">
+    <div class="glass-background"></div>
+    <div class="content">
+      <!-- 側邊選單與主畫面內容，保持原樣 -->
+      <!-- ... -->
+    </div>
+  </div>
+
+  <!-- 各 Modal 區塊保持原有內容 -->
+  <!-- 會員登入 Modal、查看心得 Modal、填寫心得 Modal、待約清單 Modal、最新心得 Modal、我的筆記 Modal、+ 下拉選單 -->
+  <!-- 此處省略相同內容，請保留原有 HTML 區塊 -->
+
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <script>
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Modal 關閉按鈕事件
+      document.getElementById('closeLoginModal').addEventListener('click', function() {
+        document.getElementById('loginModal').style.display = 'none';
+      });
+      document.getElementById('closeReviewModal').addEventListener('click', function() {
+        document.getElementById('reviewModal').style.display = 'none';
+      });
+      document.getElementById('closeReviewSubmitModal').addEventListener('click', function() {
+        document.getElementById('reviewSubmitModal').style.display = 'none';
+      });
+      document.getElementById('closePendingListModal').addEventListener('click', function() {
+        document.getElementById('pendingListModal').style.display = 'none';
+      });
+      document.getElementById('closeLatestReviewModal').addEventListener('click', function() {
+        document.getElementById('latestReviewModal').style.display = 'none';
+      });
+      document.getElementById('closeNoteModal').addEventListener('click', function() {
+        document.getElementById('noteModal').style.display = 'none';
+      });
+      document.getElementById('closeMyNotesModal').addEventListener('click', function() {
+        document.getElementById('myNotesModal').style.display = 'none';
+      });
+
+      // 按鈕事件設定（最新心得、待約清單、我的筆記等）
+      document.getElementById('latestReviewBtn').addEventListener('click', function(e) {
+        document.getElementById('latestReviewModal').style.display = 'block';
+        e.stopPropagation();
+      });
+      document.getElementById('pendingListBtn').addEventListener('click', function(e) {
+        document.getElementById('pendingListModal').style.display = 'block';
+        e.stopPropagation();
+      });
+      document.getElementById('myNotesBtn').addEventListener('click', function(e) {
+        document.getElementById('myNotesModal').style.display = 'block';
+        e.stopPropagation();
+      });
+
+      // 側邊選單事件
+      const menuBtn = document.getElementById('menuBtn');
+      const sidePanel = document.getElementById('sidePanel');
+      const overlay = document.getElementById('overlay');
+      menuBtn.addEventListener('click', function() {
+        sidePanel.classList.toggle('open');
+        overlay.classList.toggle('open');
+      });
+      overlay.addEventListener('click', function() {
+        sidePanel.classList.remove('open');
+        overlay.classList.remove('open');
+      });
+
+      // 這裡我們修改全域點擊事件
+      // 只對點擊目標為 modal 本身（而非 modal 內的按鈕、表單元素等）時才關閉 Modal
+      window.addEventListener('click', function(e) {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(function(modal) {
+          // 如果點擊目標正好是 modal 且不是 modal 內部的子元素
+          if (e.target === modal) {
+            modal.style.display = 'none';
+          }
+        });
+      });
+
+      // 其他原有功能事件保持不變，例如表格點擊、plus-dropdown 等
+      // 例如：設定表格列點擊更新照片及介紹
+      document.querySelectorAll('#animalTable tbody tr').forEach(function(row) {
+        row.addEventListener('click', function() {
+          const photoUrl = this.getAttribute('data-photo');
+          const photoArea = document.getElementById('photoArea');
+          if(photoUrl === "") {
+            photoArea.innerHTML = '';
+          } else {
+            let imgElement = photoArea.querySelector('img');
+            if(imgElement) {
+              imgElement.src = photoUrl;
+              imgElement.alt = this.cells[1].querySelector('.name').textContent;
+            } else {
+              photoArea.innerHTML = '';
+              imgElement = document.createElement('img');
+              imgElement.src = photoUrl;
+              imgElement.alt = this.cells[1].querySelector('.name').textContent;
+              photoArea.appendChild(imgElement);
+            }
+          }
+          const introText = this.getAttribute('data-intro');
+          document.getElementById('introductionContent').innerText = introText || '';
+        });
+      });
+
+      // 以下其他事件設定維持原狀，請確保每個按鈕的事件都有使用 e.stopPropagation() 以避免被全域事件攔截
+      // …（其他程式碼同前）
+    });
+  </script>
+</body>
+</html>
