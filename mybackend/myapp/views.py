@@ -51,11 +51,19 @@ def home(request):
         pending_ids = [str(appointment.animal.id) for appointment in pending]
         context['pending_ids'] = pending_ids
 
+        # 原有用來標示 animal 有筆記的資料（以動物ID作 key）
         user_notes = Note.objects.filter(user=request.user)
         notes_by_animal = {}
         for note in user_notes:
             notes_by_animal[str(note.animal.id)] = note
         context['notes_by_animal'] = notes_by_animal
+
+        # 新增：將該會員的所有筆記資料傳給模板，用於「我的筆記」面板，
+        # 並為每筆 note 的 animal 加上 approved_review_count 屬性
+        my_notes = Note.objects.filter(user=request.user).select_related('animal').order_by("-updated_at")
+        for note in my_notes:
+            note.animal.approved_review_count = note.animal.reviews.filter(approved=True).count()
+        context['my_notes'] = my_notes
     else:
         context['notes_by_animal'] = {}
 
@@ -309,7 +317,6 @@ def update_note(request):
         return JsonResponse({"success": True, "message": "筆記已更新", "note_content": note.content})
     return JsonResponse({"success": False, "error": "只允許 POST 請求"})
 
-# 新增 AJAX 取得我的筆記資料的 view
 @login_required
 def my_notes_json(request):
     notes = Note.objects.filter(user=request.user).select_related('animal').order_by("-updated_at")

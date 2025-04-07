@@ -16,9 +16,9 @@
       height: 100vh;
       padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
       box-sizing: border-box;
-      font-family: Arial, sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
       font-size: 16px;
-      background: url('{% static "image/background.jpg" %}') no-repeat center center/cover;
+      background: #ccc; /* 改為灰底 */
       display: flex;
       flex-direction: column;
       line-height: 1.5;
@@ -254,11 +254,11 @@
       font-weight: bold;
     }
     .header-table th:nth-child(1),
-    .body-table td:nth-child(1) { width: 17%; text-align: center; }
+    .body-table td:nth-child(1) { width: 25%; text-align: center; }
     .header-table th:nth-child(2),
     .body-table td:nth-child(2) { width: 50%; }
     .header-table th:nth-child(3),
-    .body-table td:nth-child(3) { width: 35%; }
+    .body-table td:nth-child(3) { width: 30%; }
     .body-wrapper {
       flex: 1;
       min-height: 0;
@@ -273,7 +273,7 @@
       table-layout: fixed;
     }
     .body-table td {
-      padding: 0.5rem 0.3rem;
+      padding: 0.3rem 0.3rem;
       border-top: 1px solid #dee2e6;
       text-align: left;
       white-space: normal;
@@ -292,6 +292,15 @@
     }
     .time-slot { display: inline-block; margin-right: 0.3em; }
     
+    /* 費用欄位的定位：將館別改為容器方式 */
+    .fee-cell .hall-name {
+      display: block;
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 0.25rem;
+      text-align: center;
+    }
+    
     /* 美容師資料格式 */
     .beautician-cell {
       display: flex;
@@ -299,11 +308,6 @@
       justify-content: center;
       align-items: flex-start;
       gap: 0.3rem;
-    }
-    .beautician-text .hall-info {
-      font-size: 0.85rem;
-      color: #777;
-      margin-bottom: 0.2rem;
     }
     .beautician-text .name-size-line {
       display: flex;
@@ -313,14 +317,14 @@
       gap: 0.5rem;
     }
     .name-container .name {
-      font-size: 1rem;
+      font-size: 1.1rem;
       color: #212529;
-      font-weight: 520;
+      font-weight: 540;
       flex-grow: 1;
       word-break: break-all;
     }
     .size-container .size {
-      font-size: 0.9rem;
+      font-size: 1rem;
       color: #888;
       white-space: nowrap;
       flex-shrink: 0;
@@ -521,9 +525,9 @@
       .photo-area, .intro-area { height: 200px; }
       .intro-area { padding: 0.625rem; }
     }
-    /* 我的筆記 Modal (與每日班表版型相同) */
+    /* 我的筆記 Modal (重新設計為與最新心得版型相同) */
     #myNotesModal .modal-content {
-      max-width: 500px;
+      min-height: calc(100vh - 2.5rem);
     }
   </style>
 </head>
@@ -553,6 +557,7 @@
         </button>
         <!-- 新增：我的筆記 按鈕 -->
         <button id="myNotesBtn">我的筆記</button>
+        <!-- 會員登入按鈕 -->
         <button id="loginBtn">會員登入</button>
       </div>
       <button id="menuBtn" aria-label="打開選單">≡</button>
@@ -607,7 +612,7 @@
                           data-note-id="{{ note.id }}"
                           data-note-content="{{ note.content }}"
                         {% endif %}>
-                      <td>{{ animal.fee }}</td>
+                      <td class="fee-cell">{{ animal.fee }}<span class="hall-name">{{ animal.hall.name }}</span></td>
                       <td>
                         <div class="beautician-cell">
                           <div class="labels">
@@ -622,7 +627,6 @@
                             {% endif %}
                           </div>
                           <div class="beautician-text">
-                            <div class="hall-info">{{ animal.hall.name }}</div>
                             <div class="name-size-line">
                               <div class="name-container">
                                 <span class="name">{{ animal.name }}</span>
@@ -644,7 +648,8 @@
                     </tr>
                     {% if note %}
                     <tr class="note-row">
-                      <td colspan="3">
+                      <td style="width: 17%;"></td>
+                      <td colspan="2" style="width: 83%;">
                         <div class="note-box">
                           {{ note.content }}
                         </div>
@@ -887,7 +892,7 @@
                       data-hall="{{ appointment.animal.hall.name }}"
                       data-review-count="{{ appointment.animal.approved_review_count }}"
                       data-pending="true">
-                    <td>{{ appointment.animal.fee }}</td>
+                    <td class="fee-cell">{{ appointment.animal.fee }}<span class="hall-name">{{ appointment.animal.hall.name }}</span></td>
                     <td>
                       <div class="beautician-cell">
                         <div class="labels">
@@ -896,7 +901,6 @@
                           {% if appointment.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
                         </div>
                         <div class="beautician-text">
-                          <div class="hall-info">{{ appointment.animal.hall.name }}</div>
                           <div class="name-size-line">
                             <div class="name-container">
                               <span class="name">{{ appointment.animal.name }}</span>
@@ -971,7 +975,7 @@
                       data-hall="{{ review.animal.hall.name }}"
                       data-review-count="{{ review.animal.approved_review_count }}"
                       data-pending="false">
-                    <td>{{ review.animal.fee }}</td>
+                    <td class="fee-cell">{{ review.animal.fee }}<span class="hall-name">{{ review.animal.hall.name }}</span></td>
                     <td>
                       <div class="beautician-cell">
                         <div class="labels">
@@ -980,7 +984,6 @@
                           {% if review.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
                         </div>
                         <div class="beautician-text">
-                          <div class="hall-info">{{ review.animal.hall.name }}</div>
                           <div class="name-size-line">
                             <div class="name-container">
                               <span class="name">{{ review.animal.name }}</span>
@@ -1036,25 +1039,82 @@
     </div>
   </div>
 
-  <!-- 我的筆記 Modal -->
+  <!-- 我的筆記 Modal (重新設計為與最新心得版型相同) -->
   <div id="myNotesModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
       <span class="close-modal" id="closeMyNotesModal" aria-label="關閉">&times;</span>
       <h2>我的筆記</h2>
-      <div id="myNotesContent">
+      <section class="top-section">
+        <div class="photo-area" id="myNotesPhotoArea">
+          {% if my_notes and my_notes.0.animal.photo %}
+            <img src="{{ my_notes.0.animal.photo.url }}" alt="{{ my_notes.0.animal.name }}">
+          {% endif %}
+        </div>
+        <div class="intro-area" id="myNotesIntroArea">
+          <div class="intro-top">
+            {% if my_notes and my_notes.0.animal.introduction %}
+              <p id="myNotesIntroductionContent">{{ my_notes.0.animal.introduction }}</p>
+            {% else %}
+              <p id="myNotesIntroductionContent"></p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+      <div class="table-wrapper">
         <table class="header-table">
           <thead>
             <tr>
+              <th>台費</th>
               <th>美容師</th>
-              <th>筆記內容</th>
-              <th>更新日期</th>
+              <th>時段</th>
             </tr>
           </thead>
         </table>
         <div class="body-wrapper">
           <table class="body-table" id="myNotesTable">
             <tbody>
-              <!-- 筆記資料由 JavaScript 載入 -->
+              {% if my_notes %}
+                {% for note in my_notes %}
+                  <tr data-photo="{% if note.animal.photo %}{{ note.animal.photo.url }}{% endif %}"
+                      data-intro="{% if note.animal.introduction %}{{ note.animal.introduction }}{% endif %}"
+                      data-animal-id="{{ note.animal.id }}"
+                      data-hall="{{ note.animal.hall.name }}"
+                      data-review-count="{{ note.animal.approved_review_count }}"
+                      data-pending="false">
+                    <td class="fee-cell">{{ note.animal.fee }}<span class="hall-name">{{ note.animal.hall.name }}</span></td>
+                    <td>
+                      <div class="beautician-cell">
+                        <div class="labels">
+                          {% if note.animal.is_newcomer %}<span class="label newcomer">新人</span>{% endif %}
+                          {% if note.animal.is_hot %}<span class="label hot">熱門</span>{% endif %}
+                          {% if note.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
+                        </div>
+                        <div class="beautician-text">
+                          <div class="name-size-line">
+                            <div class="name-container">
+                              <span class="name">{{ note.animal.name }}</span>
+                            </div>
+                            <div class="size-container">
+                              <span class="size">{{ note.animal.size_display }}</span>
+                            </div>
+                          </div>
+                          <div class="review-actions">
+                            <div class="review-box" id="reviewBox-{{ note.animal.id }}" data-animal-id="{{ note.animal.id }}">
+                              心得 <span class="count">{{ note.animal.approved_review_count }}</span>
+                            </div>
+                            <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="time-cell">{{ note.animal.time_slot }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="3" style="text-align:center;">尚無筆記</td>
+                </tr>
+              {% endif %}
             </tbody>
           </table>
         </div>
@@ -1115,6 +1175,11 @@
       });
       document.getElementById('pendingListBtn').addEventListener('click', function(e) {
         document.getElementById('pendingListModal').style.display = 'block';
+        e.stopPropagation();
+      });
+      // 新增：會員登入按鈕點擊事件，顯示 loginModal
+      document.getElementById('loginBtn').addEventListener('click', function(e) {
+        document.getElementById('loginModal').style.display = 'block';
         e.stopPropagation();
       });
 
@@ -1397,7 +1462,6 @@
       // 我的筆記 Modal 處理
       document.getElementById('myNotesBtn').addEventListener('click', function(e) {
         document.getElementById('myNotesModal').style.display = 'block';
-        loadMyNotes();
         e.stopPropagation();
       });
 
@@ -1514,28 +1578,6 @@
         document.getElementById('noteModalTitle').textContent = "修改筆記";
       });
       
-      function loadMyNotes() {
-        fetch("{% url 'my_notes_json' %}")
-        .then(response => response.json())
-        .then(data => {
-          const tableBody = document.getElementById("myNotesTable").querySelector("tbody");
-          tableBody.innerHTML = "";
-          if (data.notes.length === 0) {
-            tableBody.innerHTML = "<tr><td colspan='3' style='text-align:center;'>尚無筆記</td></tr>";
-          } else {
-            data.notes.forEach(note => {
-              const row = document.createElement("tr");
-              row.innerHTML = `
-                <td>${note.animal_name}</td>
-                <td>${note.content}</td>
-                <td>${note.updated_at}</td>
-              `;
-              tableBody.appendChild(row);
-            });
-          }
-        });
-      }
-
       function loadReviews(animalId) {
         fetch(`/add_review/?animal_id=${animalId}`)
         .then(response => response.json())
