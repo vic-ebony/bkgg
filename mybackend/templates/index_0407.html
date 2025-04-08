@@ -18,7 +18,7 @@
       box-sizing: border-box;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
       font-size: 16px;
-      background: #ccc;
+      background: #ccc; /* 改為灰底 */
       display: flex;
       flex-direction: column;
       line-height: 1.5;
@@ -49,7 +49,7 @@
       margin-left: 10px;
     }
     
-    /* 選單按鈕保持原位置 */
+    /* 側邊與遮罩 */
     #menuBtn {
       position: absolute;
       top: 10px;
@@ -62,16 +62,28 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    /* 左側選單，改為 fixed 定位 */
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+    }
+    #overlay.open { opacity: 1; pointer-events: auto; }
     #sidePanel {
-      position: fixed;
+      position: absolute;
       top: 0;
       left: -250px;
       width: 250px;
       height: 100%;
       background: #fff;
       transition: left 0.3s ease;
-      z-index: 1150;
+      z-index: 1002;
       padding: 1.25rem;
     }
     #sidePanel.open { left: 0; }
@@ -86,6 +98,17 @@
       text-align: left;
       cursor: pointer;
       border-radius: 5px;
+    }
+    
+    /* 待約清單按鈕 */
+    #pendingListBtn {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 0.5rem;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
     }
     
     /* 主內容區 */
@@ -125,7 +148,7 @@
       100% { opacity: 1; transform: translateY(0); }
     }
     
-    /* 選單列 */
+    /* 導覽列 */
     .hall-menu {
       display: flex;
       overflow-x: auto;
@@ -231,16 +254,11 @@
       font-weight: bold;
     }
     .header-table th:nth-child(1),
-    .body-table td:nth-child(1) { width: 11%; }
+    .body-table td:nth-child(1) { width: 25%; text-align: center; }
     .header-table th:nth-child(2),
-    .body-table td:nth-child(2) { width: 24%; }
+    .body-table td:nth-child(2) { width: 50%; }
     .header-table th:nth-child(3),
-    .body-table td:nth-child(3) { width: 34%; }
-    .header-table th:nth-child(4),
-    .body-table td:nth-child(4) { width: 17%; }
-    .header-table th:nth-child(5),
-    .body-table td:nth-child(5) { width: 14%; text-align: center; }
-    
+    .body-table td:nth-child(3) { width: 30%; }
     .body-wrapper {
       flex: 1;
       min-height: 0;
@@ -264,35 +282,23 @@
       background: #fff;
       line-height: 1.5;
       vertical-align: middle;
-      font-size: 0.9rem;
-      color: #999;
+      font-size: 1rem;
+      color: #444;
     }
     .body-table tr:hover { background: #f8f9fa; cursor: pointer; }
+    /* 如果有筆記的話，筆記那列不顯示上框線 */
     .body-table tr.note-row td {
       border-top: none;
     }
-    /* 修改 .time-slot 設定，保持 token 不被斷行 */
-    .time-slot {
-      display: inline-block;
-      white-space: nowrap;
-      margin-right: 0.3em;
-      break-inside: avoid;
-      word-break: keep-all;
-    }
-    /* 新增：包覆 .time-slot 的容器，利用 Flex 換行 */
-    .time-cell-inner {
-      display: flex;
-      flex-wrap: wrap;
-      row-gap: 0.1em;    /* 調小垂直間距 */
-      column-gap: 0.3em; /* 水平間距可依需求設定 */
-    }
+    .time-slot { display: inline-block; margin-right: 0.3em; }
     
-    /* 費用欄位定位 */
+    /* 費用欄位的定位：將館別改為容器方式 */
     .fee-cell .hall-name {
       display: block;
       font-size: 0.85rem;
       color: #888;
       margin-top: 0.25rem;
+      text-align: center;
     }
     
     /* 美容師資料格式 */
@@ -303,33 +309,53 @@
       align-items: flex-start;
       gap: 0.3rem;
     }
-    .beautician-text .name-container .name {
-      font-size: 1rem;
-      color: #444;
+    .beautician-text .name-size-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      width: 100%;
+      gap: 0.5rem;
+    }
+    .name-container .name {
+      font-size: 1.1rem;
+      color: #212529;
       font-weight: 540;
+      flex-grow: 1;
       word-break: break-all;
     }
-    .beautician-text .size-container .size {
-      font-size: 0.95rem;
-      color: #999;
+    .size-container .size {
+      font-size: 1rem;
+      color: #888;
       white-space: nowrap;
+      flex-shrink: 0;
     }
-    
-    /* review 按鈕樣式 */
-    .review-count-btn {
-      border: 1px solid #ccc;
+    .review-actions {
+      display: flex;
+      align-items: center;
+      margin-top: 0.4rem;
+      gap: 0.6rem;
+    }
+    .review-box {
+      display: inline-flex;
+      align-items: center;
       background: #f0f0f0;
-      border-radius: 12px;
+      color: #555;
       padding: 0.25rem 0.5rem;
-      font-size: 0.9rem;
+      border-radius: 12px;
       cursor: pointer;
-      width: 100%;
-      text-align: center;
+      font-size: 0.9rem;
+      user-select: none;
+      transition: background 0.3s;
+      border: 1px solid #ccc;
+      min-width: 70px;
+      justify-content: center;
     }
-    .review-count-btn:hover {
-      background: #e0f0f0;
+    .review-box:hover { background: #e0e0e0; }
+    .review-box .count {
+      margin-left: 0.3rem;
+      font-weight: bold;
+      color: #333;
     }
-    
     .circle-btn {
       width: 28px;
       height: 28px;
@@ -349,23 +375,14 @@
       background-color: #f0f0f0;
       color: #555;
     }
-    
-    /* + 下拉選單設定 */
     .dropdown-menu {
-      position: fixed;
-      left: 0;
-      bottom: -100%;
-      width: 100%;
       background: #fff;
-      border-top: 1px solid #ccc;
-      border-radius: 10px 10px 0 0;
-      box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
-      z-index: 3500;
-      padding: 1rem;
-      transition: bottom 0.3s ease;
-    }
-    .dropdown-menu.open {
-      bottom: 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1100;
+      position: absolute;
+      display: none;
     }
     .dropdown-menu button {
       display: block;
@@ -377,7 +394,6 @@
       cursor: pointer;
     }
     .dropdown-menu button:hover { background: #f8f8f8; }
-    
     .review-card {
       border: 1px solid #ddd;
       border-radius: 8px;
@@ -412,11 +428,12 @@
       color: #666;
     }
     #reviewList p { white-space: pre-wrap; word-wrap: break-word; margin: 0.5rem 0; }
-    .label.newcomer { background: rgba(40, 167, 69, 0.15); font-size: 0.9rem; }
-    .label.hot { background: rgba(220, 53, 69, 0.15); font-size: 0.9rem; }
-    .label.exclusive { background: rgba(111, 66, 193, 0.15); font-size: 0.9rem; }
+    /* 標籤顏色 */
+    .label.newcomer { background: rgba(40, 167, 69, 0.4); }
+    .label.hot { background: rgba(220, 53, 69, 0.4); }
+    .label.exclusive { background: rgba(111, 66, 193, 0.4); }
     
-    /* 筆記顯示區 */
+    /* 筆記顯示區：與表格整體寬度一致 */
     .note-box {
       border: none;
       background: #f9f9f9;
@@ -432,7 +449,7 @@
     .modal {
       display: none;
       position: fixed;
-      z-index: 2999;
+      z-index: 10;
       left: 0;
       top: 0;
       width: 100%;
@@ -440,9 +457,10 @@
       overflow: auto;
       background-color: rgba(0, 0, 0, 0.4);
     }
-    #reviewModal, #reviewSubmitModal {
-      z-index: 3000;
-    }
+    /* 查看心得 Modal */
+    #reviewModal { z-index: 50; }
+    /* 填寫心得 Modal */
+    #reviewSubmitModal { z-index: 50; }
     .modal-content {
       background-color: #fff;
       margin: 1.25rem auto;
@@ -507,44 +525,9 @@
       .photo-area, .intro-area { height: 200px; }
       .intro-area { padding: 0.625rem; }
     }
+    /* 我的筆記 Modal (重新設計為與最新心得版型相同) */
     #myNotesModal .modal-content {
       min-height: calc(100vh - 2.5rem);
-    }
-    
-    /* 左側遮罩 */
-    #leftOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.4);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      z-index: 1050;
-    }
-    #leftOverlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    
-    /* 底部遮罩 */
-    #bottomOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.4);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      z-index: 3000;
-    }
-    #bottomOverlay.open {
-      opacity: 1;
-      pointer-events: auto;
     }
   </style>
 </head>
@@ -559,23 +542,24 @@
   </div>
   {% endif %}
 
-  <!-- 左側選單，位置不變 -->
-  <div id="sidePanel">
-    <button>每日班表</button>
-    <button>每週班表</button>
-    <button id="latestReviewBtn">最新心得</button>
-    <button>找美容師</button>
-    <button>最愛清單</button>
-    <button id="pendingListBtn" data-count="{% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %}">
-      待約清單 ({% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %})
-    </button>
-    <button id="myNotesBtn">我的筆記</button>
-    <button id="loginBtn">會員登入</button>
-  </div>
-
   <div class="glass-overlay">
     <div class="glass-background"></div>
     <div class="content">
+      <div id="overlay"></div>
+      <div id="sidePanel">
+        <button>每日班表</button>
+        <button>每週班表</button>
+        <button id="latestReviewBtn">最新心得</button>
+        <button>找美容師</button>
+        <button>最愛清單</button>
+        <button id="pendingListBtn" data-count="{% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %}">
+          待約清單 ({% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %})
+        </button>
+        <!-- 新增：我的筆記 按鈕 -->
+        <button id="myNotesBtn">我的筆記</button>
+        <!-- 會員登入按鈕 -->
+        <button id="loginBtn">會員登入</button>
+      </div>
       <button id="menuBtn" aria-label="打開選單">≡</button>
       <div class="page-title">每日班表</div>
       <section class="top-section">
@@ -606,11 +590,9 @@
         <table class="header-table">
           <thead>
             <tr>
-              <th></th>
+              <th>台費</th>
               <th>美容師</th>
               <th>時段</th>
-              <th>台費</th>
-              <th>心得</th>
             </tr>
           </thead>
         </table>
@@ -630,9 +612,7 @@
                           data-note-id="{{ note.id }}"
                           data-note-content="{{ note.content }}"
                         {% endif %}>
-                      <td>
-                        <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
-                      </td>
+                      <td class="fee-cell">{{ animal.fee }}<span class="hall-name">{{ animal.hall.name }}</span></td>
                       <td>
                         <div class="beautician-cell">
                           <div class="labels">
@@ -647,25 +627,29 @@
                             {% endif %}
                           </div>
                           <div class="beautician-text">
-                            <div class="name-container">
-                              <span class="name">{{ animal.name }}</span>
+                            <div class="name-size-line">
+                              <div class="name-container">
+                                <span class="name">{{ animal.name }}</span>
+                              </div>
+                              <div class="size-container">
+                                <span class="size">{{ animal.size_display }}</span>
+                              </div>
                             </div>
-                            <div class="size-container">
-                              <span class="size">{{ animal.size_display }}</span>
+                            <div class="review-actions">
+                              <div class="review-box" id="reviewBox-{{ animal.id }}" data-animal-id="{{ animal.id }}">
+                                心得 <span class="count">{{ animal.approved_review_count }}</span>
+                              </div>
+                              <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
                             </div>
                           </div>
                         </div>
                       </td>
                       <td class="time-cell">{{ animal.time_slot }}</td>
-                      <td class="fee-cell">{{ animal.fee }}<span class="hall-name">{{ animal.hall.name }}</span></td>
-                      <td class="review-count-cell">
-                        <button class="review-count-btn" data-animal-id="{{ animal.id }}">{{ animal.approved_review_count }}</button>
-                      </td>
                     </tr>
                     {% if note %}
                     <tr class="note-row">
-                      <td></td>
-                      <td colspan="4">
+                      <td style="width: 17%;"></td>
+                      <td colspan="2" style="width: 83%;">
                         <div class="note-box">
                           {{ note.content }}
                         </div>
@@ -891,11 +875,9 @@
         <table class="header-table">
           <thead>
             <tr>
-              <th></th>
+              <th>台費</th>
               <th>美容師</th>
               <th>時段</th>
-              <th>台費</th>
-              <th>心得</th>
             </tr>
           </thead>
         </table>
@@ -910,9 +892,7 @@
                       data-hall="{{ appointment.animal.hall.name }}"
                       data-review-count="{{ appointment.animal.approved_review_count }}"
                       data-pending="true">
-                    <td>
-                      <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
-                    </td>
+                    <td class="fee-cell">{{ appointment.animal.fee }}<span class="hall-name">{{ appointment.animal.hall.name }}</span></td>
                     <td>
                       <div class="beautician-cell">
                         <div class="labels">
@@ -921,25 +901,29 @@
                           {% if appointment.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
                         </div>
                         <div class="beautician-text">
-                          <div class="name-container">
-                            <span class="name">{{ appointment.animal.name }}</span>
+                          <div class="name-size-line">
+                            <div class="name-container">
+                              <span class="name">{{ appointment.animal.name }}</span>
+                            </div>
+                            <div class="size-container">
+                              <span class="size">{{ appointment.animal.size_display }}</span>
+                            </div>
                           </div>
-                          <div class="size-container">
-                            <span class="size">{{ appointment.animal.size_display }}</span>
+                          <div class="review-actions">
+                            <div class="review-box" id="reviewBox-{{ appointment.animal.id }}" data-animal-id="{{ appointment.animal.id }}">
+                              心得 <span class="count">{{ appointment.animal.approved_review_count }}</span>
+                            </div>
+                            <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
                           </div>
                         </div>
                       </div>
                     </td>
                     <td class="time-cell">{{ appointment.animal.time_slot }}</td>
-                    <td class="fee-cell">{{ appointment.animal.fee }}<span class="hall-name">{{ appointment.animal.hall.name }}</span></td>
-                    <td class="review-count-cell">
-                      <button class="review-count-btn" data-animal-id="{{ appointment.animal.id }}">{{ appointment.animal.approved_review_count }}</button>
-                    </td>
                   </tr>
                 {% endfor %}
               {% else %}
                 <tr>
-                  <td colspan="5" style="text-align:center;"></td>
+                  <td colspan="3" style="text-align:center;"></td>
                 </tr>
               {% endif %}
             </tbody>
@@ -974,11 +958,9 @@
         <table class="header-table">
           <thead>
             <tr>
-              <th></th>
+              <th>台費</th>
               <th>美容師</th>
               <th>時段</th>
-              <th>台費</th>
-              <th>心得</th>
             </tr>
           </thead>
         </table>
@@ -993,9 +975,7 @@
                       data-hall="{{ review.animal.hall.name }}"
                       data-review-count="{{ review.animal.approved_review_count }}"
                       data-pending="false">
-                    <td>
-                      <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
-                    </td>
+                    <td class="fee-cell">{{ review.animal.fee }}<span class="hall-name">{{ review.animal.hall.name }}</span></td>
                     <td>
                       <div class="beautician-cell">
                         <div class="labels">
@@ -1004,25 +984,29 @@
                           {% if review.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
                         </div>
                         <div class="beautician-text">
-                          <div class="name-container">
-                            <span class="name">{{ review.animal.name }}</span>
+                          <div class="name-size-line">
+                            <div class="name-container">
+                              <span class="name">{{ review.animal.name }}</span>
+                            </div>
+                            <div class="size-container">
+                              <span class="size">{{ review.animal.size_display }}</span>
+                            </div>
                           </div>
-                          <div class="size-container">
-                            <span class="size">{{ review.animal.size_display }}</span>
+                          <div class="review-actions">
+                            <div class="review-box" id="reviewBox-{{ review.animal.id }}" data-animal-id="{{ review.animal.id }}">
+                              心得 <span class="count">{{ review.animal.approved_review_count }}</span>
+                            </div>
+                            <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
                           </div>
                         </div>
                       </div>
                     </td>
                     <td class="time-cell">{{ review.animal.time_slot }}</td>
-                    <td class="fee-cell">{{ review.animal.fee }}<span class="hall-name">{{ review.animal.hall.name }}</span></td>
-                    <td class="review-count-cell">
-                      <button class="review-count-btn" data-animal-id="{{ review.animal.id }}">{{ review.animal.approved_review_count }}</button>
-                    </td>
                   </tr>
                 {% endfor %}
               {% else %}
                 <tr>
-                  <td colspan="5" style="text-align:center;">無資料</td>
+                  <td colspan="3" style="text-align:center;">無資料</td>
                 </tr>
               {% endif %}
             </tbody>
@@ -1055,7 +1039,7 @@
     </div>
   </div>
 
-  <!-- 我的筆記 Modal -->
+  <!-- 我的筆記 Modal (重新設計為與最新心得版型相同) -->
   <div id="myNotesModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
       <span class="close-modal" id="closeMyNotesModal" aria-label="關閉">&times;</span>
@@ -1080,11 +1064,9 @@
         <table class="header-table">
           <thead>
             <tr>
-              <th></th>
+              <th>台費</th>
               <th>美容師</th>
               <th>時段</th>
-              <th>台費</th>
-              <th>心得</th>
             </tr>
           </thead>
         </table>
@@ -1099,9 +1081,7 @@
                       data-hall="{{ note.animal.hall.name }}"
                       data-review-count="{{ note.animal.approved_review_count }}"
                       data-pending="false">
-                    <td>
-                      <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
-                    </td>
+                    <td class="fee-cell">{{ note.animal.fee }}<span class="hall-name">{{ note.animal.hall.name }}</span></td>
                     <td>
                       <div class="beautician-cell">
                         <div class="labels">
@@ -1110,25 +1090,29 @@
                           {% if note.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
                         </div>
                         <div class="beautician-text">
-                          <div class="name-container">
-                            <span class="name">{{ note.animal.name }}</span>
+                          <div class="name-size-line">
+                            <div class="name-container">
+                              <span class="name">{{ note.animal.name }}</span>
+                            </div>
+                            <div class="size-container">
+                              <span class="size">{{ note.animal.size_display }}</span>
+                            </div>
                           </div>
-                          <div class="size-container">
-                            <span class="size">{{ note.animal.size_display }}</span>
+                          <div class="review-actions">
+                            <div class="review-box" id="reviewBox-{{ note.animal.id }}" data-animal-id="{{ note.animal.id }}">
+                              心得 <span class="count">{{ note.animal.approved_review_count }}</span>
+                            </div>
+                            <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
                           </div>
                         </div>
                       </div>
                     </td>
                     <td class="time-cell">{{ note.animal.time_slot }}</td>
-                    <td class="fee-cell">{{ note.animal.fee }}<span class="hall-name">{{ note.animal.hall.name }}</span></td>
-                    <td class="review-count-cell">
-                      <button class="review-count-btn" data-animal-id="{{ note.animal.id }}">{{ note.animal.approved_review_count }}</button>
-                    </td>
                   </tr>
                 {% endfor %}
               {% else %}
                 <tr>
-                  <td colspan="5" style="text-align:center;">尚無筆記</td>
+                  <td colspan="3" style="text-align:center;">尚無筆記</td>
                 </tr>
               {% endif %}
             </tbody>
@@ -1138,12 +1122,8 @@
     </div>
   </div>
 
-  <!-- + 底部滑出面板 -->
+  <!-- + 下拉選單 -->
   <div id="plusDropdown" class="dropdown-menu"></div>
-  
-  <!-- 分離的遮罩：左側與底部分別使用 -->
-  <div id="leftOverlay"></div>
-  <div id="bottomOverlay"></div>
   
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <!-- 全域 getCookie 函式 -->
@@ -1165,77 +1145,7 @@
   </script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // 定義遮罩元素（分離的）
-      const leftOverlay = document.getElementById('leftOverlay');
-      const bottomOverlay = document.getElementById('bottomOverlay');
-
-      // 定義 showPlusDropdown 函式（底部滑出面板用）
-      function showPlusDropdown(triggerBtn) {
-        const dropdown = document.getElementById('plusDropdown');
-        dropdown.innerHTML = "";
-        const btnReview = document.createElement('button');
-        btnReview.textContent = "填寫心得";
-        const btnAddWait = document.createElement('button');
-        const row = triggerBtn.closest('tr');
-        const pendingAction = row.getAttribute('data-pending') === "true" ? "移除待約" : "加入待約";
-        btnAddWait.textContent = pendingAction;
-        const btnAddNote = document.createElement('button');
-        btnAddNote.textContent = row.getAttribute('data-note-id') ? "查看筆記" : "加入筆記";
-        
-        dropdown.appendChild(btnReview);
-        dropdown.appendChild(btnAddWait);
-        dropdown.appendChild(btnAddNote);
-        dropdown.classList.add('open');
-        bottomOverlay.classList.add('open');
-        
-        const animalId = row.getAttribute('data-animal-id');
-        
-        btnReview.addEventListener('click', function(e) {
-          const reviewSubmitModal = document.getElementById('reviewSubmitModal');
-          reviewSubmitModal.style.display = 'block';
-          reviewSubmitModal.setAttribute('data-animal-id', animalId);
-          dropdown.classList.remove('open');
-          bottomOverlay.classList.remove('open');
-          e.stopPropagation();
-        });
-        btnAddWait.addEventListener('click', function(e) {
-          togglePending(row);
-          dropdown.classList.remove('open');
-          bottomOverlay.classList.remove('open');
-          e.stopPropagation();
-        });
-        btnAddNote.addEventListener('click', function(e) {
-          const noteModal = document.getElementById('noteModal');
-          if (row.getAttribute('data-note-id')) {
-            document.getElementById('noteModalTitle').textContent = "查看筆記";
-            document.getElementById('viewNoteSection').style.display = 'block';
-            document.getElementById('noteFormSection').style.display = 'none';
-            document.getElementById('viewNoteContent').textContent = row.getAttribute('data-note-content');
-            noteModal.setAttribute('data-note-id', row.getAttribute('data-note-id'));
-          } else {
-            document.getElementById('noteModalTitle').textContent = "加入筆記";
-            document.getElementById('noteFormSection').style.display = 'block';
-            document.getElementById('viewNoteSection').style.display = 'none';
-            noteModal.removeAttribute('data-note-id');
-          }
-          document.getElementById('noteAnimalId').value = animalId;
-          noteModal.style.display = 'block';
-          dropdown.classList.remove('open');
-          bottomOverlay.classList.remove('open');
-          e.stopPropagation();
-        });
-      }
-      
-      // 事件委派：監聽所有 .plus-menu-btn 點擊事件
-      document.addEventListener('click', function(e) {
-        const plusBtn = e.target.closest('.plus-menu-btn');
-        if (plusBtn) {
-          e.stopPropagation();
-          showPlusDropdown(plusBtn);
-        }
-      });
-
-      // Modal 關閉按鈕事件
+      // 新增各 Modal 關閉按鈕的事件監聽
       document.getElementById('closeLoginModal').addEventListener('click', function() {
         document.getElementById('loginModal').style.display = 'none';
       });
@@ -1258,7 +1168,7 @@
         document.getElementById('myNotesModal').style.display = 'none';
       });
 
-      /* 左側面板內按鈕事件：不關閉側邊面板 */
+      // 重新加入「最新心得」與「待約清單」按鈕事件監聽
       document.getElementById('latestReviewBtn').addEventListener('click', function(e) {
         document.getElementById('latestReviewModal').style.display = 'block';
         e.stopPropagation();
@@ -1267,28 +1177,24 @@
         document.getElementById('pendingListModal').style.display = 'block';
         e.stopPropagation();
       });
+      // 新增：會員登入按鈕點擊事件，顯示 loginModal
       document.getElementById('loginBtn').addEventListener('click', function(e) {
         document.getElementById('loginModal').style.display = 'block';
         e.stopPropagation();
       });
-      document.getElementById('myNotesBtn').addEventListener('click', function(e) {
-        document.getElementById('myNotesModal').style.display = 'block';
-        e.stopPropagation();
-      });
 
+      // 避免重複宣告變數，只宣告一次 sidePanel、menuBtn、overlay
       const menuBtn = document.getElementById('menuBtn');
+      const sidePanel = document.getElementById('sidePanel');
+      const overlay = document.getElementById('overlay');
+
       menuBtn.addEventListener('click', function() {
-        document.getElementById('sidePanel').classList.toggle('open');
-        leftOverlay.classList.toggle('open');
+        sidePanel.classList.toggle('open');
+        overlay.classList.toggle('open');
       });
-      leftOverlay.addEventListener('click', function() {
-        document.getElementById('sidePanel').classList.remove('open');
-        leftOverlay.classList.remove('open');
-      });
-      bottomOverlay.addEventListener('click', function() {
-        const dropdown = document.getElementById('plusDropdown');
-        if(dropdown.classList.contains('open')) { dropdown.classList.remove('open'); }
-        bottomOverlay.classList.remove('open');
+      overlay.addEventListener('click', function() {
+        sidePanel.classList.remove('open');
+        overlay.classList.remove('open');
       });
 
       function syncTableColumnWidths() {
@@ -1304,14 +1210,12 @@
         });
       }
       
-      /* 修改：包裝 .time-slot token 至一個 flex 容器 */
       function processTimeSlotCells() {
         document.querySelectorAll('.time-cell').forEach(function(td) {
           let text = td.textContent.trim();
           let tokens = text.split('.').filter(token => token.trim() !== '');
-          tokens = tokens.map(token => '<span class="time-slot">' + token + '-</span>');
-          // 包入新的容器
-          td.innerHTML = '<div class="time-cell-inner">' + tokens.join('') + '</div>';
+          tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
+          td.innerHTML = tokens.join('');
         });
       }
       
@@ -1320,7 +1224,7 @@
           let text = el.textContent.trim();
           let tokens = text.split('.').filter(token => token.trim() !== '');
           tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
-          el.innerHTML = '<div class="time-cell-inner">' + tokens.join('') + '</div>';
+          el.innerHTML = tokens.join('');
         });
       }
       
@@ -1370,13 +1274,107 @@
         }
       }
       
-      // 為 review-count 按鈕加入事件
-      document.querySelectorAll('.review-count-btn').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-          const animalId = this.getAttribute('data-animal-id');
-          document.getElementById('reviewModal').style.display = 'block';
-          loadReviews(animalId);
+      function showPlusDropdown(triggerBtn) {
+        const dropdown = document.getElementById('plusDropdown');
+        dropdown.innerHTML = "";
+        const btnReview = document.createElement('button');
+        btnReview.textContent = "填寫心得";
+        const btnAddWait = document.createElement('button');
+        const row = triggerBtn.closest('tr');
+        const pendingAction = row.getAttribute('data-pending') === "true" ? "移除待約" : "加入待約";
+        btnAddWait.textContent = pendingAction;
+        const btnAddNote = document.createElement('button');
+        if (row.getAttribute('data-note-id')) {
+          btnAddNote.textContent = "查看筆記";
+        } else {
+          btnAddNote.textContent = "加入筆記";
+        }
+        
+        dropdown.appendChild(btnReview);
+        dropdown.appendChild(btnAddWait);
+        dropdown.appendChild(btnAddNote);
+        
+        const rect = triggerBtn.getBoundingClientRect();
+        dropdown.style.top = rect.bottom + "px";
+        dropdown.style.left = rect.left + "px";
+        dropdown.style.display = "block";
+        
+        const animalId = row.getAttribute('data-animal-id');
+        
+        btnReview.addEventListener('click', function(e) {
+          const reviewSubmitModal = document.getElementById('reviewSubmitModal');
+          reviewSubmitModal.style.display = 'block';
+          reviewSubmitModal.setAttribute('data-animal-id', animalId);
+          dropdown.style.display = 'none';
           e.stopPropagation();
+        });
+        btnAddWait.addEventListener('click', function(e) {
+          togglePending(row);
+          dropdown.style.display = 'none';
+          e.stopPropagation();
+        });
+        btnAddNote.addEventListener('click', function(e) {
+          const noteModal = document.getElementById('noteModal');
+          if (row.getAttribute('data-note-id')) {
+            document.getElementById('noteModalTitle').textContent = "查看筆記";
+            document.getElementById('viewNoteSection').style.display = 'block';
+            document.getElementById('noteFormSection').style.display = 'none';
+            document.getElementById('viewNoteContent').textContent = row.getAttribute('data-note-content');
+            noteModal.setAttribute('data-note-id', row.getAttribute('data-note-id'));
+          } else {
+            document.getElementById('noteModalTitle').textContent = "加入筆記";
+            document.getElementById('noteFormSection').style.display = 'block';
+            document.getElementById('viewNoteSection').style.display = 'none';
+            noteModal.removeAttribute('data-note-id');
+          }
+          document.getElementById('noteAnimalId').value = animalId;
+          noteModal.style.display = 'block';
+          dropdown.style.display = 'none';
+          e.stopPropagation();
+        });
+      }
+      
+      document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('plusDropdown');
+        if(dropdown.style.display === 'block') { dropdown.style.display = 'none'; }
+      });
+      
+      function limitCheckboxSelection(containerId, max) {
+        const container = document.getElementById(containerId);
+        container.addEventListener('change', function() {
+          const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+          const checked = container.querySelectorAll('input[type="checkbox"]:checked');
+          if(checked.length >= max) {
+            checkboxes.forEach(cb => { if(!cb.checked) { cb.disabled = true; } });
+          } else {
+            checkboxes.forEach(cb => { cb.disabled = false; });
+          }
+        });
+      }
+      
+      window.addEventListener('resize', syncTableColumnWidths);
+      syncTableColumnWidths();
+      processTimeSlotCells();
+      processPendingTimeCells();
+      function togglePriceInput(selectId, inputId) {
+        const select = document.getElementById(selectId);
+        const input = document.getElementById(inputId);
+        select.addEventListener('change', function() {
+          if (select.value === "可加值") {
+            input.style.display = "block";
+          } else {
+            input.style.display = "none";
+            input.value = "";
+          }
+        });
+      }
+      togglePriceInput("music", "music_price");
+      togglePriceInput("sports", "sports_price");
+
+      document.querySelectorAll('.plus-menu-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          showPlusDropdown(this);
         });
       });
 
@@ -1450,6 +1448,37 @@
           const introText = this.getAttribute('data-intro');
           document.getElementById('latestIntroductionContent').innerText = introText || '';
         });
+      });
+
+      document.querySelectorAll('.review-box').forEach(function(box) {
+        box.addEventListener('click', function(e) {
+          const animalId = this.getAttribute('data-animal-id');
+          document.getElementById('reviewModal').style.display = 'block';
+          loadReviews(animalId);
+          e.stopPropagation();
+        });
+      });
+
+      // 我的筆記 Modal 處理
+      document.getElementById('myNotesBtn').addEventListener('click', function(e) {
+        document.getElementById('myNotesModal').style.display = 'block';
+        e.stopPropagation();
+      });
+
+      window.addEventListener('click', function(e) {
+        const loginModal = document.getElementById('loginModal');
+        if (e.target == loginModal) { loginModal.style.display = 'none'; }
+        if (e.target == document.getElementById('reviewModal')) { 
+          document.getElementById('reviewModal').style.display = 'none';
+        }
+        if (e.target == document.getElementById('reviewSubmitModal')) { 
+          document.getElementById('reviewSubmitModal').style.display = 'none';
+          document.getElementById('reviewForm').reset();
+        }
+        if (e.target == document.getElementById('pendingListModal')) { document.getElementById('pendingListModal').style.display = 'none'; }
+        if (e.target == document.getElementById('latestReviewModal')) { document.getElementById('latestReviewModal').style.display = 'none'; }
+        if (e.target == document.getElementById('noteModal')) { document.getElementById('noteModal').style.display = 'none'; }
+        if (e.target == document.getElementById('myNotesModal')) { document.getElementById('myNotesModal').style.display = 'none'; }
       });
 
       document.getElementById('reviewForm').addEventListener('submit', function(e) {
@@ -1642,11 +1671,6 @@
           }
         });
       }
-
-      window.addEventListener('resize', syncTableColumnWidths);
-      syncTableColumnWidths();
-      processTimeSlotCells();
-      processPendingTimeCells();
     });
   </script>
 </body>
