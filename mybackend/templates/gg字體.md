@@ -28,4 +28,13 @@ font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Ari
 https://www.figma.com/community/plugin/1159123024924461424/html.to.design
 <!-- end -->
 1678
+<!-- 面板&遮罩優先級 -->
+會員 1000
+選單 1000
+左側遮罩 1050
+左側面板 1150
+相關面板 2999
+心得面板 3000
+底部遮罩 3000
+底部選單 3500
 <!--  -->
