@@ -503,7 +503,7 @@
       min-height: calc(100vh - 2.5rem);
     }
     
-    /* 遮罩：左側與底部分別使用 */
+    /* 遮罩 */
     #leftOverlay {
       position: fixed;
       top: 0;
@@ -548,16 +548,14 @@
   <div class="glass-overlay">
     <div class="glass-background"></div>
     <div class="content">
-      <!-- 左側選單 -->
+      <!-- 左側選單，放在內容容器內 -->
       <div id="sidePanel">
         <button id="btnDailySchedule">每日班表</button>
         <button>每週班表</button>
         <button id="latestReviewBtn">最新心得</button>
         <button>找美容師</button>
         <button>最愛清單</button>
-        <button id="pendingListBtn" data-count="{% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %}">
-          待約清單 ({% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %})
-        </button>
+        <button id="pendingListBtn" data-count="{% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %}">待約清單 ({% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %})</button>
         <button id="myNotesBtn">我的筆記</button>
         <button id="loginBtn">會員登入</button>
       </div>
@@ -1521,7 +1519,7 @@
         });
       });
 
-      // 每日班表 Modal 中館別選單 AJAX 更新事件
+      // 新增：每日班表 Modal 中館別選單 AJAX 更新事件
       document.querySelectorAll('#dailyHallMenu a').forEach(function(link) {
         link.addEventListener('click', function(e) {
           e.preventDefault();

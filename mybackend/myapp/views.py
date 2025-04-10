@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
+from django.template.loader import render_to_string
 import re
 import pytesseract
 from PIL import Image
@@ -30,7 +31,7 @@ def parse_schedule_line(line):
 def home(request):
     halls = Hall.objects.all()
     hall_id = request.GET.get('hall_id')
-    if hall_id:
+    if hall_id and hall_id != "all":
         animals = Animal.objects.filter(hall_id=hall_id)
     else:
         animals = Animal.objects.all()
@@ -38,6 +39,7 @@ def home(request):
     animals = animals.annotate(approved_review_count=Count('reviews', filter=Q(reviews__approved=True)))
     context = {'animals': animals, 'halls': halls}
     
+    # 最新評論
     latest_reviews = Review.objects.filter(approved=True).select_related('animal').order_by("-created_at")[:15]
     for review in latest_reviews:
         review.animal.approved_review_count = review.animal.reviews.filter(approved=True).count()
@@ -51,15 +53,12 @@ def home(request):
         pending_ids = [str(appointment.animal.id) for appointment in pending]
         context['pending_ids'] = pending_ids
 
-        # 原有用來標示 animal 有筆記的資料（以動物ID作 key）
         user_notes = Note.objects.filter(user=request.user)
         notes_by_animal = {}
         for note in user_notes:
             notes_by_animal[str(note.animal.id)] = note
         context['notes_by_animal'] = notes_by_animal
 
-        # 新增：將該會員的所有筆記資料傳給模板，用於「我的筆記」面板，
-        # 並為每筆 note 的 animal 加上 approved_review_count 屬性
         my_notes = Note.objects.filter(user=request.user).select_related('animal').order_by("-updated_at")
         for note in my_notes:
             note.animal.approved_review_count = note.animal.reviews.filter(approved=True).count()
@@ -69,6 +68,12 @@ def home(request):
 
     if request.GET.get('login_error'):
         context['login_error'] = request.GET.get('login_error')
+
+    # 如果是 AJAX 請求，僅回傳局部班表表格內容
+    if request.GET.get('ajax') == '1':
+        table_html = render_to_string('partials/daily_animal_tbody.html', {'animals': animals}, request=request)
+        return JsonResponse({'table_html': table_html})
+
     return render(request, 'index.html', context)
 
 def upload_schedule_image_view(request):
