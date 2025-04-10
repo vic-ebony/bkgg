@@ -1,0 +1,15 @@
+{# templates/partials/_daily_schedule_table_content.html #}
+{# 這個模板的作用是接收一個動物列表 (animals)， #}
+{# 然後為列表中的每一個動物去 include 單行的模板 _animal_table_rows.html #}
+
+{% load my_filters %} {# 如果 _animal_table_rows.html 中使用了過濾器，這裡也要載入 #}
+
+{# 接收來自 views.py 的 'animals' 列表並進行迴圈 #}
+{% for animal_obj in animals %}
+    {# 在迴圈內部，為每一個 animal_obj 去包含那個只負責渲染單行的模板 #}
+    {# 確保把 include 所需的變數 (user, pending_ids, notes_by_animal) 都傳遞下去 #}
+    {% include 'partials/_animal_table_rows.html' with animal=animal_obj user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
+{% empty %}
+  {# 如果從 view 傳來的 animals 列表是空的，顯示提示訊息 #}
+  <tr><td colspan="5" style="text-align:center; padding: 2rem;">此館別目前沒有班表資料</td></tr>
+{% endfor %}
