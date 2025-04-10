@@ -49,31 +49,52 @@
     .modal { display: none; position: fixed; z-index: 2999; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0, 0, 0, 0.5); animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     #reviewModal, #reviewSubmitModal, #noteModal { z-index: 3999; } /* Higher z-index for secondary modals */
-    .modal-content { background-color: #fff; margin: 20px auto; padding: 0; border-radius: 15px; width: 95%; max-width: 500px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: none; }
+
+    .modal-content {
+        background-color: #fff;
+        margin: 20px auto;
+        padding: 0;
+        border-radius: 15px;
+        width: 95%;
+        max-width: 500px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto; /* 維持原來的 auto，允許 modal-content 本身滾動 */
+        overflow-x: hidden;
+        position: relative;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        border: none;
+        /* --- MODIFICATION START: Add min-height --- */
+        min-height: 95%; /* 設定最小高度，例如 80% 視窗高度 (可調整) */
+        /* --- MODIFICATION END --- */
+    }
     .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background-color: #f8f9fa;}
-    .modal-header h2 { margin: 0; font-size: 1.3rem; color: #333; }
+    .modal-header h2 { margin: 0; font-size: 1.3rem; color: #333; flex-grow: 1; margin-right: 0.5rem; }
     .modal-body { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; padding: 1rem; /* Default padding */ }
     .modal-body[data-layout="table"] { padding: 0 !important; /* Remove padding for table layout */ }
     .modal-footer { padding: 1rem 1.25rem; border-top: 1px solid #eee; flex-shrink: 0; background-color: #f8f9fa; text-align: right; }
-    .close-modal { font-size: 1.75rem; font-weight: bold; cursor: pointer; color: #aaa; background: none; border: none; padding: 0 0.5rem; line-height: 1; } .close-modal:hover { color: #666; }
+    .close-modal { font-size: 1.75rem; font-weight: bold; cursor: pointer; color: #aaa; background: none; border: none; padding: 0 0.5rem; line-height: 1; flex-shrink: 0; }
+    .close-modal:hover { color: #666; }
 
     /* --- Modal Table Layout --- */
     .modal-body .table-wrapper { margin-top: 0; background: #fff; border: none; border-radius: 0; overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0; }
     .modal-body .header-table { width: 100%; border-collapse: collapse; table-layout: fixed; flex-shrink: 0; }
     .modal-body .header-table th { padding: 0.5rem 0.3rem; border-bottom: 2px solid #ccc; text-align: left; background: #e9ecef; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; vertical-align: middle; font-size: 0.85rem; color: #495057; font-weight: bold; }
-    .modal-body .body-wrapper { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; border-bottom: 1px solid #dee2e6; }
+    .modal-body .body-wrapper { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; border-bottom: 1px solid #dee2e6; } /* Body wrapper 負責內部表格滾動 */
     .modal-body .body-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .modal-body .body-table td { padding: 0.3rem 0.3rem; border-top: 1px solid #dee2e6; text-align: left; white-space: normal; word-break: break-word; overflow-wrap: break-word; background: #fff; line-height: 1.4; vertical-align: middle; font-size: 0.95rem; color: #555; }
     .modal-body .body-table tr:not(.note-row):hover { background: #f8f9fa; cursor: pointer; }
     .modal-body .body-table tr.note-row { background: #f0f0f0; cursor: default; }
     .modal-body .body-table tr.note-row:hover { background: #f0f0f0; }
     .modal-body .body-table tr.note-row td { border-top: none; padding: 0.4rem 0.3rem; }
+    .modal-body .body-table tr.note-row[style*="display: none"] { display: none !important; }
     /* Column Widths */
-    .modal-body .header-table th:nth-child(1), .modal-body .body-table td:nth-child(1) { width: 11%; text-align: center; } /* Plus Button */
-    .modal-body .header-table th:nth-child(2), .modal-body .body-table td:nth-child(2) { width: 24%; } /* Beautician */
-    .modal-body .header-table th:nth-child(3), .modal-body .body-table td:nth-child(3) { width: 34%; } /* Time Slot */
-    .modal-body .header-table th:nth-child(4), .modal-body .body-table td:nth-child(4) { width: 17%; } /* Fee/Hall */
-    .modal-body .header-table th:nth-child(5), .modal-body .body-table td:nth-child(5) { width: 14%; text-align: center; } /* Review Count */
+    .modal-body .header-table th:nth-child(1), .modal-body .body-table td:nth-child(1) { width: 11%; text-align: center; }
+    .modal-body .header-table th:nth-child(2), .modal-body .body-table td:nth-child(2) { width: 24%; }
+    .modal-body .header-table th:nth-child(3), .modal-body .body-table td:nth-child(3) { width: 34%; }
+    .modal-body .header-table th:nth-child(4), .modal-body .body-table td:nth-child(4) { width: 17%; }
+    .modal-body .header-table th:nth-child(5), .modal-body .body-table td:nth-child(5) { width: 14%; text-align: center; }
 
     /* --- Modal Top Section (Photo/Intro) --- */
     .modal-body > .top-section { display: flex; align-items: stretch; border: none; border-bottom: 1px solid #eee; border-radius: 0; overflow: hidden; margin-bottom: 0; background: #fff; height: 200px; flex-shrink: 0; }
@@ -88,7 +109,19 @@
     .modal-body .hall-menu a { flex-shrink: 0; padding: 0.5rem 0.75rem; text-decoration: none; color: #666; background: #fff; border: 1px solid #ddd; border-radius: 5px; white-space: nowrap; transition: background 0.3s, color 0.3s, border-color 0.3s; font-size: 1.0rem; }
     .modal-body .hall-menu a.active, .modal-body .hall-menu a:hover { background: #e0f7fa; color: #007bff; border-color: #bce8f1; }
 
+    /* === 新增 Header Toggle Notes Checkbox Style === */
+    .modal-header .header-toggle-notes {
+        margin-left: auto; padding-right: 1rem; flex-shrink: 0;
+    }
+    .modal-header .header-toggle-notes label {
+        display: inline-flex; align-items: center; cursor: pointer; font-size: 0.9rem;
+        color: #555; white-space: nowrap;
+    }
+    .modal-header .header-toggle-notes input[type="checkbox"] { margin-right: 0.4rem; vertical-align: middle; }
+    /* === End Header Checkbox Style === */
+
     /* --- Other Element Styles --- */
+    /* ... (保持你原始的其他樣式) ... */
     .time-slot { display: inline-block; white-space: nowrap; margin: 0.1em 0.2em; break-inside: avoid; word-break: keep-all; font-size: 0.9em; background-color: #e9ecef; padding: 0.1em 0.3em; border-radius: 3px; border: 1px solid #ced4da; }
     .time-cell-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2em; padding: 0.1rem 0; }
     .fee-cell .hall-name { display: block; font-size: 0.85rem; color: #888; margin-top: 0.15rem; }
@@ -97,14 +130,40 @@
     .circle-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #ccc; background-color: #fff; font-size: 1.1rem; line-height: 1; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s, color 0.2s, transform 0.1s; padding: 0; } .circle-btn:hover { background-color: #f0f0f0; color: #555; } .circle-btn:active { transform: scale(0.95); }
     .review-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); } .review-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 0.75rem; margin-bottom: 1rem; font-size: 1rem; color: #555; } .review-user-info { display: flex; flex-direction: column; gap: 0.1rem; } .review-user { color: #333; font-weight: 500; } .review-total { font-size: 0.8rem; color: #888; } .review-date { font-size: 0.85rem; color: #999;} .review-body { padding-top: 0.5rem; } .review-body p { margin: 0.3rem 0; font-size: 1rem; color: #555; white-space: pre-wrap; word-wrap: break-word; } .review-line { display: flex; align-items: flex-start; margin: 0.5rem 0; font-size: 0.95rem; } .review-label { flex: 0 0 60px; font-weight: bold; color: #444; padding-right: 10px; } .review-value { flex: 1; color: #666; word-break: break-word; } #reviewList { padding: 0 0.5rem; }
     .note-box { border: 1px dashed #ddd; background: #f9f9f9; padding: 0.6rem; margin: 0; font-size: 0.9rem; color: #333; width: 100%; text-align: left; border-radius: 4px; white-space: pre-wrap; word-break: break-word; }
-    /* Form Styles */
     .form-group { margin-bottom: 1rem; } .form-group label { display: block; margin-bottom: 0.4rem; font-weight: bold; font-size: 0.95rem; color: #555; } .form-group input[type="text"], .form-group input[type="password"], .form-group input[type="number"], .form-group textarea, .form-group select { width: 100%; padding: 0.6rem 0.75rem; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; } .form-group textarea { resize: vertical; min-height: 80px; } input:focus, textarea:focus, select:focus { outline: none; border-color: #80bdff; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); } .choices__inner { padding: 0.45rem 0.75rem !important; border-radius: 4px !important; border: 1px solid #ced4da !important; font-size: 1rem !important; min-height: auto !important;} .choices__list--single { padding: 0 !important; } .choices[data-type*="select-one"]:after { right: 11.5px !important; } .choices.is-focused .choices__inner, .choices.is-open .choices__inner { border-color: #80bdff !important; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important; }
     button { padding: 0.6rem 1rem; border: 1px solid #ccc; border-radius: 5px; background: #fff; color: #333; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, color 0.2s; font-size: 1rem; line-height: 1.5; } button:hover { background: #f8f8f8; border-color: #bbb; } button[type="submit"] { background-color: #007bff; border-color: #007bff; color: white; } button[type="submit"]:hover { background-color: #0056b3; border-color: #0056b3; } .button-secondary { background-color: #6c757d; border-color: #6c757d; color: white; } .button-secondary:hover { background-color: #5a6268; border-color: #545b62; } .button-danger { background-color: #dc3545; border-color: #dc3545; color: white; } .button-danger:hover { background-color: #c82333; border-color: #bd2130; }
     .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.5rem 0.8rem; } .checkbox-group label { cursor: pointer; display: inline-flex; align-items: center; padding: 0.3rem 0.6rem; border: 1px solid #ddd; border-radius: 15px; font-size: 0.9rem; transition: background-color 0.2s, border-color 0.2s; } .checkbox-group label:hover { background-color: #f0f0f0; } .checkbox-group input[type="checkbox"] { margin-right: 0.4rem; }
 
     /* --- Responsive Adjustments --- */
-    @media (max-width: 768px) { .page-header { flex-direction: column; align-items: stretch; gap: 0.75rem; } .header-promo { display: none; } .header-actions { order: 1; justify-content: center; } }
-    @media (max-width: 600px) { .content { width: 100%; margin: 0; border-radius: 0; padding: 0; max-height: none; } .page-header { padding: 0.5rem 0.75rem; gap: 0.5rem; } .header-actions button, .header-actions form button { font-size: 0.8rem; padding: 0.3rem 0.6rem; } .header-actions .user-info-header { font-size: 0.8rem; } .portal-content { padding: 1rem; } .portal-content h1 { font-size: 1.5rem; } .portal-content .portal-announcement, .portal-content .portal-promo { padding: 0.75rem; } .modal-content { width: 100%; max-width: none; margin: 0; border-radius: 0; max-height: 100vh; padding: 0; } .modal-header { padding: 0.75rem 1rem; } .modal-header h2 { font-size: 1.1rem; } .modal-body[data-layout="table"] { padding: 0 !important; } .modal-body > .top-section { height: 150px; } .modal-footer { padding: 0.75rem 1rem; } }
+    @media (max-width: 768px) { .page-header { flex-direction: column; align-items: stretch; gap: 0.75rem; } .header-promo { display: none; } .header-actions { order: 1; justify-content: center; } .modal-header h2 { font-size: 1.1rem; } .modal-header .header-toggle-notes label { font-size: 0.8rem;} }
+
+    @media (max-width: 600px) {
+        .content { width: 100%; margin: 0; border-radius: 0; padding: 0; max-height: none; }
+        .page-header { padding: 0.5rem 0.75rem; gap: 0.5rem; }
+        .header-actions button, .header-actions form button { font-size: 0.8rem; padding: 0.3rem 0.6rem; }
+        .header-actions .user-info-header { font-size: 0.8rem; }
+        .portal-content { padding: 1rem; }
+        .portal-content h1 { font-size: 1.5rem; }
+        .portal-content .portal-announcement, .portal-content .portal-promo { padding: 0.75rem; }
+        .modal-content {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            border-radius: 0;
+            max-height: 100vh; /* 維持最大高度限制 */
+            padding: 0;
+            /* --- MODIFICATION START: Add min-height for small screens --- */
+            min-height: 100%; /* 在小螢幕也設定最小高度 (可調整) */
+            /* --- MODIFICATION END --- */
+        }
+        .modal-header { padding: 0.75rem 1rem; }
+        .modal-header h2 { font-size: 1.1rem; }
+        .modal-body[data-layout="table"] { padding: 0 !important; }
+        .modal-body > .top-section { height: 150px; }
+        .modal-footer { padding: 0.75rem 1rem; }
+        .modal-header .header-toggle-notes { padding-right: 0.5rem; }
+        .modal-header .header-toggle-notes label { font-size: 0.8rem;}
+    }
     @media (min-width: 769px) { .header-promo { display: block; } }
 
     /* --- Bottom Menu & Overlay --- */
@@ -233,22 +292,32 @@
       <!-- Pending List Modal -->
       <div id="pendingListModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
-           <div class="modal-header"><h2>待約清單</h2><button class="close-modal" aria-label="關閉">×</button></div>
+           <div class="modal-header">
+             <h2>待約清單</h2>
+             <!-- === Checkbox in Header === -->
+             <div class="header-toggle-notes">
+                 <label>
+                     <input type="checkbox" class="toggle-notes-checkbox" data-table-id="pendingTable">
+                     顯示筆記
+                 </label>
+             </div>
+             <!-- === End Checkbox === -->
+             <button class="close-modal" aria-label="關閉">×</button>
+           </div>
            <div class="modal-body" data-layout="table">
               <section class="top-section">
                 <div class="photo-area" id="pendingPhotoArea">{% if pending_appointments and pending_appointments.0.animal.photo %}<img src="{{ pending_appointments.0.animal.photo.url }}" alt="{{ pending_appointments.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
                 <div class="intro-area" id="pendingIntroArea"><div class="intro-top"><p id="pendingIntroductionContent">{% if pending_appointments and pending_appointments.0.animal.introduction %}{{ pending_appointments.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
               </section>
+              {# Removed Checkbox from body #}
               <div class="table-wrapper">
                 <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                 <div class="body-wrapper">
                   <table class="body-table" id="pendingTable">
                     <tbody>
                       {% for appointment in pending_appointments %}
-                          {# Include the partial to render the row #}
                           {% include 'partials/_animal_table_rows.html' with animal=appointment.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
                       {% empty %}
-                        {# Placeholder row for empty list #}
                         <tr class="empty-table-message"><td colspan="5">待約清單是空的</td></tr>
                       {% endfor %}
                     </tbody>
@@ -262,22 +331,32 @@
       <!-- Latest Reviews Modal -->
       <div id="latestReviewModal" class="modal" role="dialog" aria-modal="true">
          <div class="modal-content">
-           <div class="modal-header"><h2>最新心得</h2><button class="close-modal" aria-label="關閉">×</button></div>
+           <div class="modal-header">
+             <h2>最新心得</h2>
+             <!-- === Checkbox in Header === -->
+             <div class="header-toggle-notes">
+                 <label>
+                     <input type="checkbox" class="toggle-notes-checkbox" data-table-id="latestReviewTable">
+                     顯示筆記
+                 </label>
+             </div>
+             <!-- === End Checkbox === -->
+             <button class="close-modal" aria-label="關閉">×</button>
+           </div>
            <div class="modal-body" data-layout="table">
               <section class="top-section">
                 <div class="photo-area" id="latestPhotoArea">{% if latest_reviews and latest_reviews.0.animal.photo %}<img src="{{ latest_reviews.0.animal.photo.url }}" alt="{{ latest_reviews.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
                 <div class="intro-area" id="latestIntroArea"><div class="intro-top"><p id="latestIntroductionContent">{% if latest_reviews and latest_reviews.0.animal.introduction %}{{ latest_reviews.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
               </section>
+              {# Removed Checkbox from body #}
               <div class="table-wrapper">
                 <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                 <div class="body-wrapper">
                   <table class="body-table" id="latestReviewTable">
                     <tbody>
                       {% for review in latest_reviews %}
-                          {# Include the partial to render the row #}
                           {% include 'partials/_animal_table_rows.html' with animal=review.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
                       {% empty %}
-                        {# Placeholder row for empty list #}
                         <tr class="empty-table-message"><td colspan="5">還沒有任何心得</td></tr>
                       {% endfor %}
                     </tbody>
@@ -291,7 +370,10 @@
       <!-- Note Modal (Add/View/Edit/Delete) -->
       <div id="noteModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
-          <div class="modal-header"><h2 id="noteModalTitle">筆記</h2><button class="close-modal" aria-label="關閉">×</button></div>
+          <div class="modal-header">
+            <h2 id="noteModalTitle">筆記</h2>
+            <button class="close-modal" aria-label="關閉">×</button>
+          </div>
           <div class="modal-body">
             <form id="noteForm" method="POST" style="display:none;">
               {% csrf_token %}
@@ -303,7 +385,7 @@
             <div id="viewNoteSection" style="display:none;">
                <div class="note-box" id="viewNoteContent" style="margin-bottom: 1rem; border: none; background: transparent; padding: 0; white-space: pre-wrap;"></div>
                <button id="editNoteBtn" class="button-secondary">修改筆記</button>
-               <button id="deleteNoteBtn" class="button-danger" data-animal-id="" style="margin-left: 0.5rem;">刪除筆記</button> {# data-animal-id set by JS #}
+               <button id="deleteNoteBtn" class="button-danger" data-animal-id="" style="margin-left: 0.5rem;">刪除筆記</button>
             </div>
           </div>
         </div>
@@ -312,22 +394,32 @@
       <!-- My Notes Modal -->
       <div id="myNotesModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
-           <div class="modal-header"><h2>我的筆記</h2><button class="close-modal" aria-label="關閉">×</button></div>
+           <div class="modal-header">
+             <h2>我的筆記</h2>
+             <!-- === Checkbox in Header === -->
+             <div class="header-toggle-notes">
+                 <label>
+                     <input type="checkbox" class="toggle-notes-checkbox" data-table-id="myNotesTable">
+                     顯示筆記
+                 </label>
+             </div>
+             <!-- === End Checkbox === -->
+             <button class="close-modal" aria-label="關閉">×</button>
+           </div>
            <div class="modal-body" data-layout="table">
               <section class="top-section">
                 <div class="photo-area" id="myNotesPhotoArea">{% if my_notes and my_notes.0.animal.photo %}<img src="{{ my_notes.0.animal.photo.url }}" alt="{{ my_notes.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
                 <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">{% if my_notes and my_notes.0.animal.introduction %}{{ my_notes.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
               </section>
+              {# Removed Checkbox from body #}
               <div class="table-wrapper">
                 <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                 <div class="body-wrapper">
                   <table class="body-table" id="myNotesTable">
                     <tbody>
                       {% for note_item in my_notes %}
-                          {# Include the partial to render the row #}
                           {% include 'partials/_animal_table_rows.html' with animal=note_item.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
                       {% empty %}
-                        {# Placeholder row for empty list #}
                         <tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>
                       {% endfor %}
                     </tbody>
@@ -341,7 +433,18 @@
       <!-- Daily Schedule Modal -->
       <div id="dailyScheduleModal" class="modal" role="dialog" aria-modal="true">
           <div class="modal-content">
-              <div class="modal-header"> <h2>每日班表</h2> <button class="close-modal" aria-label="關閉">×</button> </div>
+              <div class="modal-header">
+                <h2>每日班表</h2>
+                <!-- === Checkbox in Header === -->
+                <div class="header-toggle-notes">
+                    <label>
+                        <input type="checkbox" class="toggle-notes-checkbox" data-table-id="dailyAnimalTable">
+                        顯示筆記
+                    </label>
+                </div>
+                <!-- === End Checkbox === -->
+                <button class="close-modal" aria-label="關閉">×</button>
+              </div>
               <div class="modal-body" data-layout="table">
                   <section class="top-section">
                       <div class="photo-area" id="dailyPhotoArea"><p style="color:#888;font-size:0.9rem;">請點擊下方館別載入班表</p></div>
@@ -351,12 +454,12 @@
                       <a href="#" data-hall-id="all" class="active">全部</a>
                       {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %}
                   </nav>
+                  {# Removed Checkbox from body #}
                   <div class="table-wrapper">
                       <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                       <div class="body-wrapper">
                           <table class="body-table" id="dailyAnimalTable">
                               <tbody>
-                                  {# Initial placeholder, content loaded via AJAX #}
                                   <tr class="empty-table-message"><td colspan="5">請點擊上方館別載入班表</td></tr>
                               </tbody>
                           </table>
@@ -379,14 +482,13 @@
     function getCookie(name) { let cookieValue = null; if (document.cookie && document.cookie !== '') { const cookies = document.cookie.split(';'); for (let i = 0; i < cookies.length; i++) { const cookie = cookies[i].trim(); if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; } } } return cookieValue; }
   </script>
   <script>
-    // --- Main JavaScript Logic ---
+    // --- Main JavaScript Logic (Keep as provided previously) ---
     document.addEventListener('DOMContentLoaded', function() {
       const csrfToken = getCookie('csrftoken');
       const bottomOverlay = document.getElementById('bottomOverlay');
       const isLoggedIn = document.querySelector('.header-actions form button[type="submit"]') !== null;
 
       // --- Update data-* attributes for all matching data rows ---
-      // --- DOES NOT handle note row visibility ---
       function updateRowsByAnimalId(animalId, updateCallback) {
         console.log(`Updating data attributes for animal ID: ${animalId}`);
         const rows = document.querySelectorAll(`.body-table tr[data-animal-id="${animalId}"]:not(.note-row)`);
@@ -396,7 +498,7 @@
         }
         rows.forEach(function(row) {
           console.log(`  Applying update to data row:`, row);
-          updateCallback(row); // Apply the specific update (e.g., set data-pending, data-note-id)
+          updateCallback(row);
         });
       }
 
@@ -409,147 +511,88 @@
         console.log(`Showing plus dropdown for animal ID: ${animalId}`);
 
         if (isLoggedIn) {
-            // Submit Review Button
-            const btnReview = document.createElement('button');
-            btnReview.textContent = "填寫心得";
+            const btnReview = document.createElement('button'); btnReview.textContent = "填寫心得";
             btnReview.addEventListener('click', (e) => {
-                const modal = document.getElementById('reviewSubmitModal');
-                if(modal){
-                    const hiddenInput = modal.querySelector('input[name="animal_id"]');
-                    if (hiddenInput) hiddenInput.value = animalId;
-                    else console.error("Hidden input for animal_id not found in review form");
-
-                    // Reset form before showing
-                    const form = document.getElementById('reviewForm');
-                    if(form) form.reset();
-                    // Clear Choices.js selections
-                    ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
-                        const selectElement = document.getElementById(id);
-                        if (selectElement && selectElement.choices) {
-                             try { selectElement.choices.setChoiceByValue(''); } catch(err){ console.warn(`Error resetting Choices.js for ${id}:`, err); }
-                        } else if (selectElement) {
-                            selectElement.selectedIndex = 0; // Fallback for standard select
-                        }
-                    });
-                    // Clear checkboxes
-                    modal.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-                    // Hide price inputs
-                    const musicPriceInput = document.getElementById('music_price');
-                    const sportsPriceInput = document.getElementById('sports_price');
-                    if(musicPriceInput) musicPriceInput.style.display = 'none';
-                    if(sportsPriceInput) sportsPriceInput.style.display = 'none';
-
-                    modal.style.display = 'block';
-                }
-                closePlusDropdown();
-                e.stopPropagation();
-            });
-            dropdown.appendChild(btnReview);
-
-            // Add/Remove Pending Button
-            const btnAddWait = document.createElement('button');
-            const isPending = row.getAttribute('data-pending') === "true";
-            btnAddWait.textContent = isPending ? "移除待約" : "加入待約";
-            btnAddWait.addEventListener('click', (e) => {
-                togglePending(animalId, !isPending);
-                closePlusDropdown();
-                e.stopPropagation();
-            });
-            dropdown.appendChild(btnAddWait);
-
-            // Add/View/Edit Note Button
-            const btnAddNote = document.createElement('button');
-            const noteId = row.getAttribute('data-note-id');
-            const noteContent = row.getAttribute('data-note-content') || '';
-            btnAddNote.textContent = noteId ? "查看/修改筆記" : "加入筆記";
-            btnAddNote.addEventListener('click', (e) => {
-                openNoteModal(animalId, noteId, noteContent);
-                closePlusDropdown();
-                e.stopPropagation();
-            });
-            dropdown.appendChild(btnAddNote);
-        } else {
-            const infoText = document.createElement('span');
-            infoText.textContent = "請先登入以使用功能";
-            dropdown.appendChild(infoText);
-        }
-        dropdown.classList.add('open');
-        bottomOverlay.classList.add('open');
+                const modal = document.getElementById('reviewSubmitModal'); if(modal){ const hiddenInput = modal.querySelector('input[name="animal_id"]'); if (hiddenInput) hiddenInput.value = animalId; else console.error("Hidden input for animal_id not found in review form"); const form = document.getElementById('reviewForm'); if(form) form.reset(); ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => { const selectElement = document.getElementById(id); if (selectElement && selectElement.choices) { try { selectElement.choices.setChoiceByValue(''); } catch(err){} } else if (selectElement) { selectElement.selectedIndex = 0; } }); modal.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false); const musicPriceInput = document.getElementById('music_price'); if(musicPriceInput) musicPriceInput.style.display = 'none'; const sportsPriceInput = document.getElementById('sports_price'); if(sportsPriceInput) sportsPriceInput.style.display = 'none'; modal.style.display = 'block'; }
+                closePlusDropdown(); e.stopPropagation();
+            }); dropdown.appendChild(btnReview);
+            const btnAddWait = document.createElement('button'); const isPending = row.getAttribute('data-pending') === "true"; btnAddWait.textContent = isPending ? "移除待約" : "加入待約";
+            btnAddWait.addEventListener('click', (e) => { togglePending(animalId, !isPending); closePlusDropdown(); e.stopPropagation(); }); dropdown.appendChild(btnAddWait);
+            const btnAddNote = document.createElement('button'); const noteId = row.getAttribute('data-note-id'); const noteContent = row.getAttribute('data-note-content') || ''; btnAddNote.textContent = noteId ? "查看/修改筆記" : "加入筆記";
+            btnAddNote.addEventListener('click', (e) => { openNoteModal(animalId, noteId, noteContent); closePlusDropdown(); e.stopPropagation(); }); dropdown.appendChild(btnAddNote);
+        } else { const infoText = document.createElement('span'); infoText.textContent = "請先登入以使用功能"; dropdown.appendChild(infoText); }
+        dropdown.classList.add('open'); bottomOverlay.classList.add('open');
       }
 
       // --- Close Plus Dropdown Menu ---
       function closePlusDropdown() {
-          const dropdown = document.getElementById('plusDropdown');
-          if(dropdown) dropdown.classList.remove('open');
-          if(bottomOverlay) bottomOverlay.classList.remove('open');
+          const dropdown = document.getElementById('plusDropdown'); if(dropdown) dropdown.classList.remove('open'); if(bottomOverlay) bottomOverlay.classList.remove('open');
       }
 
-      // --- Helper: Process Time Slots in a Container/Element ---
+      // --- Helper: Process Time Slots ---
       function processTimeSlotCellsInContainer(containerElement) {
           if (!containerElement) return;
           containerElement.querySelectorAll('.time-cell:not(:has(.time-cell-inner))').forEach(td => {
               let text = td.textContent.trim(); if (!text) return;
-              let tokens = text.match(/(\d{1,2}:\d{2}|\d{1,2}(?:點)?(?:半)?|[\u4e00-\u9fa5A-Za-z]+)/g) || [];
-              tokens = tokens.filter(t => t.trim() !== '').map(t => `<span class="time-slot">${t}</span>`);
+              // Improved regex to better handle various formats, including Chinese characters
+              let tokens = text.match(/(\d{1,2}:\d{2}|\d{1,2}(?:點|時)?(?:半)?(?:-|~)?\d{1,2}(?::\d{2}|(?:點|時)?(?:半)?)?|\d{1,2}:\d{2}|\d{1,2}(?:點|時)?(?:半)?|[\u4e00-\u9fa5A-Za-z]+(?:-|~)?[\u4e00-\u9fa5A-Za-z]*)/g) || [];
+              tokens = tokens.filter(t => t.trim() !== '').map(t => `<span class="time-slot">${t.trim()}</span>`);
               td.innerHTML = `<div class="time-cell-inner">${tokens.join('')}</div>`;
           });
        }
 
-      // --- Helper: Insert/Replace Row HTML into Table Body ---
+      // --- Helper: Insert/Replace Row ---
       function insertOrReplaceRow(tbody, htmlString, animalId) {
-          if (!tbody || !htmlString || !animalId) {
-              console.error("insertOrReplaceRow: Missing tbody, htmlString, or animalId");
-              return;
-          }
-          // Remove existing rows (data and note) for this animal first
-          const existingRows = tbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
-          existingRows.forEach(row => row.remove());
-
-          const template = document.createElement('template');
-          template.innerHTML = htmlString.trim();
+          if (!tbody || !htmlString || !animalId) { console.error("insertOrReplaceRow: Missing args"); return; }
+          const existingRows = tbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`); existingRows.forEach(row => row.remove());
+          const template = document.createElement('template'); template.innerHTML = htmlString.trim();
           const newNodes = Array.from(template.content.childNodes);
-
           newNodes.forEach(node => {
               if (node.nodeType === Node.ELEMENT_NODE) {
                   const addedElement = tbody.appendChild(node.cloneNode(true));
-                  if (!addedElement.classList.contains('note-row')) {
-                      processTimeSlotCellsInContainer(addedElement);
-                  }
+                  if (!addedElement.classList.contains('note-row')) { processTimeSlotCellsInContainer(addedElement); }
                   console.log("Added/Replaced row:", addedElement);
+                  // === 新增: 確保新添加的筆記行符合 Checkbox 狀態 ===
+                  if (addedElement.classList.contains('note-row')) {
+                     const tableId = tbody.closest('.body-table')?.id;
+                     if (tableId) {
+                         const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
+                         if (checkbox && !checkbox.checked) {
+                             console.log(`Hiding newly added note row ${animalId} in ${tableId} because checkbox is unchecked.`);
+                             addedElement.style.display = 'none';
+                         }
+                     }
+                  }
+                  // === 結束新增 ===
               }
           });
-
-          const emptyRow = tbody.querySelector('tr.empty-table-message');
-          if (emptyRow) emptyRow.remove();
+          const emptyRow = tbody.querySelector('tr.empty-table-message'); if (emptyRow && tbody.querySelector('tr:not(.empty-table-message)')) emptyRow.remove();
       }
 
-       // --- Helper: Add Row HTML to Table Body (if not exists) ---
+       // --- Helper: Add Row If Not Exists ---
        function addRowIfNotExists(tbody, htmlString, animalId) {
-          if (!tbody || !htmlString || !animalId) {
-               console.error("addRowIfNotExists: Missing tbody, htmlString, or animalId");
-               return false;
-          }
-          if (tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`)) {
-               console.log(`Row for animal ${animalId} already exists in tbody #${tbody.closest('table')?.id || 'unknown'}. Skipping add.`);
-               return false;
-          }
-
-          const emptyRow = tbody.querySelector('tr.empty-table-message');
-          if (emptyRow) emptyRow.remove();
-
-          const template = document.createElement('template');
-          template.innerHTML = htmlString.trim();
-          const newNodes = Array.from(template.content.childNodes);
-
-          let added = false;
+          if (!tbody || !htmlString || !animalId) { console.error("addRowIfNotExists: Missing args"); return false; }
+          if (tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`)) { console.log(`Row exists for ${animalId}. Skipping add.`); return false; }
+          const emptyRow = tbody.querySelector('tr.empty-table-message'); if (emptyRow) emptyRow.remove();
+          const template = document.createElement('template'); template.innerHTML = htmlString.trim();
+          const newNodes = Array.from(template.content.childNodes); let added = false;
           newNodes.forEach(node => {
               if (node.nodeType === Node.ELEMENT_NODE) {
                   const addedElement = tbody.appendChild(node.cloneNode(true));
-                  if (!addedElement.classList.contains('note-row')) {
-                      processTimeSlotCellsInContainer(addedElement);
+                  if (!addedElement.classList.contains('note-row')) { processTimeSlotCellsInContainer(addedElement); }
+                   // === 新增: 確保新添加的筆記行符合 Checkbox 狀態 ===
+                   if (addedElement.classList.contains('note-row')) {
+                     const tableId = tbody.closest('.body-table')?.id;
+                     if (tableId) {
+                         const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
+                         if (checkbox && !checkbox.checked) {
+                             console.log(`Hiding newly added note row ${animalId} in ${tableId} because checkbox is unchecked.`);
+                             addedElement.style.display = 'none';
+                         }
+                     }
                   }
-                  console.log("Added new row:", addedElement);
-                  added = true;
+                  // === 結束新增 ===
+                  console.log("Added new row:", addedElement); added = true;
               }
           });
           return added;
@@ -560,40 +603,29 @@
         if (!isLoggedIn) { alert('請先登入'); return; }
         const url = shouldAdd ? "{% url 'add_pending' %}" : "{% url 'remove_pending' %}";
         console.log(`Toggling pending for ${animalId}. Action: ${shouldAdd ? 'Add' : 'Remove'}`);
-        fetch(url, {
-            method: "POST",
-            headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
-            body: new URLSearchParams({ 'animal_id': animalId })
-        })
+        fetch(url, { method: "POST", headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}, body: new URLSearchParams({ 'animal_id': animalId }) })
         .then(response => { if (!response.ok) { return response.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${response.status}`); }); } return response.json(); })
         .then(data => {
             console.log("Toggle Pending Response:", data);
             if (data.success) {
                 const pendingTbody = document.getElementById('pendingTable')?.querySelector('tbody');
-
-                if (shouldAdd) { // ---- Adding ----
-                    if (pendingTbody && data.rendered_row_html) {
-                        addRowIfNotExists(pendingTbody, data.rendered_row_html, animalId);
-                    } else { console.warn("Add pending: Target tbody or rendered HTML missing."); }
-                } else { // ---- Removing ----
+                if (shouldAdd) {
+                    if (pendingTbody && data.rendered_row_html) { addRowIfNotExists(pendingTbody, data.rendered_row_html, animalId); }
+                    else { console.warn("Add pending: Target tbody or rendered HTML missing."); }
+                } else {
                     if (pendingTbody) {
-                        const rowsToRemove = pendingTbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
-                        rowsToRemove.forEach(row => row.remove());
-                        if (pendingTbody.children.length === 0) {
-                            pendingTbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">待約清單是空的</td></tr>';
+                        const rowsToRemove = pendingTbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`); rowsToRemove.forEach(row => row.remove());
+                        if (pendingTbody.children.length === 0 || pendingTbody.querySelectorAll('tr:not(.note-row)').length === 0) {
+                           if (!pendingTbody.querySelector('.empty-table-message')) {
+                               pendingTbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">待約清單是空的</td></tr>';
+                           }
                         }
                     } else { console.warn("Remove pending: Target tbody missing."); }
                 }
-
-                // *** Only update the pending attribute ***
-                updateRowsByAnimalId(animalId, (r) => {
-                    r.setAttribute('data-pending', shouldAdd ? "true" : "false");
-                });
-                // *** NO change to note row visibility here ***
-
+                updateRowsByAnimalId(animalId, (r) => { r.setAttribute('data-pending', shouldAdd ? "true" : "false"); });
                 if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
-                // alert(data.message); // Optional
-
+                // === Sync checkbox for pending list ===
+                if (pendingTbody) syncCheckboxWithNoteRows('pendingTable'); // Sync checkbox state if tbody exists
             } else { alert(data.error || '操作失敗'); }
         })
         .catch(error => { console.error("Toggle Pending Error:", error); alert(`操作待約時發生錯誤: ${error.message}`); });
@@ -601,342 +633,328 @@
 
       // --- Update Pending Count in Header ---
       function updatePendingCount(count) {
-          const pendingCountSpan = document.getElementById('pendingCountHeader');
-          if (pendingCountSpan) pendingCountSpan.textContent = String(count);
+        const pendingCountSpan = document.getElementById('pendingCountHeader'); if (pendingCountSpan) pendingCountSpan.textContent = String(count);
       }
 
       // --- Open Note Modal ---
       function openNoteModal(animalId, noteId, noteContent) {
-          if (!isLoggedIn) { alert('請先登入'); return; }
-          const modal = document.getElementById('noteModal');
-          const form = document.getElementById('noteForm');
-          const viewSection = document.getElementById('viewNoteSection');
-          const title = document.getElementById('noteModalTitle');
-          const textarea = document.getElementById('noteContent');
-          const viewContent = document.getElementById('viewNoteContent');
-          const animalIdInput = document.getElementById('noteAnimalId');
-          const noteIdInput = document.getElementById('currentNoteId');
-          const deleteBtn = document.getElementById('deleteNoteBtn');
-
-          if (!modal || !form || !viewSection || !title || !textarea || !viewContent || !animalIdInput || !noteIdInput || !deleteBtn) {
-              console.error("Note modal elements not found"); return;
-          }
-          console.log(`Opening note modal for animal ID: ${animalId}, Note ID: ${noteId}`);
-
-          animalIdInput.value = animalId;
-          deleteBtn.setAttribute('data-animal-id', animalId); // Set ID for delete handler
-          form.reset();
-          textarea.value = '';
-
-          if (noteId) { // Viewing/Editing
-              title.textContent = "查看/修改筆記";
-              noteIdInput.value = noteId;
-              viewContent.textContent = noteContent || '';
-              textarea.value = noteContent || ''; // Pre-fill for editing
-              viewSection.style.display = 'block';
-              form.style.display = 'none';
-          } else { // Adding
-              title.textContent = "加入筆記";
-              noteIdInput.value = '';
-              viewSection.style.display = 'none';
-              form.style.display = 'block';
-              textarea.focus();
-          }
-          modal.style.display = 'block';
+        if (!isLoggedIn) { alert('請先登入'); return; }
+        const modal = document.getElementById('noteModal'); const form = document.getElementById('noteForm'); const viewSection = document.getElementById('viewNoteSection');
+        const title = document.getElementById('noteModalTitle'); const textarea = document.getElementById('noteContent'); const viewContent = document.getElementById('viewNoteContent');
+        const animalIdInput = document.getElementById('noteAnimalId'); const noteIdInput = document.getElementById('currentNoteId'); const deleteBtn = document.getElementById('deleteNoteBtn');
+        if (!modal || !form || !viewSection || !title || !textarea || !viewContent || !animalIdInput || !noteIdInput || !deleteBtn) { console.error("Note modal elements missing"); return; }
+        console.log(`Opening note modal for animal ID: ${animalId}, Note ID: ${noteId}`);
+        animalIdInput.value = animalId; deleteBtn.setAttribute('data-animal-id', animalId); form.reset(); textarea.value = '';
+        if (noteId) { title.textContent = "查看/修改筆記"; noteIdInput.value = noteId; viewContent.textContent = noteContent || ''; textarea.value = noteContent || ''; viewSection.style.display = 'block'; form.style.display = 'none'; }
+        else { title.textContent = "加入筆記"; noteIdInput.value = ''; viewSection.style.display = 'none'; form.style.display = 'block'; textarea.focus(); }
+        modal.style.display = 'block';
       }
 
       // --- Submit Note Form (Add/Update) ---
       document.getElementById('noteForm')?.addEventListener('submit', function(e) {
         e.preventDefault(); if (!isLoggedIn) return;
-
-        const modal = document.getElementById('noteModal');
-        const formData = new FormData(this);
-        const animalId = document.getElementById('noteAnimalId').value;
-        const noteId = document.getElementById('currentNoteId').value;
-        const newContent = formData.get('content');
-
-        if (!newContent || newContent.trim() === '') { alert('筆記內容不能為空'); return; }
-
-        const url = "{% url 'add_note' %}"; // Use same URL for add/update
+        const modal = document.getElementById('noteModal'); const formData = new FormData(this);
+        const animalId = document.getElementById('noteAnimalId').value; const noteId = document.getElementById('currentNoteId').value;
+        const newContent = formData.get('content'); if (!newContent || newContent.trim() === '') { alert('筆記內容不能為空'); return; }
+        const url = noteId ? "{% url 'update_note' %}" : "{% url 'add_note' %}"; // Use update_note URL if noteId exists
         console.log(`Submitting note form. URL: ${url}, Animal ID: ${animalId}, Note ID: ${noteId || '(New)'}`);
-
-        fetch(url, {
-            method: "POST",
-            headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'},
-            body: formData
-        })
+        fetch(url, { method: "POST", headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'}, body: formData })
         .then(res => { if (!res.ok) { return res.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${res.status}`); }); } return res.json(); })
         .then(data => {
-            console.log("Save Note Response:", data);
+            console.log("Save/Update Note Response:", data);
             if (data.success) {
-                const notesTbody = document.getElementById('myNotesTable')?.querySelector('tbody');
-                // Use the animalId from response if possible, fallback to input
-                const currentAnimalId = data.animal_id || animalId;
-
-                // 1. Add or replace row in My Notes table
-                if (notesTbody && data.rendered_row_html) {
-                     insertOrReplaceRow(notesTbody, data.rendered_row_html, currentAnimalId);
-                } else { console.warn("Save note: Target tbody or rendered HTML missing."); }
-
-                // 2. Update note attributes everywhere
-                updateRowsByAnimalId(currentAnimalId, (r) => {
-                    r.setAttribute('data-note-id', data.note_id);
-                    r.setAttribute('data-note-content', data.note_content);
+                const currentAnimalId = data.animal_id || animalId; // Prefer animal_id from response if available
+                const tablesToUpdate = ['myNotesTable', 'pendingTable', 'latestReviewTable', 'dailyAnimalTable'];
+                // 1. Add or replace row in relevant tables
+                tablesToUpdate.forEach(tableId => {
+                    const tbody = document.getElementById(tableId)?.querySelector('tbody');
+                    if (tbody && data.rendered_row_html) { insertOrReplaceRow(tbody, data.rendered_row_html, currentAnimalId); }
+                    else if (tbody) { console.warn(`Table body found for ${tableId} but no rendered_row_html in response.`); }
                 });
+                // 2. Update note attributes everywhere for non-note rows
+                 updateRowsByAnimalId(currentAnimalId, (r) => {
+                    // Only update non-note rows' attributes here; note rows are handled by insertOrReplaceRow
+                    if (!r.classList.contains('note-row')) {
+                         r.setAttribute('data-note-id', data.note_id);
+                         r.setAttribute('data-note-content', data.note_content);
+                         // Also update the "Add/Edit Note" button text in the dropdown if it's currently open for this animal
+                         const dropdown = document.getElementById('plusDropdown');
+                         if (dropdown && dropdown.classList.contains('open')) {
+                              const plusBtn = document.querySelector(`.plus-menu-btn[data-animal-id="${currentAnimalId}"]`);
+                              if(plusBtn && plusBtn.closest('tr') === r) { // Check if this row triggered the dropdown
+                                   const noteBtn = dropdown.querySelector('button:last-child'); // Assuming note button is last
+                                   if (noteBtn) noteBtn.textContent = "查看/修改筆記";
+                              }
+                         }
+                    }
+                 });
+                // 3. Explicitly SHOW relevant note rows (already handled by insertOrReplaceRow's logic)
 
-                // 3. *** Explicitly SHOW relevant note rows ***
-                console.log(`Attempting to show note rows for animal ${currentAnimalId}`);
-                const noteRowsToShow = document.querySelectorAll(`.note-row[data-animal-id="${currentAnimalId}"]`);
-                if (noteRowsToShow.length > 0) {
-                    noteRowsToShow.forEach(nr => {
-                        const noteBox = nr.querySelector('.note-box');
-                        if (noteBox) {
-                            noteBox.textContent = data.note_content || ''; // Update content
-                            nr.style.display = ''; // Show the row
-                            console.log("  Explicitly showing note row:", nr);
-                        } else { console.warn("  Found note row, but no .note-box inside:", nr); }
-                    });
-                } else { console.warn(`  No note rows found for animal ${currentAnimalId} to show.`); }
-
-                // 4. Close modal and show message
-                if(modal) modal.style.display = 'none';
-                alert(data.message || '筆記已儲存');
-
+                // 4. Sync Checkboxes AFTER rows are potentially shown/hidden by insertOrReplaceRow
+                tablesToUpdate.forEach(tableId => syncCheckboxWithNoteRows(tableId));
+                // 5. Close modal and show message
+                if(modal) modal.style.display = 'none'; alert(data.message || '筆記已儲存');
             } else { alert(data.error || '儲存失敗'); }
         })
-        .catch(err => { console.error("Save Note Error:", err); alert(`儲存筆記時發生錯誤: ${err.message}`); });
+        .catch(err => { console.error("Save/Update Note Error:", err); alert(`儲存筆記時發生錯誤: ${err.message}`); });
       });
 
       // --- Delete Note Button ---
       document.getElementById('deleteNoteBtn')?.addEventListener('click', function() {
         if (!isLoggedIn) return;
-        const modal = document.getElementById('noteModal');
-        const noteId = document.getElementById('currentNoteId').value;
-        const animalId = this.getAttribute('data-animal-id'); // Get animalId from button
-
-        if (!animalId) { console.error("Delete Note: Animal ID missing from button."); return; }
-
+        const modal = document.getElementById('noteModal'); const noteId = document.getElementById('currentNoteId').value;
+        const animalId = this.getAttribute('data-animal-id'); if (!animalId) { console.error("Delete Note: Animal ID missing"); return; }
         if (noteId && confirm("確定要刪除這條筆記嗎？")) {
-          console.log(`Deleting note ID: ${noteId} for animal ID: ${animalId}`);
-          const formData = new FormData();
-          formData.append('note_id', noteId);
-
-          fetch("{% url 'delete_note' %}", {
-              method: "POST",
-              headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'},
-              body: formData
-          })
+          console.log(`Deleting note ID: ${noteId} for animal ID: ${animalId}`); const formData = new FormData(); formData.append('note_id', noteId);
+          fetch("{% url 'delete_note' %}", { method: "POST", headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'}, body: formData })
           .then(res => { if (!res.ok) { return res.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${res.status}`); }); } return res.json(); })
           .then(data => {
-            console.log("Delete Note Response:", data);
-            if (data.success) {
-                const notesTbody = document.getElementById('myNotesTable')?.querySelector('tbody');
-                // Use animalId from response if available, otherwise from button
-                const targetAnimalId = data.animal_id || animalId;
+              console.log("Delete Note Response:", data);
+              if (data.success) {
+                  const targetAnimalId = data.animal_id || animalId; // Get animal ID from response
+                  const tablesToUpdate = ['myNotesTable', 'pendingTable', 'latestReviewTable', 'dailyAnimalTable'];
+                  // 1. Remove ONLY the note row(s) from tables
+                  tablesToUpdate.forEach(tableId => {
+                       const tbody = document.getElementById(tableId)?.querySelector('tbody');
+                       if(tbody) {
+                           const noteRowsToRemove = tbody.querySelectorAll(`tr.note-row[data-animal-id="${targetAnimalId}"]`);
+                           noteRowsToRemove.forEach(row => row.remove());
+                           // Special handling for 'My Notes' modal: if NO main rows left, remove the animal entirely
+                           if (tableId === 'myNotesTable' && !tbody.querySelector(`tr[data-animal-id="${targetAnimalId}"]:not(.note-row)`)) {
+                                const mainRowToRemove = tbody.querySelector(`tr[data-animal-id="${targetAnimalId}"]`);
+                                if(mainRowToRemove) mainRowToRemove.remove();
+                           }
+                           // Check if the 'My Notes' table is now completely empty
+                           if (tableId === 'myNotesTable' && tbody.children.length === 0) {
+                               tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>';
+                           }
+                       }
+                   });
+                  // 2. Update attributes on NON-note rows everywhere
+                   updateRowsByAnimalId(targetAnimalId, (r) => {
+                      if (!r.classList.contains('note-row')) {
+                           r.removeAttribute('data-note-id');
+                           r.removeAttribute('data-note-content');
+                            // Update "Add/Edit Note" button text in dropdown if open
+                            const dropdown = document.getElementById('plusDropdown');
+                             if (dropdown && dropdown.classList.contains('open')) {
+                                 const plusBtn = document.querySelector(`.plus-menu-btn[data-animal-id="${targetAnimalId}"]`);
+                                 if(plusBtn && plusBtn.closest('tr') === r) {
+                                     const noteBtn = dropdown.querySelector('button:last-child'); // Assuming note button is last
+                                     if (noteBtn) noteBtn.textContent = "加入筆記";
+                                 }
+                             }
+                      }
+                   });
+                  // 3. Explicitly HIDE relevant note rows (already handled by removal)
 
-                // 1. Remove row(s) from My Notes table
-                if (notesTbody) {
-                    const rowsToRemove = notesTbody.querySelectorAll(`tr[data-animal-id="${targetAnimalId}"]`);
-                    rowsToRemove.forEach(row => row.remove());
-                    if (notesTbody.children.length === 0) {
-                        notesTbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>';
-                    }
-                } else { console.warn("Delete Note: Target tbody #myNotesTable missing."); }
-
-                // 2. Update attributes everywhere (remove note data)
-                updateRowsByAnimalId(targetAnimalId, (r) => {
-                  r.removeAttribute('data-note-id');
-                  r.removeAttribute('data-note-content');
-                });
-
-                // 3. *** Explicitly HIDE relevant note rows ***
-                console.log(`Attempting to hide note rows for animal ${targetAnimalId}`);
-                const noteRowsToHide = document.querySelectorAll(`.note-row[data-animal-id="${targetAnimalId}"]`);
-                if (noteRowsToHide.length > 0) {
-                    noteRowsToHide.forEach(nr => {
-                        nr.style.display = 'none'; // Hide the row
-                        console.log("  Explicitly hiding note row:", nr);
-                    });
-                } else { console.log(`  No note rows found for animal ${targetAnimalId} to hide.`); }
-
-                // 4. Close modal and show message
-                if(modal) modal.style.display = 'none';
-                alert(data.message || '筆記已刪除');
-            } else { alert(data.error || '刪除失敗'); }
+                  // 4. Sync Checkboxes AFTER rows are removed/hidden
+                  tablesToUpdate.forEach(tableId => syncCheckboxWithNoteRows(tableId));
+                  // 5. Close modal and show message
+                  if(modal) modal.style.display = 'none'; alert(data.message || '筆記已刪除');
+              } else { alert(data.error || '刪除失敗'); }
           })
           .catch(err => { console.error("Delete Note Error:", err); alert(`刪除筆記時發生錯誤: ${err.message}`); });
-        } else if (!noteId) {
-            console.warn("Delete button clicked but no note ID found.");
         }
       });
 
       // --- Edit Note Button (Switch View) ---
       document.getElementById('editNoteBtn')?.addEventListener('click', function() {
-        const form = document.getElementById('noteForm');
-        const viewSection = document.getElementById('viewNoteSection');
-        const title = document.getElementById('noteModalTitle');
-        const textarea = document.getElementById('noteContent');
-        if(form && viewSection && title && textarea){
-            console.log("Switching note modal to edit mode.");
-            viewSection.style.display = 'none';
-            form.style.display = 'block';
-            title.textContent = "修改筆記";
-            textarea.focus();
-        }
+        const form = document.getElementById('noteForm'); const viewSection = document.getElementById('viewNoteSection');
+        const title = document.getElementById('noteModalTitle'); const textarea = document.getElementById('noteContent');
+        if(form && viewSection && title && textarea){ console.log("Switching note modal to edit mode."); viewSection.style.display = 'none'; form.style.display = 'block'; title.textContent = "修改筆記"; textarea.focus(); }
       });
 
       // --- Update Modal Photo/Intro Area ---
       function updatePhotoArea(areaElement, photoUrl, altText) {
-          // ... (Keep implementation as before) ...
-          if (!areaElement) return;
-          areaElement.innerHTML = '';
+          if (!areaElement) return; areaElement.innerHTML = '';
           if (photoUrl && photoUrl !== 'None' && photoUrl !== '') {
-              const img = document.createElement('img');
-              img.src = photoUrl;
-              img.alt = altText || '照片';
-              img.style.opacity = 0;
-              img.onload = () => { img.style.opacity = 1; };
-              img.onerror = () => { areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">照片載入失敗</p>'; };
-              areaElement.appendChild(img);
+              const img = document.createElement('img'); img.src = photoUrl; img.alt = altText || '照片'; img.style.opacity = 0;
+              img.onload = () => { img.style.opacity = 1; }; img.onerror = () => { areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">照片載入失敗</p>'; }; areaElement.appendChild(img);
+          } else { areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">無照片</p>'; }
+      }
+      function updateIntroArea(introElement, introText) {
+          if (!introElement) return;
+          const pElement = introElement.querySelector('p'); // Assuming intro is inside a <p>
+          if (pElement) {
+              pElement.textContent = introText || '無介紹'; // Update text or show default
           } else {
-              areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">無照片</p>';
+              // Fallback if structure changes
+              introElement.innerHTML = `<p>${introText || '無介紹'}</p>`;
+          }
+          // Find the scrollable container (intro-top) and reset scroll
+          const scrollContainer = introElement.querySelector('.intro-top');
+          if (scrollContainer) {
+              scrollContainer.scrollTop = 0;
+          } else {
+              introElement.scrollTop = 0; // Fallback to introArea itself
           }
       }
 
+
       // --- Load Reviews ---
       function loadReviews(animalId) {
-          // ... (Keep implementation as before) ...
-          const reviewList = document.getElementById('reviewList'); if (!reviewList) return;
+          const reviewList = document.getElementById('reviewList');
+          if (!reviewList) { console.error("Element with ID 'reviewList' not found."); return; }
           reviewList.innerHTML = '<p>載入心得中...</p>';
-          console.log(`Loading reviews for animal ID: ${animalId}`);
-          fetch(`/add_review/?animal_id=${animalId}`, { method: 'GET', headers: {'Accept': 'application/json'} })
-          .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const contentType = response.headers.get("content-type"); if (!contentType || !contentType.includes("application/json")) throw new TypeError("伺服器未返回有效的 JSON"); return response.json(); })
-          .then(data => {
-            console.log("Load Reviews Response:", data);
-            reviewList.innerHTML = "";
-            if (data.reviews && data.reviews.length > 0) {
-                data.reviews.forEach(review => {
-                  const reviewDiv = document.createElement('div');
-                  reviewDiv.className = "review-card";
-                  reviewDiv.innerHTML = `
-                    <div class="review-header">
-                      <div class="review-user-info">
-                        <span class="review-user">${review.user || '匿名'}</span>
-                        <span class="review-total">總心得數：${review.totalCount || 0}</span>
-                      </div>
-                      <span class="review-date">${review.created_at || ''}</span>
-                    </div>
-                    <div class="review-body">
-                      ${review.age ? `<div class="review-line"><div class="review-label">年紀</div><div class="review-value">${review.age}</div></div>` : ''}
-                      ${review.looks ? `<div class="review-line"><div class="review-label">顏值</div><div class="review-value">${review.looks}</div></div>` : ''}
-                      ${review.face ? `<div class="review-line"><div class="review-label">臉蛋</div><div class="review-value">${review.face}</div></div>` : ''}
-                      ${review.temperament ? `<div class="review-line"><div class="review-label">氣質</div><div class="review-value">${review.temperament}</div></div>` : ''}
-                      ${review.physique ? `<div class="review-line"><div class="review-label">體態</div><div class="review-value">${review.physique}</div></div>` : ''}
-                      ${(review.cup || review.cup_size) ? `<div class="review-line"><div class="review-label">罩杯</div><div class="review-value">${review.cup || ''} ${review.cup_size || ''}</div></div>` : ''}
-                      ${review.skin_texture ? `<div class="review-line"><div class="review-label">膚質</div><div class="review-value">${review.skin_texture}</div></div>` : ''}
-                      ${review.skin_color ? `<div class="review-line"><div class="review-label">膚色</div><div class="review-value">${review.skin_color}</div></div>` : ''}
-                      ${review.music ? `<div class="review-line"><div class="review-label">音樂</div><div class="review-value">${review.music || ''}${review.music_price ? ` (${review.music_price})` : ""}</div></div>` : ''}
-                      ${review.sports ? `<div class="review-line"><div class="review-label">體育</div><div class="review-value">${review.sports || ''}${review.sports_price ? ` (${review.sports_price})` : ""}</div></div>` : ''}
-                      ${review.scale ? `<div class="review-line"><div class="review-label">尺度</div><div class="review-value">${review.scale}</div></div>` : ''}
-                      ${review.content ? `<div class="review-line"><div class="review-label">心得</div><div class="review-value" style="white-space: pre-wrap;">${review.content}</div></div>` : ''}
-                    </div>`;
-                  reviewList.appendChild(reviewDiv);
-                });
-            } else { reviewList.innerHTML = '<p>目前沒有相關心得。</p>'; }
+
+          fetch(`/add_review/?animal_id=${animalId}`, { method: 'GET', headers: { 'Accept': 'application/json' } })
+          .then(response => {
+              if (!response.ok) { return response.json().catch(() => { throw new Error(`HTTP error ${response.status}`); }).then(errData => { throw new Error(errData.error || `HTTP error ${response.status}`); }); }
+              const contentType = response.headers.get("content-type");
+              if (!contentType || !contentType.includes("application/json")) { throw new TypeError("伺服器未返回有效的 JSON"); }
+              return response.json();
           })
-          .catch(error => { console.error("Load Reviews Error:", error); reviewList.innerHTML = `<p>載入心得時發生錯誤: ${error.message}</p>`; });
+          .then(data => {
+              reviewList.innerHTML = "";
+              if (data && data.reviews && Array.isArray(data.reviews) && data.reviews.length > 0) {
+                  console.log(`Received ${data.reviews.length} reviews.`);
+                  data.reviews.forEach(review => {
+                      const card = document.createElement('div');
+                      card.className = 'review-card';
+                      const createReviewLine = (label, value) => {
+                          if (value !== null && value !== undefined && value !== '' && !(typeof value === 'string' && value.trim() === '')) {
+                              let displayValue = value;
+                              if (['臉蛋', '氣質', '尺度'].includes(label) && typeof value === 'string') { displayValue = value.split(',').map(s => s.trim()).filter(s => s).join(', '); }
+                              if (label === '心得' && typeof displayValue === 'string') { displayValue = displayValue.replace(/\n/g, '<br>'); }
+                              if (label === '罩杯' && typeof value === 'object' && value !== null) { displayValue = `${value.cup || ''}${value.cup && value.cup_size ? ' - ' : ''}${value.cup_size || ''}`.trim(); if (!displayValue) return ''; }
+                              if ((label === '音樂' || label === '體育') && typeof value === 'object' && value !== null) { displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim(); if (!displayValue) return ''; }
+                              return `<div class="review-line"><span class="review-label">${label}:</span><span class="review-value">${displayValue}</span></div>`;
+                          } return '';
+                      };
+                      card.innerHTML = `
+                          <div class="review-header">
+                              <div class="review-user-info">
+                                  <span class="review-user">${review.user || '匿名用戶'}</span>
+                                  ${review.totalCount ? `<span class="review-total">總心得: ${review.totalCount}</span>` : ''}
+                              </div>
+                              <span class="review-date">${review.created_at || '未知日期'}</span>
+                          </div>
+                          <div class="review-body">
+                              ${createReviewLine('年紀', review.age)}
+                              ${createReviewLine('顏值', review.looks)}
+                              ${createReviewLine('臉蛋', review.face)}
+                              ${createReviewLine('氣質', review.temperament)}
+                              ${createReviewLine('體態', review.physique)}
+                              ${createReviewLine('罩杯', { cup: review.cup, cup_size: review.cup_size })}
+                              ${createReviewLine('膚質', review.skin_texture)}
+                              ${createReviewLine('膚色', review.skin_color)}
+                              ${createReviewLine('音樂', { type: review.music, price: review.music_price })}
+                              ${createReviewLine('體育', { type: review.sports, price: review.sports_price })}
+                              ${createReviewLine('尺度', review.scale)}
+                              ${createReviewLine('心得', review.content)}
+                          </div>
+                      `;
+                      reviewList.appendChild(card);
+                  });
+              } else {
+                  console.log("No reviews found or invalid data structure:", data);
+                  reviewList.innerHTML = '<p>目前沒有相關評論。</p>';
+              }
+          })
+          .catch(error => {
+              console.error("Load Reviews Error:", error);
+              reviewList.innerHTML = `<p>載入心得時發生錯誤: ${error.message}</p>`;
+          });
       }
 
       // --- Submit Review Form ---
       document.getElementById('reviewForm')?.addEventListener('submit', function(e) {
-          // ... (Keep implementation as before) ...
-          e.preventDefault(); if (!isLoggedIn) return;
-          const modal = document.getElementById('reviewSubmitModal');
-          const animalIdInput = this.querySelector('input[name="animal_id"]');
-          const animalId = animalIdInput ? animalIdInput.value : null;
-          if (!animalId) { alert('無法獲取美容師 ID，請重試'); return; }
-          const formData = new FormData(this);
-          // Frontend Validation
-          if (document.querySelectorAll('#faceCheckboxes input:checked').length > 3) { alert('臉蛋最多只能選擇 3 個'); return; }
+          e.preventDefault(); if (!isLoggedIn) return; const modal = document.getElementById('reviewSubmitModal');
+          const animalIdInput = this.querySelector('input[name="animal_id"]'); const animalId = animalIdInput ? animalIdInput.value : null; if (!animalId) { alert('無法獲取美容師 ID，請重試'); return; }
+          const formData = new FormData(this); if (document.querySelectorAll('#faceCheckboxes input:checked').length > 3) { alert('臉蛋最多只能選擇 3 個'); return; }
           if (document.querySelectorAll('#temperamentCheckboxes input:checked').length > 3) { alert('氣質最多只能選擇 3 個'); return; }
-          const contentValue = formData.get('content'); if (!contentValue || contentValue.trim() === '') { alert('心得內容不能為空'); document.getElementById('content').focus(); return; } // Added focus
-          console.log(`Submitting review for animal ID: ${animalId}`);
+          const contentValue = formData.get('content'); if (!contentValue || contentValue.trim() === '') { alert('心得內容不能為空'); document.getElementById('content').focus(); return; }
           fetch("{% url 'add_review' %}", { method: "POST", body: formData, headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'} })
           .then(res => { if (!res.ok) { return res.json().then(err => { let errorMsg = err.error || `伺服器錯誤 ${res.status}`; if (err.errors) { errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', '); } throw new Error(errorMsg); }).catch(() => { throw new Error(`伺服器錯誤 ${res.status}`); }); } return res.json(); })
           .then(data => {
-              console.log("Submit Review Response:", data);
-              if (data.success) {
-                  alert(data.message || '評論已提交，待審核');
-                  if(modal) modal.style.display = 'none';
-                  // Optionally update review count display immediately
-                   // updateRowsByAnimalId(animalId, (r) => {
-                   //     const countBtn = r.querySelector('.review-count-btn');
-                   //     if(countBtn) {
-                   //         // Note: Backend doesn't return updated count here, so this might not be accurate
-                   //         // countBtn.textContent = parseInt(countBtn.textContent) + 1; // Incorrect if review needs approval
-                   //     }
-                   // });
-              } else { alert(data.error || '提交失敗'); }
-          })
+                console.log("Submit Review Response:", data);
+                if(data.success) {
+                    alert(data.message || '評論已提交，待審核');
+                    if(modal) modal.style.display = 'none';
+                    console.log("Review submitted, count might need update after approval.");
+                } else { alert(data.error || '提交失敗'); }
+           })
           .catch(err => { console.error("Submit Review Error:", err); alert(`提交心得時發生錯誤: ${err.message}`); });
       });
 
       // --- Process Initial Static Time Slots ---
       console.log("Processing initial time slots for static modals...");
-      document.querySelectorAll('#pendingTable tbody, #latestReviewTable tbody, #myNotesTable tbody').forEach(tbody => {
-          if(tbody) processTimeSlotCellsInContainer(tbody);
-      });
+      document.querySelectorAll('#pendingTable tbody, #latestReviewTable tbody, #myNotesTable tbody').forEach(tbody => { if(tbody) processTimeSlotCellsInContainer(tbody); });
       console.log("Initial time slot processing finished.");
 
       // --- Daily Schedule Hall Menu Click Handler ---
       document.querySelectorAll('#dailyHallMenu a').forEach(link => {
-          // ... (Keep implementation as before) ...
           link.addEventListener('click', e => {
-            e.preventDefault();
-            document.querySelectorAll('#dailyHallMenu a').forEach(item => item.classList.remove('active'));
-            link.classList.add('active');
-            const hallId = link.dataset.hallId;
-            const tbody = document.querySelector('#dailyAnimalTable tbody'); if (!tbody) return;
+            e.preventDefault(); document.querySelectorAll('#dailyHallMenu a').forEach(item => item.classList.remove('active')); link.classList.add('active');
+            const hallId = link.dataset.hallId; const tbody = document.querySelector('#dailyAnimalTable tbody'); if (!tbody) return;
             const photoArea = document.getElementById('dailyPhotoArea');
-            const introP = document.getElementById('dailyIntroductionContent');
-
+            const introArea = document.getElementById('dailyIntroArea');
             tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">載入中...</td></tr>';
-            if(photoArea) updatePhotoArea(photoArea, null, '');
-            if(introP) introP.textContent = '載入中...';
+            updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...');
 
-            console.log(`Fetching daily schedule for hall_id: ${hallId}`);
             fetch("{% url 'home' %}?hall_id=" + hallId + "&ajax=1", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
               .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct || !ct.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
               .then(data => {
                 console.log("Daily Schedule AJAX Response:", data);
                 if (data.table_html !== undefined) {
-                  tbody.innerHTML = data.table_html; // Renders content or empty message from backend
-                  processTimeSlotCellsInContainer(tbody); // Process slots in new content
-
-                  if (data.first_animal && data.first_animal.name !== undefined) {
-                      if(photoArea) updatePhotoArea(photoArea, data.first_animal.photo_url, data.first_animal.name);
-                      if (introP) introP.textContent = data.first_animal.introduction || '無介紹';
-                  } else {
-                      if(photoArea) updatePhotoArea(photoArea, null, '');
-                      if (introP) introP.textContent = '此館別無班表資料或介紹';
+                  tbody.innerHTML = data.table_html;
+                  if (!tbody.querySelector('tr:not(.empty-table-message)')) {
+                       tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">此館別目前無班表</td></tr>';
+                  } else { processTimeSlotCellsInContainer(tbody); }
+                  const checkbox = document.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]');
+                  const tableId = checkbox?.dataset.tableId;
+                  if (checkbox && tableId) {
+                      syncCheckboxWithNoteRows(tableId);
+                      const shouldShow = checkbox.checked; console.log(`Daily schedule loaded. Checkbox checked: ${shouldShow}. Applying state.`);
+                      tbody.querySelectorAll('tr.note-row').forEach(nr => { nr.style.display = shouldShow ? '' : 'none'; });
                   }
+                    if (data.first_animal && data.first_animal.name !== undefined) {
+                        updatePhotoArea(photoArea, data.first_animal.photo_url, data.first_animal.name);
+                        updateIntroArea(introArea, data.first_animal.introduction);
+                    } else {
+                        updatePhotoArea(photoArea, null, '');
+                        updateIntroArea(introArea, '此館別目前無介紹');
+                    }
                 } else {
-                  tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入錯誤'}</td></tr>`;
-                  if(photoArea) updatePhotoArea(photoArea, null, '');
-                  if (introP) introP.textContent = '載入錯誤';
+                   tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入班表時發生錯誤'}</td></tr>`;
+                   updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入介紹時發生錯誤');
+                   syncCheckboxWithNoteRows('dailyAnimalTable');
                 }
               }).catch(error => {
-                console.error("Daily Schedule AJAX Fetch Error:", error);
-                tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">網路錯誤: ${error.message}</td></tr>`;
-                if(photoArea) updatePhotoArea(photoArea, null, '');
-                if (introP) introP.textContent = '網路錯誤';
-              });
+                    console.error("Daily Schedule Fetch Error:", error);
+                    tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">無法連接伺服器載入班表</td></tr>`;
+                    updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '無法連接伺服器載入介紹');
+                    syncCheckboxWithNoteRows('dailyAnimalTable');
+                });
           });
       });
 
+      // === Helper function to sync checkbox state ===
+      function syncCheckboxWithNoteRows(tableId) {
+            const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
+            const tbody = document.getElementById(tableId)?.querySelector('tbody');
+            if (checkbox && tbody) {
+                const anyNoteRowsExist = tbody.querySelector('tr.note-row');
+                checkbox.disabled = !anyNoteRowsExist;
+                 if (anyNoteRowsExist) {
+                    const anyVisibleNotes = tbody.querySelector('tr.note-row:not([style*="display: none"])');
+                    const shouldBeChecked = !!anyVisibleNotes;
+                    if (checkbox.checked !== shouldBeChecked) {
+                        console.log(`Syncing checkbox for ${tableId}. Should be checked: ${shouldBeChecked}`);
+                        checkbox.checked = shouldBeChecked;
+                    }
+                 } else {
+                      if (checkbox.checked) {
+                           console.log(`Syncing checkbox for ${tableId}. No notes exist, unchecking.`);
+                           checkbox.checked = false;
+                      }
+                 }
+            } else { console.warn(`syncCheckboxWithNoteRows: Could not find checkbox or tbody for ${tableId}`); }
+        }
+
       // --- Global Click Listener ---
       document.addEventListener('click', function(e) {
-          // ... (Keep implementation as before) ...
           const target = e.target;
           const targetClosest = (selector) => target.closest(selector);
 
@@ -945,18 +963,49 @@
               if (modal) {
                   console.log(`Opening modal: #${modalId}`);
                   modal.style.display = 'block';
+                  // Prevent body scroll when modal is open
+                  document.body.style.overflow = 'hidden';
+
+                  const checkbox = modal.querySelector('.toggle-notes-checkbox');
+                  const tableId = checkbox?.dataset.tableId;
+                  if (checkbox && tableId) {
+                      const tbody = document.getElementById(tableId)?.querySelector('tbody');
+                      if (tbody) {
+                           syncCheckboxWithNoteRows(tableId);
+                           const shouldShow = checkbox.checked;
+                           console.log(`Modal ${modalId} opened. Checkbox checked: ${shouldShow}, Disabled: ${checkbox.disabled}. Applying state.`);
+                           tbody.querySelectorAll('tr.note-row').forEach(nr => { nr.style.display = shouldShow ? '' : 'none'; });
+                      }
+                  } else if (modalId === 'reviewModal') { console.log("Review modal opened."); }
+                  else { const tbody = modal.querySelector('.body-table tbody'); tbody?.querySelectorAll('tr.note-row').forEach(nr => { nr.style.display = 'none'; }); }
+
                   if (modalId === 'dailyScheduleModal') {
                       const dailyModal = document.getElementById('dailyScheduleModal');
-                      const tbody = dailyModal?.querySelector('#dailyAnimalTable tbody');
+                      const tbodyDaily = dailyModal?.querySelector('#dailyAnimalTable tbody');
                       const initialLink = dailyModal?.querySelector('#dailyHallMenu a[data-hall-id="all"]');
-                      if (tbody && initialLink && tbody.querySelector('.empty-table-message')?.textContent.includes('請點擊上方館別')) {
-                         console.log('Triggering initial load for Daily Schedule Modal by clicking "all"');
-                         initialLink.click();
-                      }
-                  }
+                      if (tbodyDaily && initialLink && tbodyDaily.querySelector('.empty-table-message')?.textContent.includes('請點擊上方館別')) {
+                         console.log('Triggering initial load for Daily Schedule Modal');
+                         setTimeout(() => initialLink.click(), 0);
+                      } else { syncCheckboxWithNoteRows('dailyAnimalTable'); }
+                   }
+                   if (modalId === 'pendingListModal') syncCheckboxWithNoteRows('pendingTable');
+                   if (modalId === 'latestReviewModal') syncCheckboxWithNoteRows('latestReviewTable');
+                   if (modalId === 'myNotesModal') syncCheckboxWithNoteRows('myNotesTable');
                   return true;
               }
               console.error(`Modal not found: #${modalId}`); return false;
+          };
+
+          // Function to close a modal
+          const closeModal = (modalElement) => {
+              if (modalElement) {
+                   modalElement.style.display = 'none';
+                   // Restore body scroll only if no other modals are open
+                   const anyModalOpen = document.querySelector('.modal[style*="display: block"]');
+                   if (!anyModalOpen) {
+                       document.body.style.overflow = ''; // Restore body scroll
+                   }
+              }
           };
 
           // Header Buttons
@@ -967,117 +1016,94 @@
           if (targetClosest('#loginBtnHeader')) { openModal('loginModal'); return; }
 
           // Plus Button Click
-          const plusBtn = targetClosest('.plus-menu-btn');
-          if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; }
-
+          const plusBtn = targetClosest('.plus-menu-btn'); if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; }
           // Review Count Button Click
-          const reviewBtn = targetClosest('.review-count-btn');
-          if (reviewBtn) {
-              e.stopPropagation();
-              const animalId = reviewBtn.dataset.animalId;
-              if (animalId) { loadReviews(animalId); openModal('reviewModal'); }
-              else { console.error("Review button clicked, but no animal-id found."); }
-              return;
-          }
-
+          const reviewBtn = targetClosest('.review-count-btn'); if (reviewBtn) { e.stopPropagation(); const animalId = reviewBtn.dataset.animalId; if (animalId) { loadReviews(animalId); openModal('reviewModal'); } return; }
           // Modal Table Row Click (Update Photo/Intro)
           const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
-          if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn')) {
-              const modal = tableRow.closest('.modal');
-              if(modal){
-                  let photoAreaId = null, introContentId = null;
-                  switch (modal.id) {
-                      case 'dailyScheduleModal': photoAreaId = 'dailyPhotoArea'; introContentId = 'dailyIntroductionContent'; break;
-                      case 'pendingListModal': photoAreaId = 'pendingPhotoArea'; introContentId = 'pendingIntroductionContent'; break;
-                      case 'latestReviewModal': photoAreaId = 'latestPhotoArea'; introContentId = 'latestIntroductionContent'; break;
-                      case 'myNotesModal': photoAreaId = 'myNotesPhotoArea'; introContentId = 'myNotesIntroductionContent'; break;
-                  }
-                  if (photoAreaId && introContentId) {
-                      const photoArea = document.getElementById(photoAreaId);
-                      const introContent = document.getElementById(introContentId);
-                      const photoUrl = tableRow.dataset.photo;
-                      const introText = tableRow.dataset.intro || '無介紹';
-                      const animalName = tableRow.querySelector('.name')?.textContent || '美容師';
-                      console.log(`Row clicked in modal ${modal.id}. Updating photo/intro.`);
-                      if(photoArea) updatePhotoArea(photoArea, photoUrl, animalName);
-                      if(introContent) introContent.textContent = introText;
-                  }
-              }
-              return;
-          }
-
+            if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn, a, button')) {
+                const modal = tableRow.closest('.modal');
+                if(modal && modal.querySelector('.top-section')){
+                    const animalId = tableRow.dataset.animalId;
+                    const photoUrl = tableRow.dataset.photoUrl || '';
+                    const introText = tableRow.dataset.introduction || '無介紹';
+                    const animalName = tableRow.querySelector('.name')?.textContent || '動物';
+                    let photoAreaId = null, introAreaId = null;
+                    switch (modal.id) {
+                        case 'dailyScheduleModal': photoAreaId = 'dailyPhotoArea'; introAreaId = 'dailyIntroArea'; break;
+                        case 'pendingListModal': photoAreaId = 'pendingPhotoArea'; introAreaId = 'pendingIntroArea'; break;
+                        case 'latestReviewModal': photoAreaId = 'latestPhotoArea'; introAreaId = 'latestIntroArea'; break;
+                        case 'myNotesModal': photoAreaId = 'myNotesPhotoArea'; introAreaId = 'myNotesIntroArea'; break;
+                    }
+                    if (photoAreaId && introAreaId) {
+                         console.log(`Row clicked in ${modal.id}. Updating photo/intro for animal ${animalId}.`);
+                         const photoArea = document.getElementById(photoAreaId);
+                         const introArea = document.getElementById(introAreaId);
+                         updatePhotoArea(photoArea, photoUrl, animalName);
+                         updateIntroArea(introArea, introText);
+                    } else { console.log(`Row clicked in ${modal.id}, but no photo/intro area configured.`); }
+                } return;
+            }
           // Modal Close Button
-          const closeBtn = targetClosest('.close-modal');
-          if (closeBtn) {
-              const modal = targetClosest('.modal');
-              if(modal) { console.log(`Closing modal: #${modal.id}`); modal.style.display = 'none'; }
-              return;
-          }
-
+          const closeBtn = targetClosest('.close-modal'); if (closeBtn) { closeModal(targetClosest('.modal')); return; } // Use closeModal function
           // Modal Background Click
-          if (target.classList.contains('modal')) {
-              console.log(`Closing modal via background click: #${target.id}`);
-              target.style.display = 'none';
-              if (document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); }
-              return;
-          }
-
-          // Bottom Overlay Click (Close Dropdown)
-          if (target === bottomOverlay && document.getElementById('plusDropdown').classList.contains('open')) {
-              console.log("Closing plus dropdown via overlay click.");
-              closePlusDropdown();
-              return;
-          }
-      }); // End global click listener
+          if (target.classList.contains('modal')) { closeModal(target); if (document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); } return; } // Use closeModal function
+          // Bottom Overlay Click
+          if (target === bottomOverlay && document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); return; }
+      });
 
       // --- Choices.js Initialization ---
       ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
-          // ... (Keep implementation as before) ...
-          const el = document.getElementById(id);
-          if (el) {
-              try {
-                  if (!el.classList.contains('choices__input') && !el.hasAttribute('data-choice')) {
-                     const firstOptionValue = el.options[0]?.value;
-                     const placeholder = firstOptionValue === "";
-                     const choicesInstance = new Choices(el, {
-                         searchEnabled: false, itemSelectText: '', allowHTML: false, shouldSort: false,
-                         placeholder: placeholder, placeholderValue: placeholder ? el.options[0].text : null
-                     });
-                     el.choices = choicesInstance; // Store instance if needed
-                     console.log(`Choices.js initialized for #${id}`);
-                  }
-              } catch (e) { console.error(`Choices.js init error for #${id}:`, e); }
-          } else { console.warn(`Element #${id} not found for Choices.js initialization.`); }
+          const el = document.getElementById(id); if (!el) return; try { if (!el.classList.contains('choices__input') && !el.hasAttribute('data-choice')) { const firstOptionValue = el.options[0]?.value; const placeholder = firstOptionValue === ""; const choicesInstance = new Choices(el, { searchEnabled: false, itemSelectText: '', allowHTML: false, shouldSort: false, placeholder: placeholder, placeholderValue: placeholder ? el.options[0].text : null }); el.choices = choicesInstance; console.log(`Choices.js initialized for #${id}`); } } catch (e) { console.error(`Choices.js init error for #${id}:`, e); }
       });
 
       // --- Price Input Toggle Logic ---
       function togglePriceInput(selectId, priceInputId) {
-          // ... (Keep implementation as before) ...
-          const sel = document.getElementById(selectId);
-          const inp = document.getElementById(priceInputId);
-          if (!sel || !inp) { console.warn(`Elements not found for price toggle: ${selectId}, ${priceInputId}`); return; }
+          const sel = document.getElementById(selectId); const inp = document.getElementById(priceInputId); if (!sel || !inp) return;
           const toggle = () => {
-              const showValues = ['可加值', '自談'];
-              const selectValue = sel.choices ? sel.value : (sel.options[sel.selectedIndex]?.value || '');
-              if (showValues.includes(selectValue)) { inp.style.display = 'block'; }
-              else { inp.style.display = 'none'; inp.value = ''; }
-          };
+               const selectValue = sel.choices ? sel.choices.getValue(true) : (sel.options[sel.selectedIndex]?.value || '');
+               const showValues = ['可加值', '自談', '體含音'];
+               if (showValues.includes(selectValue)) {
+                   inp.style.display = 'block';
+                   inp.placeholder = (selectValue === '自談' || selectValue === '體含音') ? "請填寫 '私談' 或大約金額" : "請填寫大約金額";
+               } else {
+                   inp.style.display = 'none';
+                   inp.value = '';
+               }
+           };
           sel.addEventListener('change', toggle);
           toggle();
        }
-      togglePriceInput('music', 'music_price');
-      togglePriceInput('sports', 'sports_price');
+      togglePriceInput('music', 'music_price'); togglePriceInput('sports', 'sports_price');
 
       // --- Login Error Message Auto-hide ---
       const loginErrorMsg = document.getElementById('login-error-message');
-      if (loginErrorMsg) {
-          // ... (Keep implementation as before) ...
-          console.log("Login error message found, scheduling fade out.");
-          setTimeout(() => {
-              loginErrorMsg.style.transition = 'opacity 0.5s ease'; loginErrorMsg.style.opacity = '0';
-              setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500);
-          }, 4000);
-      }
+      if (loginErrorMsg) { console.log("Login error found, scheduling fade out."); setTimeout(() => { loginErrorMsg.style.transition = 'opacity 0.5s ease'; loginErrorMsg.style.opacity = '0'; setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500); }, 4000); }
+
+      // === Toggle Note Visibility Checkbox Handler ===
+      document.querySelectorAll('.toggle-notes-checkbox').forEach(checkbox => {
+          checkbox.addEventListener('change', function() {
+              if (this.disabled) return;
+              const tableId = this.dataset.tableId;
+              const tbody = document.getElementById(tableId)?.querySelector('tbody');
+              if (!tbody) { console.error(`Could not find tbody for table ID: ${tableId}`); return; }
+              const noteRows = tbody.querySelectorAll('tr.note-row');
+              const shouldShow = this.checked;
+              console.log(`Toggling notes for table ${tableId}. Show: ${shouldShow}`);
+              noteRows.forEach(noteRow => {
+                  noteRow.style.display = shouldShow ? '' : 'none';
+              });
+          });
+      });
+
+      // --- Initial Sync for all Checkboxes on page load ---
+       setTimeout(() => {
+            console.log("Running initial sync for all note checkboxes...");
+            document.querySelectorAll('.toggle-notes-checkbox').forEach(checkbox => {
+                syncCheckboxWithNoteRows(checkbox.dataset.tableId);
+            });
+       }, 0);
+
 
     }); // End DOMContentLoaded
   </script>
