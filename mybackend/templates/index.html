@@ -1,4 +1,3 @@
-```html
 {# templates/index.html #}
 {% load static %}
 {% load my_filters %} {# Ensure filters are loaded #}
@@ -246,8 +245,10 @@
                   <table class="body-table" id="pendingTable">
                     <tbody>
                       {% for appointment in pending_appointments %}
+                          {# Include the partial to render the row #}
                           {% include 'partials/_animal_table_rows.html' with animal=appointment.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
                       {% empty %}
+                        {# Placeholder row for empty list #}
                         <tr class="empty-table-message"><td colspan="5">待約清單是空的</td></tr>
                       {% endfor %}
                     </tbody>
@@ -273,8 +274,10 @@
                   <table class="body-table" id="latestReviewTable">
                     <tbody>
                       {% for review in latest_reviews %}
+                          {# Include the partial to render the row #}
                           {% include 'partials/_animal_table_rows.html' with animal=review.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
                       {% empty %}
+                        {# Placeholder row for empty list #}
                         <tr class="empty-table-message"><td colspan="5">還沒有任何心得</td></tr>
                       {% endfor %}
                     </tbody>
@@ -300,7 +303,7 @@
             <div id="viewNoteSection" style="display:none;">
                <div class="note-box" id="viewNoteContent" style="margin-bottom: 1rem; border: none; background: transparent; padding: 0; white-space: pre-wrap;"></div>
                <button id="editNoteBtn" class="button-secondary">修改筆記</button>
-               <button id="deleteNoteBtn" class="button-danger" data-animal-id="" style="margin-left: 0.5rem;">刪除筆記</button> {# Added data-animal-id for delete handler #}
+               <button id="deleteNoteBtn" class="button-danger" data-animal-id="" style="margin-left: 0.5rem;">刪除筆記</button> {# data-animal-id set by JS #}
             </div>
           </div>
         </div>
@@ -321,8 +324,10 @@
                   <table class="body-table" id="myNotesTable">
                     <tbody>
                       {% for note_item in my_notes %}
+                          {# Include the partial to render the row #}
                           {% include 'partials/_animal_table_rows.html' with animal=note_item.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
                       {% empty %}
+                        {# Placeholder row for empty list #}
                         <tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>
                       {% endfor %}
                     </tbody>
@@ -351,6 +356,7 @@
                       <div class="body-wrapper">
                           <table class="body-table" id="dailyAnimalTable">
                               <tbody>
+                                  {# Initial placeholder, content loaded via AJAX #}
                                   <tr class="empty-table-message"><td colspan="5">請點擊上方館別載入班表</td></tr>
                               </tbody>
                           </table>
@@ -379,55 +385,18 @@
       const bottomOverlay = document.getElementById('bottomOverlay');
       const isLoggedIn = document.querySelector('.header-actions form button[type="submit"]') !== null;
 
-      // --- Update data-* attributes AND note row visibility for all matching rows ---
+      // --- Update data-* attributes for all matching data rows ---
+      // --- DOES NOT handle note row visibility ---
       function updateRowsByAnimalId(animalId, updateCallback) {
-        console.log(`Updating rows for animal ID: ${animalId}`);
+        console.log(`Updating data attributes for animal ID: ${animalId}`);
         const rows = document.querySelectorAll(`.body-table tr[data-animal-id="${animalId}"]:not(.note-row)`);
+        if (rows.length === 0) {
+            console.log(`  No data rows found for animal ID: ${animalId}`);
+            return;
+        }
         rows.forEach(function(row) {
-          console.log(`  Applying update to row:`, row);
+          console.log(`  Applying update to data row:`, row);
           updateCallback(row); // Apply the specific update (e.g., set data-pending, data-note-id)
-
-          // --- Handle Note Row Visibility ---
-          const noteRow = row.nextElementSibling;
-          const hasNoteId = row.hasAttribute('data-note-id');
-          const noteContent = row.getAttribute('data-note-content');
-
-          // Find the correct note row associated with this data row
-          let targetNoteRow = null;
-          if (noteRow && noteRow.classList.contains('note-row') && noteRow.getAttribute('data-animal-id') === animalId) {
-              targetNoteRow = noteRow;
-          } else {
-              // Fallback: Maybe the note row isn't immediately after (less ideal structure)
-              const potentialNoteRows = document.querySelectorAll(`.note-row[data-animal-id="${animalId}"]`);
-              // Try to find one inside the same table body as the data row
-              const parentTbody = row.closest('tbody');
-              potentialNoteRows.forEach(pnr => {
-                  if (pnr.closest('tbody') === parentTbody) {
-                      targetNoteRow = pnr;
-                  }
-              });
-          }
-
-          if (targetNoteRow) {
-              const noteBox = targetNoteRow.querySelector('.note-box');
-              if (hasNoteId && noteBox) {
-                  console.log(`  Showing note row for ${animalId} and setting content.`);
-                  targetNoteRow.style.display = ''; // Show note row
-                  noteBox.textContent = noteContent || ''; // Update content
-              } else {
-                  console.log(`  Hiding note row for ${animalId}. Has Note ID: ${hasNoteId}`);
-                  targetNoteRow.style.display = 'none'; // Hide if no note ID or noteBox not found
-              }
-          } else if (hasNoteId) {
-              // This case means we have note data, but couldn't find the note row element.
-              // This might happen if the note was added dynamically but the row wasn't created correctly.
-              console.warn(`  Note row element not found for animal ${animalId}, but note data exists.`);
-              // Potentially try to create and insert the note row dynamically here if needed,
-              // but ideally, the row should be added along with the data row.
-          } else {
-               console.log(`  No note data and no note row found/handled for ${animalId}.`);
-          }
-
         });
       }
 
@@ -443,25 +412,28 @@
             // Submit Review Button
             const btnReview = document.createElement('button');
             btnReview.textContent = "填寫心得";
-            btnReview.addEventListener('click', (e) => { /* ... (open review modal logic) ... */
+            btnReview.addEventListener('click', (e) => {
                 const modal = document.getElementById('reviewSubmitModal');
                 if(modal){
                     const hiddenInput = modal.querySelector('input[name="animal_id"]');
                     if (hiddenInput) hiddenInput.value = animalId;
                     else console.error("Hidden input for animal_id not found in review form");
-                    // Reset form before showing?
+
+                    // Reset form before showing
                     const form = document.getElementById('reviewForm');
-                    if(form) form.reset(); // Optional: Reset form fields
-                    // Clear previous Choices.js selections if needed
+                    if(form) form.reset();
+                    // Clear Choices.js selections
                     ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
                         const selectElement = document.getElementById(id);
                         if (selectElement && selectElement.choices) {
-                             selectElement.choices.setChoiceByValue(''); // Reset Choices.js fields
+                             try { selectElement.choices.setChoiceByValue(''); } catch(err){ console.warn(`Error resetting Choices.js for ${id}:`, err); }
+                        } else if (selectElement) {
+                            selectElement.selectedIndex = 0; // Fallback for standard select
                         }
                     });
                     // Clear checkboxes
                     modal.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-                    // Hide price inputs initially
+                    // Hide price inputs
                     const musicPriceInput = document.getElementById('music_price');
                     const sportsPriceInput = document.getElementById('sports_price');
                     if(musicPriceInput) musicPriceInput.style.display = 'none';
@@ -479,7 +451,7 @@
             const isPending = row.getAttribute('data-pending') === "true";
             btnAddWait.textContent = isPending ? "移除待約" : "加入待約";
             btnAddWait.addEventListener('click', (e) => {
-                togglePending(animalId, !isPending); // Pass the desired state
+                togglePending(animalId, !isPending);
                 closePlusDropdown();
                 e.stopPropagation();
             });
@@ -515,10 +487,8 @@
       // --- Helper: Process Time Slots in a Container/Element ---
       function processTimeSlotCellsInContainer(containerElement) {
           if (!containerElement) return;
-          // Find all time cells within the container that haven't been processed yet
           containerElement.querySelectorAll('.time-cell:not(:has(.time-cell-inner))').forEach(td => {
               let text = td.textContent.trim(); if (!text) return;
-              // Improved regex to handle various time formats better
               let tokens = text.match(/(\d{1,2}:\d{2}|\d{1,2}(?:點)?(?:半)?|[\u4e00-\u9fa5A-Za-z]+)/g) || [];
               tokens = tokens.filter(t => t.trim() !== '').map(t => `<span class="time-slot">${t}</span>`);
               td.innerHTML = `<div class="time-cell-inner">${tokens.join('')}</div>`;
@@ -527,23 +497,21 @@
 
       // --- Helper: Insert/Replace Row HTML into Table Body ---
       function insertOrReplaceRow(tbody, htmlString, animalId) {
-          if (!tbody || !htmlString || !animalId) return;
-
+          if (!tbody || !htmlString || !animalId) {
+              console.error("insertOrReplaceRow: Missing tbody, htmlString, or animalId");
+              return;
+          }
           // Remove existing rows (data and note) for this animal first
           const existingRows = tbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
           existingRows.forEach(row => row.remove());
 
-          // Use a template element to parse the HTML string
           const template = document.createElement('template');
           template.innerHTML = htmlString.trim();
           const newNodes = Array.from(template.content.childNodes);
 
-          // Append the new nodes (should include data row and maybe note row)
           newNodes.forEach(node => {
-              // Check if it's an element node before appending
               if (node.nodeType === Node.ELEMENT_NODE) {
                   const addedElement = tbody.appendChild(node.cloneNode(true));
-                  // Process time slots for the newly added data row
                   if (!addedElement.classList.contains('note-row')) {
                       processTimeSlotCellsInContainer(addedElement);
                   }
@@ -551,36 +519,32 @@
               }
           });
 
-          // Remove the "empty" placeholder if it exists
           const emptyRow = tbody.querySelector('tr.empty-table-message');
           if (emptyRow) emptyRow.remove();
       }
 
        // --- Helper: Add Row HTML to Table Body (if not exists) ---
        function addRowIfNotExists(tbody, htmlString, animalId) {
-          if (!tbody || !htmlString || !animalId) return;
-
-          // Check if data row already exists
+          if (!tbody || !htmlString || !animalId) {
+               console.error("addRowIfNotExists: Missing tbody, htmlString, or animalId");
+               return false;
+          }
           if (tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`)) {
-               console.log(`Row for animal ${animalId} already exists in tbody #${tbody.closest('table').id}. Skipping add.`);
-               return false; // Indicate row was not added
+               console.log(`Row for animal ${animalId} already exists in tbody #${tbody.closest('table')?.id || 'unknown'}. Skipping add.`);
+               return false;
           }
 
-          // Remove the "empty" placeholder if it exists
           const emptyRow = tbody.querySelector('tr.empty-table-message');
           if (emptyRow) emptyRow.remove();
 
-          // Use a template element to parse the HTML string
           const template = document.createElement('template');
           template.innerHTML = htmlString.trim();
           const newNodes = Array.from(template.content.childNodes);
 
-          // Append the new nodes
           let added = false;
           newNodes.forEach(node => {
               if (node.nodeType === Node.ELEMENT_NODE) {
                   const addedElement = tbody.appendChild(node.cloneNode(true));
-                  // Process time slots for the newly added data row
                   if (!addedElement.classList.contains('note-row')) {
                       processTimeSlotCellsInContainer(addedElement);
                   }
@@ -588,9 +552,8 @@
                   added = true;
               }
           });
-          return added; // Indicate if a row was added
+          return added;
       }
-
 
       // --- Toggle Pending Status ---
       function togglePending(animalId, shouldAdd) {
@@ -611,36 +574,27 @@
                 if (shouldAdd) { // ---- Adding ----
                     if (pendingTbody && data.rendered_row_html) {
                         addRowIfNotExists(pendingTbody, data.rendered_row_html, animalId);
-                    } else {
-                        console.warn("Add pending: Target tbody or rendered HTML missing.");
-                    }
+                    } else { console.warn("Add pending: Target tbody or rendered HTML missing."); }
                 } else { // ---- Removing ----
                     if (pendingTbody) {
                         const rowsToRemove = pendingTbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
                         rowsToRemove.forEach(row => row.remove());
-                        // Check if empty and add placeholder
                         if (pendingTbody.children.length === 0) {
                             pendingTbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">待約清單是空的</td></tr>';
                         }
-                    } else {
-                         console.warn("Remove pending: Target tbody missing.");
-                    }
+                    } else { console.warn("Remove pending: Target tbody missing."); }
                 }
 
-                // Update attributes on ALL potentially relevant rows everywhere AFTER DOM changes
+                // *** Only update the pending attribute ***
                 updateRowsByAnimalId(animalId, (r) => {
                     r.setAttribute('data-pending', shouldAdd ? "true" : "false");
                 });
+                // *** NO change to note row visibility here ***
 
-                // Update header count
-                if (data.pending_count !== undefined) {
-                    updatePendingCount(data.pending_count);
-                }
-                // alert(data.message); // Optional success message
+                if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
+                // alert(data.message); // Optional
 
-            } else {
-                alert(data.error || '操作失敗');
-            }
+            } else { alert(data.error || '操作失敗'); }
         })
         .catch(error => { console.error("Toggle Pending Error:", error); alert(`操作待約時發生錯誤: ${error.message}`); });
       }
@@ -649,7 +603,6 @@
       function updatePendingCount(count) {
           const pendingCountSpan = document.getElementById('pendingCountHeader');
           if (pendingCountSpan) pendingCountSpan.textContent = String(count);
-          // Optionally update button text or data attribute
       }
 
       // --- Open Note Modal ---
@@ -663,26 +616,26 @@
           const viewContent = document.getElementById('viewNoteContent');
           const animalIdInput = document.getElementById('noteAnimalId');
           const noteIdInput = document.getElementById('currentNoteId');
-          const deleteBtn = document.getElementById('deleteNoteBtn'); // Get delete button
+          const deleteBtn = document.getElementById('deleteNoteBtn');
 
           if (!modal || !form || !viewSection || !title || !textarea || !viewContent || !animalIdInput || !noteIdInput || !deleteBtn) {
               console.error("Note modal elements not found"); return;
           }
           console.log(`Opening note modal for animal ID: ${animalId}, Note ID: ${noteId}`);
 
-          animalIdInput.value = animalId; // Set animal ID for the form
-          deleteBtn.setAttribute('data-animal-id', animalId); // Set animal ID on delete button
+          animalIdInput.value = animalId;
+          deleteBtn.setAttribute('data-animal-id', animalId); // Set ID for delete handler
           form.reset();
           textarea.value = '';
 
-          if (noteId) { // Viewing/Editing existing note
+          if (noteId) { // Viewing/Editing
               title.textContent = "查看/修改筆記";
               noteIdInput.value = noteId;
               viewContent.textContent = noteContent || '';
-              textarea.value = noteContent || '';
+              textarea.value = noteContent || ''; // Pre-fill for editing
               viewSection.style.display = 'block';
               form.style.display = 'none';
-          } else { // Adding new note
+          } else { // Adding
               title.textContent = "加入筆記";
               noteIdInput.value = '';
               viewSection.style.display = 'none';
@@ -704,41 +657,52 @@
 
         if (!newContent || newContent.trim() === '') { alert('筆記內容不能為空'); return; }
 
-        // Use add_note URL for both add and update, backend handles logic
-        const url = "{% url 'add_note' %}";
+        const url = "{% url 'add_note' %}"; // Use same URL for add/update
         console.log(`Submitting note form. URL: ${url}, Animal ID: ${animalId}, Note ID: ${noteId || '(New)'}`);
 
         fetch(url, {
             method: "POST",
             headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'},
-            body: formData // Includes animal_id, content, and possibly note_id
+            body: formData
         })
         .then(res => { if (!res.ok) { return res.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${res.status}`); }); } return res.json(); })
         .then(data => {
             console.log("Save Note Response:", data);
             if (data.success) {
                 const notesTbody = document.getElementById('myNotesTable')?.querySelector('tbody');
+                // Use the animalId from response if possible, fallback to input
+                const currentAnimalId = data.animal_id || animalId;
 
-                // Add or replace the row in My Notes table
+                // 1. Add or replace row in My Notes table
                 if (notesTbody && data.rendered_row_html) {
-                     insertOrReplaceRow(notesTbody, data.rendered_row_html, animalId);
-                     // We use insertOrReplace because even for an existing note,
-                     // the pending status or other details might have changed.
-                } else {
-                    console.warn("Save note: Target tbody or rendered HTML missing.");
-                }
+                     insertOrReplaceRow(notesTbody, data.rendered_row_html, currentAnimalId);
+                } else { console.warn("Save note: Target tbody or rendered HTML missing."); }
 
-                // Update attributes and note row visibility everywhere
-                updateRowsByAnimalId(animalId, (r) => {
+                // 2. Update note attributes everywhere
+                updateRowsByAnimalId(currentAnimalId, (r) => {
                     r.setAttribute('data-note-id', data.note_id);
                     r.setAttribute('data-note-content', data.note_content);
                 });
 
+                // 3. *** Explicitly SHOW relevant note rows ***
+                console.log(`Attempting to show note rows for animal ${currentAnimalId}`);
+                const noteRowsToShow = document.querySelectorAll(`.note-row[data-animal-id="${currentAnimalId}"]`);
+                if (noteRowsToShow.length > 0) {
+                    noteRowsToShow.forEach(nr => {
+                        const noteBox = nr.querySelector('.note-box');
+                        if (noteBox) {
+                            noteBox.textContent = data.note_content || ''; // Update content
+                            nr.style.display = ''; // Show the row
+                            console.log("  Explicitly showing note row:", nr);
+                        } else { console.warn("  Found note row, but no .note-box inside:", nr); }
+                    });
+                } else { console.warn(`  No note rows found for animal ${currentAnimalId} to show.`); }
+
+                // 4. Close modal and show message
                 if(modal) modal.style.display = 'none';
                 alert(data.message || '筆記已儲存');
-            } else {
-                alert(data.error || '儲存失敗');
-            }
+
+            } else { alert(data.error || '儲存失敗'); }
         })
         .catch(err => { console.error("Save Note Error:", err); alert(`儲存筆記時發生錯誤: ${err.message}`); });
       });
@@ -748,7 +712,7 @@
         if (!isLoggedIn) return;
         const modal = document.getElementById('noteModal');
         const noteId = document.getElementById('currentNoteId').value;
-        const animalId = this.getAttribute('data-animal-id'); // Get animalId from button attribute
+        const animalId = this.getAttribute('data-animal-id'); // Get animalId from button
 
         if (!animalId) { console.error("Delete Note: Animal ID missing from button."); return; }
 
@@ -766,35 +730,39 @@
           .then(data => {
             console.log("Delete Note Response:", data);
             if (data.success) {
-              const notesTbody = document.getElementById('myNotesTable')?.querySelector('tbody');
+                const notesTbody = document.getElementById('myNotesTable')?.querySelector('tbody');
+                // Use animalId from response if available, otherwise from button
+                const targetAnimalId = data.animal_id || animalId;
 
-              // --- Option: Remove entire animal row from "My Notes" when note is deleted ---
-              if (notesTbody) {
-                    const rowsToRemove = notesTbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
+                // 1. Remove row(s) from My Notes table
+                if (notesTbody) {
+                    const rowsToRemove = notesTbody.querySelectorAll(`tr[data-animal-id="${targetAnimalId}"]`);
                     rowsToRemove.forEach(row => row.remove());
-                    // Check if empty and add placeholder
                     if (notesTbody.children.length === 0) {
                         notesTbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>';
                     }
-               } else {
-                   console.warn("Delete Note: Target tbody #myNotesTable missing.");
-               }
-               // --- End Option ---
+                } else { console.warn("Delete Note: Target tbody #myNotesTable missing."); }
 
-              // Update attributes everywhere (remove note data)
-              // Need the correct animalId here, which we got from the button or response
-              const targetAnimalId = data.animal_id || animalId; // Prefer ID from response if available
-              updateRowsByAnimalId(targetAnimalId, (r) => {
-                r.removeAttribute('data-note-id');
-                r.removeAttribute('data-note-content');
-                // updateRowsByAnimalId should handle hiding the note row
-              });
+                // 2. Update attributes everywhere (remove note data)
+                updateRowsByAnimalId(targetAnimalId, (r) => {
+                  r.removeAttribute('data-note-id');
+                  r.removeAttribute('data-note-content');
+                });
 
-              if(modal) modal.style.display = 'none';
-              alert(data.message || '筆記已刪除');
-            } else {
-              alert(data.error || '刪除失敗');
-            }
+                // 3. *** Explicitly HIDE relevant note rows ***
+                console.log(`Attempting to hide note rows for animal ${targetAnimalId}`);
+                const noteRowsToHide = document.querySelectorAll(`.note-row[data-animal-id="${targetAnimalId}"]`);
+                if (noteRowsToHide.length > 0) {
+                    noteRowsToHide.forEach(nr => {
+                        nr.style.display = 'none'; // Hide the row
+                        console.log("  Explicitly hiding note row:", nr);
+                    });
+                } else { console.log(`  No note rows found for animal ${targetAnimalId} to hide.`); }
+
+                // 4. Close modal and show message
+                if(modal) modal.style.display = 'none';
+                alert(data.message || '筆記已刪除');
+            } else { alert(data.error || '刪除失敗'); }
           })
           .catch(err => { console.error("Delete Note Error:", err); alert(`刪除筆記時發生錯誤: ${err.message}`); });
         } else if (!noteId) {
@@ -819,6 +787,7 @@
 
       // --- Update Modal Photo/Intro Area ---
       function updatePhotoArea(areaElement, photoUrl, altText) {
+          // ... (Keep implementation as before) ...
           if (!areaElement) return;
           areaElement.innerHTML = '';
           if (photoUrl && photoUrl !== 'None' && photoUrl !== '') {
@@ -836,74 +805,80 @@
 
       // --- Load Reviews ---
       function loadReviews(animalId) {
-        const reviewList = document.getElementById('reviewList'); if (!reviewList) return;
-        reviewList.innerHTML = '<p>載入心得中...</p>';
-        console.log(`Loading reviews for animal ID: ${animalId}`);
-        fetch(`/add_review/?animal_id=${animalId}`, { method: 'GET', headers: {'Accept': 'application/json'} })
-        .then(response => { /* ... error/type checking ... */ if (!response.ok) throw new Error(`HTTP error ${response.status}`); const contentType = response.headers.get("content-type"); if (!contentType || !contentType.includes("application/json")) throw new TypeError("伺服器未返回有效的 JSON"); return response.json(); })
-        .then(data => {
-          console.log("Load Reviews Response:", data);
-          reviewList.innerHTML = "";
-          if (data.reviews && data.reviews.length > 0) {
-              data.reviews.forEach(review => {
-                const reviewDiv = document.createElement('div');
-                reviewDiv.className = "review-card";
-                // (Keep the innerHTML generation as before)
-                reviewDiv.innerHTML = `
-                  <div class="review-header">
-                    <div class="review-user-info">
-                      <span class="review-user">${review.user || '匿名'}</span>
-                      <span class="review-total">總心得數：${review.totalCount || 0}</span>
+          // ... (Keep implementation as before) ...
+          const reviewList = document.getElementById('reviewList'); if (!reviewList) return;
+          reviewList.innerHTML = '<p>載入心得中...</p>';
+          console.log(`Loading reviews for animal ID: ${animalId}`);
+          fetch(`/add_review/?animal_id=${animalId}`, { method: 'GET', headers: {'Accept': 'application/json'} })
+          .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const contentType = response.headers.get("content-type"); if (!contentType || !contentType.includes("application/json")) throw new TypeError("伺服器未返回有效的 JSON"); return response.json(); })
+          .then(data => {
+            console.log("Load Reviews Response:", data);
+            reviewList.innerHTML = "";
+            if (data.reviews && data.reviews.length > 0) {
+                data.reviews.forEach(review => {
+                  const reviewDiv = document.createElement('div');
+                  reviewDiv.className = "review-card";
+                  reviewDiv.innerHTML = `
+                    <div class="review-header">
+                      <div class="review-user-info">
+                        <span class="review-user">${review.user || '匿名'}</span>
+                        <span class="review-total">總心得數：${review.totalCount || 0}</span>
+                      </div>
+                      <span class="review-date">${review.created_at || ''}</span>
                     </div>
-                    <span class="review-date">${review.created_at || ''}</span> {# Use formatted date from backend #}
-                  </div>
-                  <div class="review-body">
-                    ${review.age ? `<div class="review-line"><div class="review-label">年紀</div><div class="review-value">${review.age}</div></div>` : ''}
-                    ${review.looks ? `<div class="review-line"><div class="review-label">顏值</div><div class="review-value">${review.looks}</div></div>` : ''}
-                    ${review.face ? `<div class="review-line"><div class="review-label">臉蛋</div><div class="review-value">${review.face}</div></div>` : ''}
-                    ${review.temperament ? `<div class="review-line"><div class="review-label">氣質</div><div class="review-value">${review.temperament}</div></div>` : ''}
-                    ${review.physique ? `<div class="review-line"><div class="review-label">體態</div><div class="review-value">${review.physique}</div></div>` : ''}
-                    ${(review.cup || review.cup_size) ? `<div class="review-line"><div class="review-label">罩杯</div><div class="review-value">${review.cup || ''} ${review.cup_size || ''}</div></div>` : ''}
-                    ${review.skin_texture ? `<div class="review-line"><div class="review-label">膚質</div><div class="review-value">${review.skin_texture}</div></div>` : ''}
-                    ${review.skin_color ? `<div class="review-line"><div class="review-label">膚色</div><div class="review-value">${review.skin_color}</div></div>` : ''}
-                    ${review.music ? `<div class="review-line"><div class="review-label">音樂</div><div class="review-value">${review.music || ''}${review.music_price ? ` (${review.music_price})` : ""}</div></div>` : ''}
-                    ${review.sports ? `<div class="review-line"><div class="review-label">體育</div><div class="review-value">${review.sports || ''}${review.sports_price ? ` (${review.sports_price})` : ""}</div></div>` : ''}
-                    ${review.scale ? `<div class="review-line"><div class="review-label">尺度</div><div class="review-value">${review.scale}</div></div>` : ''}
-                    ${review.content ? `<div class="review-line"><div class="review-label">心得</div><div class="review-value" style="white-space: pre-wrap;">${review.content}</div></div>` : ''}
-                  </div>`;
-                reviewList.appendChild(reviewDiv);
-              });
-          } else { reviewList.innerHTML = '<p>目前沒有相關心得。</p>'; }
-        })
-        .catch(error => { console.error("Load Reviews Error:", error); reviewList.innerHTML = `<p>載入心得時發生錯誤: ${error.message}</p>`; });
+                    <div class="review-body">
+                      ${review.age ? `<div class="review-line"><div class="review-label">年紀</div><div class="review-value">${review.age}</div></div>` : ''}
+                      ${review.looks ? `<div class="review-line"><div class="review-label">顏值</div><div class="review-value">${review.looks}</div></div>` : ''}
+                      ${review.face ? `<div class="review-line"><div class="review-label">臉蛋</div><div class="review-value">${review.face}</div></div>` : ''}
+                      ${review.temperament ? `<div class="review-line"><div class="review-label">氣質</div><div class="review-value">${review.temperament}</div></div>` : ''}
+                      ${review.physique ? `<div class="review-line"><div class="review-label">體態</div><div class="review-value">${review.physique}</div></div>` : ''}
+                      ${(review.cup || review.cup_size) ? `<div class="review-line"><div class="review-label">罩杯</div><div class="review-value">${review.cup || ''} ${review.cup_size || ''}</div></div>` : ''}
+                      ${review.skin_texture ? `<div class="review-line"><div class="review-label">膚質</div><div class="review-value">${review.skin_texture}</div></div>` : ''}
+                      ${review.skin_color ? `<div class="review-line"><div class="review-label">膚色</div><div class="review-value">${review.skin_color}</div></div>` : ''}
+                      ${review.music ? `<div class="review-line"><div class="review-label">音樂</div><div class="review-value">${review.music || ''}${review.music_price ? ` (${review.music_price})` : ""}</div></div>` : ''}
+                      ${review.sports ? `<div class="review-line"><div class="review-label">體育</div><div class="review-value">${review.sports || ''}${review.sports_price ? ` (${review.sports_price})` : ""}</div></div>` : ''}
+                      ${review.scale ? `<div class="review-line"><div class="review-label">尺度</div><div class="review-value">${review.scale}</div></div>` : ''}
+                      ${review.content ? `<div class="review-line"><div class="review-label">心得</div><div class="review-value" style="white-space: pre-wrap;">${review.content}</div></div>` : ''}
+                    </div>`;
+                  reviewList.appendChild(reviewDiv);
+                });
+            } else { reviewList.innerHTML = '<p>目前沒有相關心得。</p>'; }
+          })
+          .catch(error => { console.error("Load Reviews Error:", error); reviewList.innerHTML = `<p>載入心得時發生錯誤: ${error.message}</p>`; });
       }
 
       // --- Submit Review Form ---
       document.getElementById('reviewForm')?.addEventListener('submit', function(e) {
-        e.preventDefault(); if (!isLoggedIn) return;
-        const modal = document.getElementById('reviewSubmitModal');
-        const animalIdInput = this.querySelector('input[name="animal_id"]');
-        const animalId = animalIdInput ? animalIdInput.value : null;
-        if (!animalId) { alert('無法獲取美容師 ID，請重試'); return; }
-        const formData = new FormData(this);
-        // Frontend Validation
-        if (document.querySelectorAll('#faceCheckboxes input:checked').length > 3) { alert('臉蛋最多只能選擇 3 個'); return; }
-        if (document.querySelectorAll('#temperamentCheckboxes input:checked').length > 3) { alert('氣質最多只能選擇 3 個'); return; }
-        const contentValue = formData.get('content'); if (!contentValue || contentValue.trim() === '') { alert('心得內容不能為空'); return; }
-        console.log(`Submitting review for animal ID: ${animalId}`);
-        fetch("{% url 'add_review' %}", { method: "POST", body: formData, headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'} })
-        .then(res => { /* ... error handling ... */ if (!res.ok) { return res.json().then(err => { let errorMsg = err.error || `伺服器錯誤 ${res.status}`; if (err.errors) { errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', '); } throw new Error(errorMsg); }).catch(() => { throw new Error(`伺服器錯誤 ${res.status}`); }); } return res.json(); })
-        .then(data => {
-            console.log("Submit Review Response:", data);
-            if (data.success) {
-                alert(data.message || '評論已提交，待審核');
-                if(modal) modal.style.display = 'none'; // Close modal on success
-                // No need to reset the form here, handled when opening the modal next time
-                // Optional: Update review count display immediately?
-                // updateRowsByAnimalId(animalId, (r) => { /* logic to potentially update count display if needed */ });
-            } else { alert(data.error || '提交失敗'); }
-        })
-        .catch(err => { console.error("Submit Review Error:", err); alert(`提交心得時發生錯誤: ${err.message}`); });
+          // ... (Keep implementation as before) ...
+          e.preventDefault(); if (!isLoggedIn) return;
+          const modal = document.getElementById('reviewSubmitModal');
+          const animalIdInput = this.querySelector('input[name="animal_id"]');
+          const animalId = animalIdInput ? animalIdInput.value : null;
+          if (!animalId) { alert('無法獲取美容師 ID，請重試'); return; }
+          const formData = new FormData(this);
+          // Frontend Validation
+          if (document.querySelectorAll('#faceCheckboxes input:checked').length > 3) { alert('臉蛋最多只能選擇 3 個'); return; }
+          if (document.querySelectorAll('#temperamentCheckboxes input:checked').length > 3) { alert('氣質最多只能選擇 3 個'); return; }
+          const contentValue = formData.get('content'); if (!contentValue || contentValue.trim() === '') { alert('心得內容不能為空'); document.getElementById('content').focus(); return; } // Added focus
+          console.log(`Submitting review for animal ID: ${animalId}`);
+          fetch("{% url 'add_review' %}", { method: "POST", body: formData, headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'} })
+          .then(res => { if (!res.ok) { return res.json().then(err => { let errorMsg = err.error || `伺服器錯誤 ${res.status}`; if (err.errors) { errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', '); } throw new Error(errorMsg); }).catch(() => { throw new Error(`伺服器錯誤 ${res.status}`); }); } return res.json(); })
+          .then(data => {
+              console.log("Submit Review Response:", data);
+              if (data.success) {
+                  alert(data.message || '評論已提交，待審核');
+                  if(modal) modal.style.display = 'none';
+                  // Optionally update review count display immediately
+                   // updateRowsByAnimalId(animalId, (r) => {
+                   //     const countBtn = r.querySelector('.review-count-btn');
+                   //     if(countBtn) {
+                   //         // Note: Backend doesn't return updated count here, so this might not be accurate
+                   //         // countBtn.textContent = parseInt(countBtn.textContent) + 1; // Incorrect if review needs approval
+                   //     }
+                   // });
+              } else { alert(data.error || '提交失敗'); }
+          })
+          .catch(err => { console.error("Submit Review Error:", err); alert(`提交心得時發生錯誤: ${err.message}`); });
       });
 
       // --- Process Initial Static Time Slots ---
@@ -915,197 +890,180 @@
 
       // --- Daily Schedule Hall Menu Click Handler ---
       document.querySelectorAll('#dailyHallMenu a').forEach(link => {
-        link.addEventListener('click', e => {
-          e.preventDefault();
-          document.querySelectorAll('#dailyHallMenu a').forEach(item => item.classList.remove('active'));
-          link.classList.add('active');
-          const hallId = link.dataset.hallId;
-          const tbody = document.querySelector('#dailyAnimalTable tbody'); if (!tbody) return;
-          const photoArea = document.getElementById('dailyPhotoArea');
-          const introP = document.getElementById('dailyIntroductionContent');
+          // ... (Keep implementation as before) ...
+          link.addEventListener('click', e => {
+            e.preventDefault();
+            document.querySelectorAll('#dailyHallMenu a').forEach(item => item.classList.remove('active'));
+            link.classList.add('active');
+            const hallId = link.dataset.hallId;
+            const tbody = document.querySelector('#dailyAnimalTable tbody'); if (!tbody) return;
+            const photoArea = document.getElementById('dailyPhotoArea');
+            const introP = document.getElementById('dailyIntroductionContent');
 
-          tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">載入中...</td></tr>'; // Use class for styling
-          if(photoArea) updatePhotoArea(photoArea, null, '');
-          if(introP) introP.textContent = '載入中...';
+            tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">載入中...</td></tr>';
+            if(photoArea) updatePhotoArea(photoArea, null, '');
+            if(introP) introP.textContent = '載入中...';
 
-          console.log(`Fetching daily schedule for hall_id: ${hallId}`);
-          fetch("{% url 'home' %}?hall_id=" + hallId + "&ajax=1", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
-            .then(response => { /* ... error checking ... */ if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct || !ct.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
-            .then(data => {
-              console.log("Daily Schedule AJAX Response:", data);
-              if (data.table_html !== undefined) {
-                tbody.innerHTML = data.table_html; // Update table content
-                // Process time slots AFTER innerHTML is set
-                processTimeSlotCellsInContainer(tbody);
+            console.log(`Fetching daily schedule for hall_id: ${hallId}`);
+            fetch("{% url 'home' %}?hall_id=" + hallId + "&ajax=1", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+              .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct || !ct.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
+              .then(data => {
+                console.log("Daily Schedule AJAX Response:", data);
+                if (data.table_html !== undefined) {
+                  tbody.innerHTML = data.table_html; // Renders content or empty message from backend
+                  processTimeSlotCellsInContainer(tbody); // Process slots in new content
 
-                // Update photo/intro based on first animal
-                if (data.first_animal && data.first_animal.name !== undefined) {
-                    if(photoArea) updatePhotoArea(photoArea, data.first_animal.photo_url, data.first_animal.name);
-                    if (introP) introP.textContent = data.first_animal.introduction || '無介紹';
-                } else { // Handle empty hall
-                    if(photoArea) updatePhotoArea(photoArea, null, '');
-                    if (introP) introP.textContent = '此館別無班表資料或介紹';
-                    // Check if the table HTML itself indicates emptiness (backend should handle this)
-                    if (tbody.children.length === 0 || tbody.querySelector('.empty-table-message')) {
-                       // Already handled by backend render or innerHTML
-                    }
+                  if (data.first_animal && data.first_animal.name !== undefined) {
+                      if(photoArea) updatePhotoArea(photoArea, data.first_animal.photo_url, data.first_animal.name);
+                      if (introP) introP.textContent = data.first_animal.introduction || '無介紹';
+                  } else {
+                      if(photoArea) updatePhotoArea(photoArea, null, '');
+                      if (introP) introP.textContent = '此館別無班表資料或介紹';
+                  }
+                } else {
+                  tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入錯誤'}</td></tr>`;
+                  if(photoArea) updatePhotoArea(photoArea, null, '');
+                  if (introP) introP.textContent = '載入錯誤';
                 }
-              } else {
-                tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入錯誤'}</td></tr>`;
+              }).catch(error => {
+                console.error("Daily Schedule AJAX Fetch Error:", error);
+                tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">網路錯誤: ${error.message}</td></tr>`;
                 if(photoArea) updatePhotoArea(photoArea, null, '');
-                if (introP) introP.textContent = '載入錯誤';
-              }
-            }).catch(error => {
-              console.error("Daily Schedule AJAX Fetch Error:", error);
-              tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">網路錯誤: ${error.message}</td></tr>`;
-              if(photoArea) updatePhotoArea(photoArea, null, '');
-              if (introP) introP.textContent = '網路錯誤';
-            });
-        });
+                if (introP) introP.textContent = '網路錯誤';
+              });
+          });
       });
 
       // --- Global Click Listener ---
       document.addEventListener('click', function(e) {
-        const target = e.target;
-        const targetClosest = (selector) => target.closest(selector);
+          // ... (Keep implementation as before) ...
+          const target = e.target;
+          const targetClosest = (selector) => target.closest(selector);
 
-        const openModal = (modalId) => { /* ... (Keep existing openModal logic) ... */
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                console.log(`Opening modal: #${modalId}`);
-                modal.style.display = 'block';
-                if (modalId === 'dailyScheduleModal') {
-                    const dailyModal = document.getElementById('dailyScheduleModal');
-                    const tbody = dailyModal?.querySelector('#dailyAnimalTable tbody');
-                    const initialLink = dailyModal?.querySelector('#dailyHallMenu a[data-hall-id="all"]');
-                    // Check if tbody contains the initial placeholder text (use class)
-                    if (tbody && initialLink && tbody.querySelector('.empty-table-message')?.textContent.includes('請點擊上方館別')) {
-                       console.log('Triggering initial load for Daily Schedule Modal by clicking "all"');
-                       initialLink.click();
-                    }
-                }
-                return true;
-            }
-            console.error(`Modal not found: #${modalId}`); return false;
-        };
+          const openModal = (modalId) => {
+              const modal = document.getElementById(modalId);
+              if (modal) {
+                  console.log(`Opening modal: #${modalId}`);
+                  modal.style.display = 'block';
+                  if (modalId === 'dailyScheduleModal') {
+                      const dailyModal = document.getElementById('dailyScheduleModal');
+                      const tbody = dailyModal?.querySelector('#dailyAnimalTable tbody');
+                      const initialLink = dailyModal?.querySelector('#dailyHallMenu a[data-hall-id="all"]');
+                      if (tbody && initialLink && tbody.querySelector('.empty-table-message')?.textContent.includes('請點擊上方館別')) {
+                         console.log('Triggering initial load for Daily Schedule Modal by clicking "all"');
+                         initialLink.click();
+                      }
+                  }
+                  return true;
+              }
+              console.error(`Modal not found: #${modalId}`); return false;
+          };
 
-        // Header Buttons
-        if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
-        if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
-        if (targetClosest('#pendingListBtnHeader')) { openModal('pendingListModal'); return; }
-        if (targetClosest('#myNotesBtnHeader')) { openModal('myNotesModal'); return; }
-        if (targetClosest('#loginBtnHeader')) { openModal('loginModal'); return; }
+          // Header Buttons
+          if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
+          if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
+          if (targetClosest('#pendingListBtnHeader')) { openModal('pendingListModal'); return; }
+          if (targetClosest('#myNotesBtnHeader')) { openModal('myNotesModal'); return; }
+          if (targetClosest('#loginBtnHeader')) { openModal('loginModal'); return; }
 
-        // Plus Button Click
-        const plusBtn = targetClosest('.plus-menu-btn');
-        if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; }
+          // Plus Button Click
+          const plusBtn = targetClosest('.plus-menu-btn');
+          if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; }
 
-        // Review Count Button Click
-        const reviewBtn = targetClosest('.review-count-btn');
-        if (reviewBtn) {
-            e.stopPropagation();
-            const animalId = reviewBtn.dataset.animalId;
-            if (animalId) { loadReviews(animalId); openModal('reviewModal'); }
-            else { console.error("Review button clicked, but no animal-id found."); }
-            return;
-        }
+          // Review Count Button Click
+          const reviewBtn = targetClosest('.review-count-btn');
+          if (reviewBtn) {
+              e.stopPropagation();
+              const animalId = reviewBtn.dataset.animalId;
+              if (animalId) { loadReviews(animalId); openModal('reviewModal'); }
+              else { console.error("Review button clicked, but no animal-id found."); }
+              return;
+          }
 
-        // Modal Table Row Click (Update Photo/Intro)
-        const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
-        if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn')) {
-            const modal = tableRow.closest('.modal');
-            if(modal){
-                let photoAreaId = null, introContentId = null;
-                switch (modal.id) { /* ... (Keep existing switch case for photo/intro IDs) ... */
-                    case 'dailyScheduleModal': photoAreaId = 'dailyPhotoArea'; introContentId = 'dailyIntroductionContent'; break;
-                    case 'pendingListModal': photoAreaId = 'pendingPhotoArea'; introContentId = 'pendingIntroductionContent'; break;
-                    case 'latestReviewModal': photoAreaId = 'latestPhotoArea'; introContentId = 'latestIntroductionContent'; break;
-                    case 'myNotesModal': photoAreaId = 'myNotesPhotoArea'; introContentId = 'myNotesIntroductionContent'; break;
-                }
-                if (photoAreaId && introContentId) {
-                    const photoArea = document.getElementById(photoAreaId);
-                    const introContent = document.getElementById(introContentId);
-                    const photoUrl = tableRow.dataset.photo;
-                    const introText = tableRow.dataset.intro || '無介紹';
-                    const animalName = tableRow.querySelector('.name')?.textContent || '美容師';
-                    console.log(`Row clicked in modal ${modal.id}. Updating photo/intro.`);
-                    if(photoArea) updatePhotoArea(photoArea, photoUrl, animalName);
-                    if(introContent) introContent.textContent = introText;
-                }
-            }
-            return;
-        }
+          // Modal Table Row Click (Update Photo/Intro)
+          const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
+          if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn')) {
+              const modal = tableRow.closest('.modal');
+              if(modal){
+                  let photoAreaId = null, introContentId = null;
+                  switch (modal.id) {
+                      case 'dailyScheduleModal': photoAreaId = 'dailyPhotoArea'; introContentId = 'dailyIntroductionContent'; break;
+                      case 'pendingListModal': photoAreaId = 'pendingPhotoArea'; introContentId = 'pendingIntroductionContent'; break;
+                      case 'latestReviewModal': photoAreaId = 'latestPhotoArea'; introContentId = 'latestIntroductionContent'; break;
+                      case 'myNotesModal': photoAreaId = 'myNotesPhotoArea'; introContentId = 'myNotesIntroductionContent'; break;
+                  }
+                  if (photoAreaId && introContentId) {
+                      const photoArea = document.getElementById(photoAreaId);
+                      const introContent = document.getElementById(introContentId);
+                      const photoUrl = tableRow.dataset.photo;
+                      const introText = tableRow.dataset.intro || '無介紹';
+                      const animalName = tableRow.querySelector('.name')?.textContent || '美容師';
+                      console.log(`Row clicked in modal ${modal.id}. Updating photo/intro.`);
+                      if(photoArea) updatePhotoArea(photoArea, photoUrl, animalName);
+                      if(introContent) introContent.textContent = introText;
+                  }
+              }
+              return;
+          }
 
-        // Modal Close Button
-        const closeBtn = targetClosest('.close-modal');
-        if (closeBtn) {
-            const modal = targetClosest('.modal');
-            if(modal) { console.log(`Closing modal: #${modal.id}`); modal.style.display = 'none'; }
-            return;
-        }
+          // Modal Close Button
+          const closeBtn = targetClosest('.close-modal');
+          if (closeBtn) {
+              const modal = targetClosest('.modal');
+              if(modal) { console.log(`Closing modal: #${modal.id}`); modal.style.display = 'none'; }
+              return;
+          }
 
-        // Modal Background Click
-        if (target.classList.contains('modal')) {
-            console.log(`Closing modal via background click: #${target.id}`);
-            target.style.display = 'none';
-            if (document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); }
-            return;
-        }
+          // Modal Background Click
+          if (target.classList.contains('modal')) {
+              console.log(`Closing modal via background click: #${target.id}`);
+              target.style.display = 'none';
+              if (document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); }
+              return;
+          }
 
-        // Bottom Overlay Click (Close Dropdown)
-        if (target === bottomOverlay && document.getElementById('plusDropdown').classList.contains('open')) {
-            console.log("Closing plus dropdown via overlay click.");
-            closePlusDropdown();
-            return;
-        }
-
+          // Bottom Overlay Click (Close Dropdown)
+          if (target === bottomOverlay && document.getElementById('plusDropdown').classList.contains('open')) {
+              console.log("Closing plus dropdown via overlay click.");
+              closePlusDropdown();
+              return;
+          }
       }); // End global click listener
 
       // --- Choices.js Initialization ---
       ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
+          // ... (Keep implementation as before) ...
           const el = document.getElementById(id);
           if (el) {
               try {
                   if (!el.classList.contains('choices__input') && !el.hasAttribute('data-choice')) {
-                     // Initialize with placeholder if the first option is a placeholder
                      const firstOptionValue = el.options[0]?.value;
-                     const placeholder = firstOptionValue === ""; // Check if first option is empty value
+                     const placeholder = firstOptionValue === "";
                      const choicesInstance = new Choices(el, {
-                         searchEnabled: false,
-                         itemSelectText: '',
-                         allowHTML: false,
-                         shouldSort: false,
-                         placeholder: placeholder, // Enable placeholder if detected
-                         placeholderValue: placeholder ? el.options[0].text : null // Use first option text as placeholder
+                         searchEnabled: false, itemSelectText: '', allowHTML: false, shouldSort: false,
+                         placeholder: placeholder, placeholderValue: placeholder ? el.options[0].text : null
                      });
-                     // Store instance if needed later, e.g., el.choices = choicesInstance;
+                     el.choices = choicesInstance; // Store instance if needed
                      console.log(`Choices.js initialized for #${id}`);
                   }
               } catch (e) { console.error(`Choices.js init error for #${id}:`, e); }
           } else { console.warn(`Element #${id} not found for Choices.js initialization.`); }
       });
 
-
       // --- Price Input Toggle Logic ---
       function togglePriceInput(selectId, priceInputId) {
+          // ... (Keep implementation as before) ...
           const sel = document.getElementById(selectId);
           const inp = document.getElementById(priceInputId);
           if (!sel || !inp) { console.warn(`Elements not found for price toggle: ${selectId}, ${priceInputId}`); return; }
           const toggle = () => {
               const showValues = ['可加值', '自談'];
-              // Get value correctly whether Choices.js is used or not
               const selectValue = sel.choices ? sel.value : (sel.options[sel.selectedIndex]?.value || '');
-              // console.log(`Toggling price for ${selectId}. Selected value: ${selectValue}`); // Debugging
-              if (showValues.includes(selectValue)) {
-                  inp.style.display = 'block';
-              } else {
-                  inp.style.display = 'none';
-                  inp.value = '';
-              }
+              if (showValues.includes(selectValue)) { inp.style.display = 'block'; }
+              else { inp.style.display = 'none'; inp.value = ''; }
           };
-          // Add listener. Choices.js forwards 'change' event.
           sel.addEventListener('change', toggle);
-          toggle(); // Run on initial load
+          toggle();
        }
       togglePriceInput('music', 'music_price');
       togglePriceInput('sports', 'sports_price');
@@ -1113,6 +1071,7 @@
       // --- Login Error Message Auto-hide ---
       const loginErrorMsg = document.getElementById('login-error-message');
       if (loginErrorMsg) {
+          // ... (Keep implementation as before) ...
           console.log("Login error message found, scheduling fade out.");
           setTimeout(() => {
               loginErrorMsg.style.transition = 'opacity 0.5s ease'; loginErrorMsg.style.opacity = '0';
@@ -1125,4 +1084,3 @@
 
 </body>
 </html>
-```
