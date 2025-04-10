@@ -1,6 +1,7 @@
+```html
 {# templates/index.html #}
 {% load static %}
-{% load my_filters %} {# 確保過濾器已加載 #}
+{% load my_filters %} {# Ensure filters are loaded #}
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -9,6 +10,7 @@
   <title>動物園入口</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
   <style>
+    /* --- All CSS Rules (Keep as provided previously) --- */
     /* --- 全站基本設定 --- */
     html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; font-size: 16px; background: #ccc; display: flex; flex-direction: column; line-height: 1.5; }
     *, *::before, *::after { box-sizing: inherit; }
@@ -25,7 +27,6 @@
     .header-actions form button:hover { background-color: #f8d7da; }
     .header-promo { width: 80px; height: 80px; border-radius: 5px; overflow: hidden; flex-shrink: 0; display: none; } /* 初始隱藏，大螢幕顯示 */
     .header-promo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    /* Removed header-announcement styles as the block is removed */
 
     /* --- 容器 & 入口內容區 --- */
     .glass-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; overflow: hidden; }
@@ -35,10 +36,9 @@
     .portal-content { padding: 1.5rem; flex-grow: 1; overflow-y: auto; text-align: center; }
     .portal-content h1 { color: #333; margin-bottom: 1rem; font-size: 1.8rem; }
     .portal-content p { color: #555; margin-bottom: 1.5rem;}
-    /* Styles for the announcement block inside portal-content */
     .portal-content .portal-announcement { margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; text-align: left; }
     .portal-content .portal-announcement strong { display: block; margin-bottom: 0.5rem; font-size: 1.1em; color: #333;}
-    .portal-content .portal-announcement p { margin: 0; color: #495057; line-height: 1.4;} /* Adjusted portal announcement p style */
+    .portal-content .portal-announcement p { margin: 0; color: #495057; line-height: 1.4;}
     .portal-content .portal-promo { margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; text-align: left; }
     .portal-content .portal-promo strong { display: block; margin-bottom: 0.5rem; font-size: 1.1em; color: #333;}
     .portal-content .portal-promo img { max-width: 100%; height: auto; border-radius: 5px; margin-top: 0.5rem; display: block; }
@@ -47,23 +47,9 @@
     #menuBtn, #sidePanel, #leftOverlay { display: none !important; }
 
     /* --- Modal 樣式 --- */
-    .modal {
-      display: none;
-      position: fixed;
-      /* Base z-index for primary modals */
-      z-index: 2999;
-      left: 0; top: 0; width: 100%; height: 100%;
-      overflow: hidden;
-      background-color: rgba(0, 0, 0, 0.5);
-      animation: fadeIn 0.3s ease;
-    }
+    .modal { display: none; position: fixed; z-index: 2999; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0, 0, 0, 0.5); animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-    /* Higher z-index for secondary modals */
-    #reviewModal, #reviewSubmitModal, #noteModal {
-      z-index: 3999;
-    }
-
+    #reviewModal, #reviewSubmitModal, #noteModal { z-index: 3999; } /* Higher z-index for secondary modals */
     .modal-content { background-color: #fff; margin: 20px auto; padding: 0; border-radius: 15px; width: 95%; max-width: 500px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: none; }
     .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background-color: #f8f9fa;}
     .modal-header h2 { margin: 0; font-size: 1.3rem; color: #333; }
@@ -72,7 +58,7 @@
     .modal-footer { padding: 1rem 1.25rem; border-top: 1px solid #eee; flex-shrink: 0; background-color: #f8f9fa; text-align: right; }
     .close-modal { font-size: 1.75rem; font-weight: bold; cursor: pointer; color: #aaa; background: none; border: none; padding: 0 0.5rem; line-height: 1; } .close-modal:hover { color: #666; }
 
-    /* Modal 內表格布局樣式 */
+    /* --- Modal Table Layout --- */
     .modal-body .table-wrapper { margin-top: 0; background: #fff; border: none; border-radius: 0; overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0; }
     .modal-body .header-table { width: 100%; border-collapse: collapse; table-layout: fixed; flex-shrink: 0; }
     .modal-body .header-table th { padding: 0.5rem 0.3rem; border-bottom: 2px solid #ccc; text-align: left; background: #e9ecef; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; vertical-align: middle; font-size: 0.85rem; color: #495057; font-weight: bold; }
@@ -90,7 +76,7 @@
     .modal-body .header-table th:nth-child(4), .modal-body .body-table td:nth-child(4) { width: 17%; } /* Fee/Hall */
     .modal-body .header-table th:nth-child(5), .modal-body .body-table td:nth-child(5) { width: 14%; text-align: center; } /* Review Count */
 
-    /* Modal Top Section (Photo/Intro) */
+    /* --- Modal Top Section (Photo/Intro) --- */
     .modal-body > .top-section { display: flex; align-items: stretch; border: none; border-bottom: 1px solid #eee; border-radius: 0; overflow: hidden; margin-bottom: 0; background: #fff; height: 200px; flex-shrink: 0; }
     .modal-body .photo-area { flex: 0 0 50%; display: flex; align-items: center; justify-content: center; border-right: 1px solid #eee; background: #f8f9fa; padding: 0.625rem; overflow: hidden; }
     .modal-body .photo-area img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; transition: opacity 0.3s ease; }
@@ -98,13 +84,12 @@
     .modal-body .intro-top { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 5px; }
     .modal-body .intro-top p { margin: 0; font-size: 0.95rem; color: #333; white-space: pre-wrap; word-break: break-word; }
 
-    /* Hall Menu (Daily Schedule Modal) */
+    /* --- Hall Menu (Daily Schedule) --- */
     .modal-body .hall-menu { display: flex; overflow-x: auto; gap: 0.625rem; background: #f8f9fa; border: 1px solid #ccc; border-radius: 5px; padding: 0.5rem; margin: 0.75rem; flex-shrink: 0; }
     .modal-body .hall-menu a { flex-shrink: 0; padding: 0.5rem 0.75rem; text-decoration: none; color: #666; background: #fff; border: 1px solid #ddd; border-radius: 5px; white-space: nowrap; transition: background 0.3s, color 0.3s, border-color 0.3s; font-size: 1.0rem; }
     .modal-body .hall-menu a.active, .modal-body .hall-menu a:hover { background: #e0f7fa; color: #007bff; border-color: #bce8f1; }
 
-
-    /* --- 其他元素樣式 --- */
+    /* --- Other Element Styles --- */
     .time-slot { display: inline-block; white-space: nowrap; margin: 0.1em 0.2em; break-inside: avoid; word-break: keep-all; font-size: 0.9em; background-color: #e9ecef; padding: 0.1em 0.3em; border-radius: 3px; border: 1px solid #ced4da; }
     .time-cell-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2em; padding: 0.1rem 0; }
     .fee-cell .hall-name { display: block; font-size: 0.85rem; color: #888; margin-top: 0.15rem; }
@@ -118,34 +103,23 @@
     button { padding: 0.6rem 1rem; border: 1px solid #ccc; border-radius: 5px; background: #fff; color: #333; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, color 0.2s; font-size: 1rem; line-height: 1.5; } button:hover { background: #f8f8f8; border-color: #bbb; } button[type="submit"] { background-color: #007bff; border-color: #007bff; color: white; } button[type="submit"]:hover { background-color: #0056b3; border-color: #0056b3; } .button-secondary { background-color: #6c757d; border-color: #6c757d; color: white; } .button-secondary:hover { background-color: #5a6268; border-color: #545b62; } .button-danger { background-color: #dc3545; border-color: #dc3545; color: white; } .button-danger:hover { background-color: #c82333; border-color: #bd2130; }
     .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.5rem 0.8rem; } .checkbox-group label { cursor: pointer; display: inline-flex; align-items: center; padding: 0.3rem 0.6rem; border: 1px solid #ddd; border-radius: 15px; font-size: 0.9rem; transition: background-color 0.2s, border-color 0.2s; } .checkbox-group label:hover { background-color: #f0f0f0; } .checkbox-group input[type="checkbox"] { margin-right: 0.4rem; }
 
-    /* --- 響應式調整 --- */
-    @media (max-width: 768px) { .page-header { flex-direction: column; align-items: stretch; gap: 0.75rem; } .header-promo { display: none; } .header-actions { order: 1; justify-content: center; } /* Removed header-announcement order */ }
-    @media (max-width: 600px) { .content { width: 100%; margin: 0; border-radius: 0; padding: 0; max-height: none; } .page-header { padding: 0.5rem 0.75rem; gap: 0.5rem; } .header-actions button, .header-actions form button { font-size: 0.8rem; padding: 0.3rem 0.6rem; } .header-actions .user-info-header { font-size: 0.8rem; } /* Removed header-announcement styles */ .portal-content { padding: 1rem; } .portal-content h1 { font-size: 1.5rem; } .portal-content .portal-announcement, .portal-content .portal-promo { padding: 0.75rem; } .modal-content { width: 100%; max-width: none; margin: 0; border-radius: 0; max-height: 100vh; padding: 0; } .modal-header { padding: 0.75rem 1rem; } .modal-header h2 { font-size: 1.1rem; } /* Keep default padding for non-table modals */ .modal-body[data-layout="table"] { padding: 0 !important; /* Force no padding for table layout modals */} .modal-body > .top-section { height: 150px; } .modal-footer { padding: 0.75rem 1rem; } }
+    /* --- Responsive Adjustments --- */
+    @media (max-width: 768px) { .page-header { flex-direction: column; align-items: stretch; gap: 0.75rem; } .header-promo { display: none; } .header-actions { order: 1; justify-content: center; } }
+    @media (max-width: 600px) { .content { width: 100%; margin: 0; border-radius: 0; padding: 0; max-height: none; } .page-header { padding: 0.5rem 0.75rem; gap: 0.5rem; } .header-actions button, .header-actions form button { font-size: 0.8rem; padding: 0.3rem 0.6rem; } .header-actions .user-info-header { font-size: 0.8rem; } .portal-content { padding: 1rem; } .portal-content h1 { font-size: 1.5rem; } .portal-content .portal-announcement, .portal-content .portal-promo { padding: 0.75rem; } .modal-content { width: 100%; max-width: none; margin: 0; border-radius: 0; max-height: 100vh; padding: 0; } .modal-header { padding: 0.75rem 1rem; } .modal-header h2 { font-size: 1.1rem; } .modal-body[data-layout="table"] { padding: 0 !important; } .modal-body > .top-section { height: 150px; } .modal-footer { padding: 0.75rem 1rem; } }
     @media (min-width: 769px) { .header-promo { display: block; } }
 
-
-    /* --- 底部選單 & 遮罩 --- */
-    #bottomOverlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none;
-      transition: opacity 0.3s ease;
-      z-index: 3400; /* Below dropdown, above primary modals */
-    }
+    /* --- Bottom Menu & Overlay --- */
+    #bottomOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 3400; }
     #bottomOverlay.open { opacity: 1; pointer-events: auto; }
-
-    .dropdown-menu {
-      position: fixed; left: 0; bottom: -100%; width: 100%;
-      background: #fff; border-top: 1px solid #ccc;
-      border-radius: 15px 15px 0 0; box-shadow: 0 -3px 8px rgba(0,0,0,0.15);
-      z-index: 3500; /* Above overlay and primary modals */
-      padding: 1rem 1rem 1.5rem 1rem;
-      transition: bottom 0.3s ease-in-out; max-height: 50vh; overflow-y: auto;
-    }
+    .dropdown-menu { position: fixed; left: 0; bottom: -100%; width: 100%; background: #fff; border-top: 1px solid #ccc; border-radius: 15px 15px 0 0; box-shadow: 0 -3px 8px rgba(0,0,0,0.15); z-index: 3500; padding: 1rem 1rem 1.5rem 1rem; transition: bottom 0.3s ease-in-out; max-height: 50vh; overflow-y: auto; }
     .dropdown-menu.open { bottom: 0; }
     .dropdown-menu button { display: block; width: 100%; padding: 0.75rem 1rem; background: none; border: none; border-bottom: 1px solid #eee; text-align: left; cursor: pointer; font-size: 1.1rem; color: #333; }
     .dropdown-menu button:last-child { border-bottom: none; }
     .dropdown-menu button:hover { background: #f8f8f8; }
     .dropdown-menu span { display: block; padding: 0.75rem 1rem; color: #666; font-size: 1rem; }
+
+    /* Empty table message style */
+    .empty-table-message td { text-align: center !important; padding: 2rem !important; color: #777; font-style: italic; }
 
   </style>
 </head>
@@ -153,9 +127,9 @@
 
   <div class="glass-overlay">
     <div class="glass-background"></div>
-    <div class="content"> {# 主容器 #}
+    <div class="content"> {# Main container #}
 
-      <!-- 新頁首 -->
+      <!-- Header -->
       <header class="page-header">
         <div class="header-actions">
             <button id="btnDailyScheduleHeader">每日班表</button>
@@ -174,10 +148,6 @@
                 <button id="loginBtnHeader">會員登入</button>
             {% endif %}
         </div>
-
-        {# Header Announcement Block REMOVED #}
-
-        {# Header Promo Block #}
          {% if promo_photo_url %}
          <div class="header-promo">
              <img src="{{ promo_photo_url }}" alt="{{ promo_animal_name|default:'促銷' }}">
@@ -185,20 +155,16 @@
          {% endif %}
       </header>
 
-      <!-- 新入口內容區 -->
+      <!-- Portal Content -->
       <main class="portal-content">
           <h1>歡迎來到動物園</h1>
           <p>這裡是入口頁面，點擊上方按鈕查看詳細資訊。</p>
-
-          {# Portal Announcement Block RETAINED #}
           {% if announcement %}
           <div class="portal-announcement">
               {% if announcement.title %}<strong>公告：{{ announcement.title }}</strong>{% endif %}
               <p>{{ announcement.content|linebreaksbr }}</p>
           </div>
           {% endif %}
-
-          {# Portal Promo Block #}
           {% if promo_photo_url %}
           <div class="portal-promo">
               <strong>特別推薦</strong><br>
@@ -207,7 +173,7 @@
           {% endif %}
       </main>
 
-      {# --- 登入錯誤訊息顯示區 --- #}
+      <!-- Login Error Message Area -->
       {% if login_error %}
       <div id="login-error-message" style="color: red; text-align: center; padding: 0.5rem; background: #f8d7da; border: 1px solid #f5c6cb; position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); border-radius: 5px; z-index: 4000;">
         {{ login_error }}
@@ -215,198 +181,74 @@
       {% endif %}
 
 
-      <!-- Modals (All modal structures remain the same) -->
-      <!-- 會員登入 Modal -->
+      <!-- Modals -->
+      <!-- Login Modal -->
       <div id="loginModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
-           <div class="modal-header">
-               <h2>會員登入</h2>
-               <button class="close-modal" aria-label="關閉">×</button>
-           </div>
+           <div class="modal-header"><h2>會員登入</h2><button class="close-modal" aria-label="關閉">×</button></div>
            <div class="modal-body">
               <form id="loginForm" action="{% url 'login' %}" method="POST">
                 {% csrf_token %}
-                <div class="form-group">
-                  <label for="username">帳號：</label>
-                  <input type="text" id="username" name="username" placeholder="請輸入帳號" required>
-                </div>
-                <div class="form-group">
-                  <label for="password">密碼：</label>
-                  <input type="password" id="password" name="password" placeholder="請輸入密碼" required>
-                </div>
+                <div class="form-group"><label for="username">帳號：</label><input type="text" id="username" name="username" placeholder="請輸入帳號" required></div>
+                <div class="form-group"><label for="password">密碼：</label><input type="password" id="password" name="password" placeholder="請輸入密碼" required></div>
                 <button type="submit">登入</button>
               </form>
            </div>
         </div>
       </div>
 
-      <!-- 查看心得 Modal -->
+      <!-- Review Modal -->
       <div id="reviewModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
-          <div class="modal-header">
-            <h2>心得評論</h2>
-            <button class="close-modal" aria-label="關閉">×</button>
-          </div>
-          <div class="modal-body">
-            <div id="reviewList"><p>載入中...</p></div>
-          </div>
+          <div class="modal-header"><h2>心得評論</h2><button class="close-modal" aria-label="關閉">×</button></div>
+          <div class="modal-body"><div id="reviewList"><p>載入中...</p></div></div>
         </div>
       </div>
 
-      <!-- 填寫心得 Modal -->
+      <!-- Submit Review Modal -->
       <div id="reviewSubmitModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
-          <div class="modal-header">
-            <h2>填寫心得</h2>
-            <button class="close-modal" aria-label="關閉">×</button>
-           </div>
+           <div class="modal-header"><h2>填寫心得</h2><button class="close-modal" aria-label="關閉">×</button></div>
            <div class="modal-body">
               <form id="reviewForm">
                 {% csrf_token %}
-                <input type="hidden" name="animal_id" value=""> {# animal_id will be set by JS #}
-                <div class="form-group">
-                  <label for="age">年紀</label>
-                  <input type="number" id="age" name="age" placeholder="請輸入大約年紀數字, 不可有中文字">
-                </div>
-                <div class="form-group">
-                  <label for="looks">顏值</label>
-                  <select id="looks" name="looks">
-                    <option value="">請選擇</option>
-                    <option value="S級 (一見難忘)">S級 (一見難忘)</option>
-                    <option value="A級 (出眾)">A級 (出眾)</option>
-                    <option value="B級 (優異)">B級 (優異)</option>
-                    <option value="C級 (中上)">C級 (中上)</option>
-                    <option value="D級 (大眾)">D級 (大眾)</option>
-                    <option value="E級 (較平凡)">E級 (較平凡)</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>臉蛋（最多選3個）</label>
-                  <div id="faceCheckboxes" class="checkbox-group">
-                    <label><input type="checkbox" name="face" value="醫美"> 醫美</label>
-                    <label><input type="checkbox" name="face" value="可愛"> 可愛</label>
-                    <label><input type="checkbox" name="face" value="甜美"> 甜美</label>
-                    <label><input type="checkbox" name="face" value="稚嫩"> 稚嫩</label>
-                    <label><input type="checkbox" name="face" value="呆萌"> 呆萌</label>
-                    <label><input type="checkbox" name="face" value="清秀"> 清秀</label>
-                    <label><input type="checkbox" name="face" value="清純"> 清純</label>
-                    <label><input type="checkbox" name="face" value="仙氣"> 仙氣</label>
-                    <label><input type="checkbox" name="face" value="艷麗"> 艷麗</label>
-                    <label><input type="checkbox" name="face" value="性感"> 性感</label>
-                    <label><input type="checkbox" name="face" value="古典"> 古典</label>
-                    <label><input type="checkbox" name="face" value="個性"> 個性</label>
-                    <label><input type="checkbox" name="face" value="鄰家"> 鄰家</label>
-                    <label><input type="checkbox" name="face" value="大眾"> 大眾</label>
-                    <label><input type="checkbox" name="face" value="平凡"> 平凡</label>
-                    <label><input type="checkbox" name="face" value="單眼皮"> 單眼皮</label>
-                    <label><input type="checkbox" name="face" value="輕熟"> 輕熟</label>
-                    <label><input type="checkbox" name="face" value="熟女"> 熟女</label>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>氣質（最多選3個）</label>
-                  <div id="temperamentCheckboxes" class="checkbox-group">
-                    <label><input type="checkbox" name="temperament" value="優雅"> 優雅</label>
-                    <label><input type="checkbox" name="temperament" value="成熟"> 成熟</label>
-                    <label><input type="checkbox" name="temperament" value="清新"> 清新</label>
-                    <label><input type="checkbox" name="temperament" value="自然"> 自然</label>
-                    <label><input type="checkbox" name="temperament" value="禮貌"> 禮貌</label>
-                    <label><input type="checkbox" name="temperament" value="女友感"> 女友感</label>
-                    <label><input type="checkbox" name="temperament" value="女人味"> 女人味</label>
-                    <label><input type="checkbox" name="temperament" value="OL"> OL</label>
-                    <label><input type="checkbox" name="temperament" value="台妹"> 台妹</label>
-                    <label><input type="checkbox" name="temperament" value="普通"> 普通</label>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label for="physique">體態</label>
-                  <select id="physique" name="physique">
-                    <option value="">請選擇體態</option>
-                    <option value="骨感">骨感</option> <option value="瘦">瘦</option> <option value="瘦有肉">瘦有肉</option> <option value="標準">標準</option> <option value="曲線迷人">曲線迷人</option> <option value="瘦偏肉">瘦偏肉</option> <option value="微肉">微肉</option> <option value="棉花糖">棉花糖</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="cup">罩杯</label>
-                  <select id="cup" name="cup">
-                    <option value="">請選擇</option> <option value="天然">天然</option> <option value="醫美">醫美</option> <option value="自體醫美">自體醫美</option> <option value="不確定">不確定</option>
-                  </select>
-                  <input type="text" id="cup_size" name="cup_size" placeholder="請填寫罩杯大約大小 A~L英文字母, 不可有中文字" style="margin-top:0.5rem;" pattern="[A-L]">
-                </div>
-                <div class="form-group">
-                  <label for="skin_texture">膚質</label>
-                  <select id="skin_texture" name="skin_texture">
-                    <option value="">請選擇</option> <option value="絲滑">絲滑</option> <option value="還不錯">還不錯</option> <option value="正常">正常</option> <option value="普通">普通</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="skin_color">膚色</label>
-                  <select id="skin_color" name="skin_color">
-                    <option value="">請選擇</option> <option value="白皙">白皙</option> <option value="偏白">偏白</option> <option value="正常黃">正常黃</option> <option value="偏黃">偏黃</option> <option value="健康黑">健康黑</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="music">音樂</label>
-                  <select id="music" name="music">
-                    <option value="">請選擇</option> <option value="未詢問">未詢問</option> <option value="無此服務">無此服務</option> <option value="可加值">可加值</option> <option value="自談">自談</option>
-                  </select>
-                  <input type="text" id="music_price" name="music_price" placeholder="請填寫大約金額或'私談'" style="display:none; margin-top:0.5rem;">
-                </div>
-                <div class="form-group">
-                  <label for="sports">體育</label>
-                  <select id="sports" name="sports">
-                     <option value="">請選擇</option> <option value="未詢問">未詢問</option> <option value="無此服務">無此服務</option> <option value="可加值">可加值</option> <option value="自談">自談</option> <option value="體含音">體含音</option>
-                  </select>
-                  <input type="text" id="sports_price" name="sports_price" placeholder="請填寫大約金額或'私談'" style="display:none; margin-top:0.5rem;">
-                </div>
-                <div class="form-group">
-                  <label>尺度</label>
-                  <div id="scaleCheckboxes" class="checkbox-group">
-                    <label><input type="checkbox" name="scale" value="三光"> 三光</label> <label><input type="checkbox" name="scale" value="兩光"> 兩光</label> <label><input type="checkbox" name="scale" value="LG"> LG</label> <label><input type="checkbox" name="scale" value="親"> 親</label> <label><input type="checkbox" name="scale" value="舔"> 舔</label> <label><input type="checkbox" name="scale" value="伸"> 伸</label> <label><input type="checkbox" name="scale" value="摸"> 摸</label> <label><input type="checkbox" name="scale" value="磨"> 磨</label>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label for="content">心得</label>
-                  <textarea name="content" id="content" placeholder="請填寫心得" rows="4" required></textarea>
-                </div>
+                <input type="hidden" name="animal_id" value="">
+                <div class="form-group"><label for="age">年紀</label><input type="number" id="age" name="age" placeholder="請輸入大約年紀數字, 不可有中文字"></div>
+                <div class="form-group"><label for="looks">顏值</label><select id="looks" name="looks"><option value="">請選擇</option><option value="S級 (一見難忘)">S級 (一見難忘)</option><option value="A級 (出眾)">A級 (出眾)</option><option value="B級 (優異)">B級 (優異)</option><option value="C級 (中上)">C級 (中上)</option><option value="D級 (大眾)">D級 (大眾)</option><option value="E級 (較平凡)">E級 (較平凡)</option></select></div>
+                <div class="form-group"><label>臉蛋（最多選3個）</label><div id="faceCheckboxes" class="checkbox-group"><label><input type="checkbox" name="face" value="醫美"> 醫美</label><label><input type="checkbox" name="face" value="可愛"> 可愛</label><label><input type="checkbox" name="face" value="甜美"> 甜美</label><label><input type="checkbox" name="face" value="稚嫩"> 稚嫩</label><label><input type="checkbox" name="face" value="呆萌"> 呆萌</label><label><input type="checkbox" name="face" value="清秀"> 清秀</label><label><input type="checkbox" name="face" value="清純"> 清純</label><label><input type="checkbox" name="face" value="仙氣"> 仙氣</label><label><input type="checkbox" name="face" value="艷麗"> 艷麗</label><label><input type="checkbox" name="face" value="性感"> 性感</label><label><input type="checkbox" name="face" value="古典"> 古典</label><label><input type="checkbox" name="face" value="個性"> 個性</label><label><input type="checkbox" name="face" value="鄰家"> 鄰家</label><label><input type="checkbox" name="face" value="大眾"> 大眾</label><label><input type="checkbox" name="face" value="平凡"> 平凡</label><label><input type="checkbox" name="face" value="單眼皮"> 單眼皮</label><label><input type="checkbox" name="face" value="輕熟"> 輕熟</label><label><input type="checkbox" name="face" value="熟女"> 熟女</label></div></div>
+                <div class="form-group"><label>氣質（最多選3個）</label><div id="temperamentCheckboxes" class="checkbox-group"><label><input type="checkbox" name="temperament" value="優雅"> 優雅</label><label><input type="checkbox" name="temperament" value="成熟"> 成熟</label><label><input type="checkbox" name="temperament" value="清新"> 清新</label><label><input type="checkbox" name="temperament" value="自然"> 自然</label><label><input type="checkbox" name="temperament" value="禮貌"> 禮貌</label><label><input type="checkbox" name="temperament" value="女友感"> 女友感</label><label><input type="checkbox" name="temperament" value="女人味"> 女人味</label><label><input type="checkbox" name="temperament" value="OL"> OL</label><label><input type="checkbox" name="temperament" value="台妹"> 台妹</label><label><input type="checkbox" name="temperament" value="普通"> 普通</label></div></div>
+                <div class="form-group"><label for="physique">體態</label><select id="physique" name="physique"><option value="">請選擇體態</option><option value="骨感">骨感</option> <option value="瘦">瘦</option> <option value="瘦有肉">瘦有肉</option> <option value="標準">標準</option> <option value="曲線迷人">曲線迷人</option> <option value="瘦偏肉">瘦偏肉</option> <option value="微肉">微肉</option> <option value="棉花糖">棉花糖</option></select></div>
+                <div class="form-group"><label for="cup">罩杯</label><select id="cup" name="cup"><option value="">請選擇</option> <option value="天然">天然</option> <option value="醫美">醫美</option> <option value="自體醫美">自體醫美</option> <option value="不確定">不確定</option></select><input type="text" id="cup_size" name="cup_size" placeholder="請填寫罩杯大約大小 A~L英文字母, 不可有中文字" style="margin-top:0.5rem;" pattern="[A-Za-z]"></div>
+                <div class="form-group"><label for="skin_texture">膚質</label><select id="skin_texture" name="skin_texture"><option value="">請選擇</option> <option value="絲滑">絲滑</option> <option value="還不錯">還不錯</option> <option value="正常">正常</option> <option value="普通">普通</option></select></div>
+                <div class="form-group"><label for="skin_color">膚色</label><select id="skin_color" name="skin_color"><option value="">請選擇</option> <option value="白皙">白皙</option> <option value="偏白">偏白</option> <option value="正常黃">正常黃</option> <option value="偏黃">偏黃</option> <option value="健康黑">健康黑</option></select></div>
+                <div class="form-group"><label for="music">音樂</label><select id="music" name="music"><option value="">請選擇</option> <option value="未詢問">未詢問</option> <option value="無此服務">無此服務</option> <option value="可加值">可加值</option> <option value="自談">自談</option></select><input type="text" id="music_price" name="music_price" placeholder="請填寫大約金額或'私談'" style="display:none; margin-top:0.5rem;"></div>
+                <div class="form-group"><label for="sports">體育</label><select id="sports" name="sports"><option value="">請選擇</option> <option value="未詢問">未詢問</option> <option value="無此服務">無此服務</option> <option value="可加值">可加值</option> <option value="自談">自談</option> <option value="體含音">體含音</option></select><input type="text" id="sports_price" name="sports_price" placeholder="請填寫大約金額或'私談'" style="display:none; margin-top:0.5rem;"></div>
+                <div class="form-group"><label>尺度</label><div id="scaleCheckboxes" class="checkbox-group"><label><input type="checkbox" name="scale" value="三光"> 三光</label> <label><input type="checkbox" name="scale" value="兩光"> 兩光</label> <label><input type="checkbox" name="scale" value="LG"> LG</label> <label><input type="checkbox" name="scale" value="親"> 親</label> <label><input type="checkbox" name="scale" value="舔"> 舔</label> <label><input type="checkbox" name="scale" value="伸"> 伸</label> <label><input type="checkbox" name="scale" value="摸"> 摸</label> <label><input type="checkbox" name="scale" value="磨"> 磨</label></div></div>
+                <div class="form-group"><label for="content">心得</label><textarea name="content" id="content" placeholder="請填寫心得" rows="4" required></textarea></div>
                 <button type="submit">提交評論</button>
               </form>
            </div>
         </div>
       </div>
 
-      <!-- 待約清單 Modal -->
+      <!-- Pending List Modal -->
       <div id="pendingListModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
-           <div class="modal-header">
-             <h2>待約清單</h2>
-             <button class="close-modal" aria-label="關閉">×</button>
-           </div>
+           <div class="modal-header"><h2>待約清單</h2><button class="close-modal" aria-label="關閉">×</button></div>
            <div class="modal-body" data-layout="table">
               <section class="top-section">
-                <div class="photo-area" id="pendingPhotoArea">
-                  {% if pending_appointments and pending_appointments.0.animal.photo %}
-                    <img src="{{ pending_appointments.0.animal.photo.url }}" alt="{{ pending_appointments.0.animal.name }}">
-                  {% else %}
-                    <p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>
-                  {% endif %}
-                </div>
-                <div class="intro-area" id="pendingIntroArea">
-                  <div class="intro-top">
-                    <p id="pendingIntroductionContent">{% if pending_appointments and pending_appointments.0.animal.introduction %}{{ pending_appointments.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p>
-                  </div>
-                </div>
+                <div class="photo-area" id="pendingPhotoArea">{% if pending_appointments and pending_appointments.0.animal.photo %}<img src="{{ pending_appointments.0.animal.photo.url }}" alt="{{ pending_appointments.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
+                <div class="intro-area" id="pendingIntroArea"><div class="intro-top"><p id="pendingIntroductionContent">{% if pending_appointments and pending_appointments.0.animal.introduction %}{{ pending_appointments.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
               </section>
               <div class="table-wrapper">
-                <table class="header-table">
-                  <thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead>
-                </table>
+                <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                 <div class="body-wrapper">
                   <table class="body-table" id="pendingTable">
                     <tbody>
                       {% for appointment in pending_appointments %}
                           {% include 'partials/_animal_table_rows.html' with animal=appointment.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
                       {% empty %}
-                        <tr><td colspan="5" style="text-align:center; padding: 2rem;">待約清單是空的</td></tr>
+                        <tr class="empty-table-message"><td colspan="5">待約清單是空的</td></tr>
                       {% endfor %}
                     </tbody>
                   </table>
@@ -416,39 +258,24 @@
         </div>
       </div>
 
-      <!-- 最新心得 Modal -->
+      <!-- Latest Reviews Modal -->
       <div id="latestReviewModal" class="modal" role="dialog" aria-modal="true">
          <div class="modal-content">
-           <div class="modal-header">
-             <h2>最新心得</h2>
-             <button class="close-modal" aria-label="關閉">×</button>
-           </div>
+           <div class="modal-header"><h2>最新心得</h2><button class="close-modal" aria-label="關閉">×</button></div>
            <div class="modal-body" data-layout="table">
               <section class="top-section">
-                <div class="photo-area" id="latestPhotoArea">
-                   {% if latest_reviews and latest_reviews.0.animal.photo %}
-                    <img src="{{ latest_reviews.0.animal.photo.url }}" alt="{{ latest_reviews.0.animal.name }}">
-                   {% else %}
-                    <p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>
-                   {% endif %}
-                </div>
-                <div class="intro-area" id="latestIntroArea">
-                  <div class="intro-top">
-                    <p id="latestIntroductionContent">{% if latest_reviews and latest_reviews.0.animal.introduction %}{{ latest_reviews.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p>
-                  </div>
-                </div>
+                <div class="photo-area" id="latestPhotoArea">{% if latest_reviews and latest_reviews.0.animal.photo %}<img src="{{ latest_reviews.0.animal.photo.url }}" alt="{{ latest_reviews.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
+                <div class="intro-area" id="latestIntroArea"><div class="intro-top"><p id="latestIntroductionContent">{% if latest_reviews and latest_reviews.0.animal.introduction %}{{ latest_reviews.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
               </section>
               <div class="table-wrapper">
-                <table class="header-table">
-                  <thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead>
-                </table>
+                <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                 <div class="body-wrapper">
                   <table class="body-table" id="latestReviewTable">
                     <tbody>
                       {% for review in latest_reviews %}
                           {% include 'partials/_animal_table_rows.html' with animal=review.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
                       {% empty %}
-                        <tr><td colspan="5" style="text-align:center; padding: 2rem;">還沒有任何心得</td></tr>
+                        <tr class="empty-table-message"><td colspan="5">還沒有任何心得</td></tr>
                       {% endfor %}
                     </tbody>
                   </table>
@@ -458,66 +285,45 @@
         </div>
       </div>
 
-      <!-- 筆記 Modal (新增/查看/修改/刪除) -->
+      <!-- Note Modal (Add/View/Edit/Delete) -->
       <div id="noteModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
-          <div class="modal-header">
-            <h2 id="noteModalTitle">筆記</h2>
-            <button class="close-modal" aria-label="關閉">×</button>
-          </div>
+          <div class="modal-header"><h2 id="noteModalTitle">筆記</h2><button class="close-modal" aria-label="關閉">×</button></div>
           <div class="modal-body">
             <form id="noteForm" method="POST" style="display:none;">
               {% csrf_token %}
               <input type="hidden" id="noteAnimalId" name="animal_id" value="">
               <input type="hidden" id="currentNoteId" name="note_id" value="">
-              <div class="form-group">
-                <label for="noteContent">筆記內容</label>
-                <textarea name="content" id="noteContent" rows="5" placeholder="請輸入筆記內容" required></textarea>
-              </div>
+              <div class="form-group"><label for="noteContent">筆記內容</label><textarea name="content" id="noteContent" rows="5" placeholder="請輸入筆記內容" required></textarea></div>
               <button type="submit" id="saveNoteBtn">儲存筆記</button>
             </form>
             <div id="viewNoteSection" style="display:none;">
                <div class="note-box" id="viewNoteContent" style="margin-bottom: 1rem; border: none; background: transparent; padding: 0; white-space: pre-wrap;"></div>
                <button id="editNoteBtn" class="button-secondary">修改筆記</button>
-               <button id="deleteNoteBtn" class="button-danger" style="margin-left: 0.5rem;">刪除筆記</button>
+               <button id="deleteNoteBtn" class="button-danger" data-animal-id="" style="margin-left: 0.5rem;">刪除筆記</button> {# Added data-animal-id for delete handler #}
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 我的筆記 Modal -->
+      <!-- My Notes Modal -->
       <div id="myNotesModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
-           <div class="modal-header">
-             <h2>我的筆記</h2>
-             <button class="close-modal" aria-label="關閉">×</button>
-           </div>
+           <div class="modal-header"><h2>我的筆記</h2><button class="close-modal" aria-label="關閉">×</button></div>
            <div class="modal-body" data-layout="table">
               <section class="top-section">
-                <div class="photo-area" id="myNotesPhotoArea">
-                  {% if my_notes and my_notes.0.animal.photo %}
-                    <img src="{{ my_notes.0.animal.photo.url }}" alt="{{ my_notes.0.animal.name }}">
-                  {% else %}
-                    <p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>
-                  {% endif %}
-                </div>
-                <div class="intro-area" id="myNotesIntroArea">
-                  <div class="intro-top">
-                     <p id="myNotesIntroductionContent">{% if my_notes and my_notes.0.animal.introduction %}{{ my_notes.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p>
-                  </div>
-                </div>
+                <div class="photo-area" id="myNotesPhotoArea">{% if my_notes and my_notes.0.animal.photo %}<img src="{{ my_notes.0.animal.photo.url }}" alt="{{ my_notes.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
+                <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">{% if my_notes and my_notes.0.animal.introduction %}{{ my_notes.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
               </section>
               <div class="table-wrapper">
-                <table class="header-table">
-                 <thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead>
-                </table>
+                <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                 <div class="body-wrapper">
                   <table class="body-table" id="myNotesTable">
                     <tbody>
                       {% for note_item in my_notes %}
                           {% include 'partials/_animal_table_rows.html' with animal=note_item.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
                       {% empty %}
-                        <tr><td colspan="5" style="text-align:center; padding: 2rem;">尚無筆記</td></tr>
+                        <tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>
                       {% endfor %}
                     </tbody>
                   </table>
@@ -527,7 +333,7 @@
         </div>
       </div>
 
-      <!-- 每日班表 Modal -->
+      <!-- Daily Schedule Modal -->
       <div id="dailyScheduleModal" class="modal" role="dialog" aria-modal="true">
           <div class="modal-content">
               <div class="modal-header"> <h2>每日班表</h2> <button class="close-modal" aria-label="關閉">×</button> </div>
@@ -545,7 +351,7 @@
                       <div class="body-wrapper">
                           <table class="body-table" id="dailyAnimalTable">
                               <tbody>
-                                  <tr><td colspan="5" style="text-align:center; padding: 2rem;">請點擊上方館別載入班表</td></tr>
+                                  <tr class="empty-table-message"><td colspan="5">請點擊上方館別載入班表</td></tr>
                               </tbody>
                           </table>
                       </div>
@@ -553,7 +359,6 @@
               </div>
           </div>
       </div>
-
 
       <!-- Bottom slide-up menu & Overlay -->
       <div id="plusDropdown" class="dropdown-menu"></div>
@@ -564,77 +369,104 @@
 
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <script>
-    // --- getCookie 函數 ---
+    // --- getCookie function ---
     function getCookie(name) { let cookieValue = null; if (document.cookie && document.cookie !== '') { const cookies = document.cookie.split(';'); for (let i = 0; i < cookies.length; i++) { const cookie = cookies[i].trim(); if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; } } } return cookieValue; }
   </script>
   <script>
-    // --- 主要的 JavaScript 邏輯 ---
+    // --- Main JavaScript Logic ---
     document.addEventListener('DOMContentLoaded', function() {
       const csrfToken = getCookie('csrftoken');
       const bottomOverlay = document.getElementById('bottomOverlay');
-      const isLoggedIn = document.querySelector('.header-actions form button[type="submit"]') !== null; // Check if logout button exists
+      const isLoggedIn = document.querySelector('.header-actions form button[type="submit"]') !== null;
 
-      // --- 更新表格行的 data-* 屬性及筆記行顯示 ---
+      // --- Update data-* attributes AND note row visibility for all matching rows ---
       function updateRowsByAnimalId(animalId, updateCallback) {
         console.log(`Updating rows for animal ID: ${animalId}`);
-        const rows = document.querySelectorAll(`.body-table tr[data-animal-id="${animalId}"]:not(.note-row)`); // Select only data rows
+        const rows = document.querySelectorAll(`.body-table tr[data-animal-id="${animalId}"]:not(.note-row)`);
         rows.forEach(function(row) {
           console.log(`  Applying update to row:`, row);
-          updateCallback(row); // Apply the specific update (e.g., set data-pending)
+          updateCallback(row); // Apply the specific update (e.g., set data-pending, data-note-id)
 
-          // Find the corresponding note row (if it exists)
-          // Assuming note row always immediately follows the data row in the included template
+          // --- Handle Note Row Visibility ---
           const noteRow = row.nextElementSibling;
-          let noteRowFoundAndHandled = false;
+          const hasNoteId = row.hasAttribute('data-note-id');
+          const noteContent = row.getAttribute('data-note-content');
+
+          // Find the correct note row associated with this data row
+          let targetNoteRow = null;
           if (noteRow && noteRow.classList.contains('note-row') && noteRow.getAttribute('data-animal-id') === animalId) {
-              console.log(`  Found note row for ${animalId}:`, noteRow);
-              const noteBox = noteRow.querySelector('.note-box');
-              const currentNoteContent = row.getAttribute('data-note-content'); // Get updated note content from data row
-              if (row.hasAttribute('data-note-id') && noteBox) {
-                  console.log(`  Showing note row and setting content: ${currentNoteContent}`);
-                  noteRow.style.display = ''; // Show the note row
-                  noteBox.textContent = currentNoteContent || ''; // Update content
-              } else {
-                  console.log(`  Hiding note row because data-note-id is missing.`);
-                  noteRow.style.display = 'none'; // Hide if note was deleted
-              }
-              noteRowFoundAndHandled = true;
+              targetNoteRow = noteRow;
+          } else {
+              // Fallback: Maybe the note row isn't immediately after (less ideal structure)
+              const potentialNoteRows = document.querySelectorAll(`.note-row[data-animal-id="${animalId}"]`);
+              // Try to find one inside the same table body as the data row
+              const parentTbody = row.closest('tbody');
+              potentialNoteRows.forEach(pnr => {
+                  if (pnr.closest('tbody') === parentTbody) {
+                      targetNoteRow = pnr;
+                  }
+              });
           }
 
-          // If the data row has no note-id, ensure no note row is displayed for it
-          if (!row.hasAttribute('data-note-id') && !noteRowFoundAndHandled) {
-             // Double-check if there's a note row elsewhere (less likely with correct structure)
-             const potentialNoteRow = document.querySelector(`.note-row[data-animal-id="${animalId}"]`);
-             if (potentialNoteRow) {
-                 console.log(`  Hiding potentially orphaned note row for ${animalId}.`);
-                 potentialNoteRow.style.display = 'none';
-             }
+          if (targetNoteRow) {
+              const noteBox = targetNoteRow.querySelector('.note-box');
+              if (hasNoteId && noteBox) {
+                  console.log(`  Showing note row for ${animalId} and setting content.`);
+                  targetNoteRow.style.display = ''; // Show note row
+                  noteBox.textContent = noteContent || ''; // Update content
+              } else {
+                  console.log(`  Hiding note row for ${animalId}. Has Note ID: ${hasNoteId}`);
+                  targetNoteRow.style.display = 'none'; // Hide if no note ID or noteBox not found
+              }
+          } else if (hasNoteId) {
+              // This case means we have note data, but couldn't find the note row element.
+              // This might happen if the note was added dynamically but the row wasn't created correctly.
+              console.warn(`  Note row element not found for animal ${animalId}, but note data exists.`);
+              // Potentially try to create and insert the note row dynamically here if needed,
+              // but ideally, the row should be added along with the data row.
+          } else {
+               console.log(`  No note data and no note row found/handled for ${animalId}.`);
           }
+
         });
       }
 
-      // --- 顯示 "+" 按鈕的底部滑出菜單 ---
+      // --- Show Plus Dropdown Menu ---
       function showPlusDropdown(triggerBtn) {
-        const dropdown = document.getElementById('plusDropdown');
-        if (!dropdown) return;
-        dropdown.innerHTML = ""; // Clear previous items
+        const dropdown = document.getElementById('plusDropdown'); if (!dropdown) return;
+        dropdown.innerHTML = "";
         const row = triggerBtn.closest('tr'); if (!row) return;
-        const animalId = row.getAttribute('data-animal-id');
-        if (!animalId) return; // Need animal ID
-
+        const animalId = row.getAttribute('data-animal-id'); if (!animalId) return;
         console.log(`Showing plus dropdown for animal ID: ${animalId}`);
 
         if (isLoggedIn) {
-            // 填寫心得
+            // Submit Review Button
             const btnReview = document.createElement('button');
             btnReview.textContent = "填寫心得";
-            btnReview.addEventListener('click', (e) => {
+            btnReview.addEventListener('click', (e) => { /* ... (open review modal logic) ... */
                 const modal = document.getElementById('reviewSubmitModal');
                 if(modal){
-                    // Set animal_id in the hidden input inside the form
                     const hiddenInput = modal.querySelector('input[name="animal_id"]');
                     if (hiddenInput) hiddenInput.value = animalId;
                     else console.error("Hidden input for animal_id not found in review form");
+                    // Reset form before showing?
+                    const form = document.getElementById('reviewForm');
+                    if(form) form.reset(); // Optional: Reset form fields
+                    // Clear previous Choices.js selections if needed
+                    ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
+                        const selectElement = document.getElementById(id);
+                        if (selectElement && selectElement.choices) {
+                             selectElement.choices.setChoiceByValue(''); // Reset Choices.js fields
+                        }
+                    });
+                    // Clear checkboxes
+                    modal.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                    // Hide price inputs initially
+                    const musicPriceInput = document.getElementById('music_price');
+                    const sportsPriceInput = document.getElementById('sports_price');
+                    if(musicPriceInput) musicPriceInput.style.display = 'none';
+                    if(sportsPriceInput) sportsPriceInput.style.display = 'none';
+
                     modal.style.display = 'block';
                 }
                 closePlusDropdown();
@@ -642,18 +474,18 @@
             });
             dropdown.appendChild(btnReview);
 
-            // 加入/移除待約
+            // Add/Remove Pending Button
             const btnAddWait = document.createElement('button');
             const isPending = row.getAttribute('data-pending') === "true";
             btnAddWait.textContent = isPending ? "移除待約" : "加入待約";
             btnAddWait.addEventListener('click', (e) => {
-                togglePending(animalId, !isPending); // Pass the *new* desired state
+                togglePending(animalId, !isPending); // Pass the desired state
                 closePlusDropdown();
                 e.stopPropagation();
             });
             dropdown.appendChild(btnAddWait);
 
-            // 加入/查看/修改筆記
+            // Add/View/Edit Note Button
             const btnAddNote = document.createElement('button');
             const noteId = row.getAttribute('data-note-id');
             const noteContent = row.getAttribute('data-note-content') || '';
@@ -665,7 +497,6 @@
             });
             dropdown.appendChild(btnAddNote);
         } else {
-            // 未登入提示
             const infoText = document.createElement('span');
             infoText.textContent = "請先登入以使用功能";
             dropdown.appendChild(infoText);
@@ -674,70 +505,154 @@
         bottomOverlay.classList.add('open');
       }
 
-      // --- 關閉 "+" 按鈕的底部滑出菜單 ---
+      // --- Close Plus Dropdown Menu ---
       function closePlusDropdown() {
           const dropdown = document.getElementById('plusDropdown');
           if(dropdown) dropdown.classList.remove('open');
           if(bottomOverlay) bottomOverlay.classList.remove('open');
       }
 
-      // --- 處理待約狀態切換的 AJAX 請求 ---
-      function togglePending(animalId, shouldAdd) { // shouldAdd is the target state (true=add, false=remove)
+      // --- Helper: Process Time Slots in a Container/Element ---
+      function processTimeSlotCellsInContainer(containerElement) {
+          if (!containerElement) return;
+          // Find all time cells within the container that haven't been processed yet
+          containerElement.querySelectorAll('.time-cell:not(:has(.time-cell-inner))').forEach(td => {
+              let text = td.textContent.trim(); if (!text) return;
+              // Improved regex to handle various time formats better
+              let tokens = text.match(/(\d{1,2}:\d{2}|\d{1,2}(?:點)?(?:半)?|[\u4e00-\u9fa5A-Za-z]+)/g) || [];
+              tokens = tokens.filter(t => t.trim() !== '').map(t => `<span class="time-slot">${t}</span>`);
+              td.innerHTML = `<div class="time-cell-inner">${tokens.join('')}</div>`;
+          });
+       }
+
+      // --- Helper: Insert/Replace Row HTML into Table Body ---
+      function insertOrReplaceRow(tbody, htmlString, animalId) {
+          if (!tbody || !htmlString || !animalId) return;
+
+          // Remove existing rows (data and note) for this animal first
+          const existingRows = tbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
+          existingRows.forEach(row => row.remove());
+
+          // Use a template element to parse the HTML string
+          const template = document.createElement('template');
+          template.innerHTML = htmlString.trim();
+          const newNodes = Array.from(template.content.childNodes);
+
+          // Append the new nodes (should include data row and maybe note row)
+          newNodes.forEach(node => {
+              // Check if it's an element node before appending
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                  const addedElement = tbody.appendChild(node.cloneNode(true));
+                  // Process time slots for the newly added data row
+                  if (!addedElement.classList.contains('note-row')) {
+                      processTimeSlotCellsInContainer(addedElement);
+                  }
+                  console.log("Added/Replaced row:", addedElement);
+              }
+          });
+
+          // Remove the "empty" placeholder if it exists
+          const emptyRow = tbody.querySelector('tr.empty-table-message');
+          if (emptyRow) emptyRow.remove();
+      }
+
+       // --- Helper: Add Row HTML to Table Body (if not exists) ---
+       function addRowIfNotExists(tbody, htmlString, animalId) {
+          if (!tbody || !htmlString || !animalId) return;
+
+          // Check if data row already exists
+          if (tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`)) {
+               console.log(`Row for animal ${animalId} already exists in tbody #${tbody.closest('table').id}. Skipping add.`);
+               return false; // Indicate row was not added
+          }
+
+          // Remove the "empty" placeholder if it exists
+          const emptyRow = tbody.querySelector('tr.empty-table-message');
+          if (emptyRow) emptyRow.remove();
+
+          // Use a template element to parse the HTML string
+          const template = document.createElement('template');
+          template.innerHTML = htmlString.trim();
+          const newNodes = Array.from(template.content.childNodes);
+
+          // Append the new nodes
+          let added = false;
+          newNodes.forEach(node => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                  const addedElement = tbody.appendChild(node.cloneNode(true));
+                  // Process time slots for the newly added data row
+                  if (!addedElement.classList.contains('note-row')) {
+                      processTimeSlotCellsInContainer(addedElement);
+                  }
+                  console.log("Added new row:", addedElement);
+                  added = true;
+              }
+          });
+          return added; // Indicate if a row was added
+      }
+
+
+      // --- Toggle Pending Status ---
+      function togglePending(animalId, shouldAdd) {
         if (!isLoggedIn) { alert('請先登入'); return; }
         const url = shouldAdd ? "{% url 'add_pending' %}" : "{% url 'remove_pending' %}";
         console.log(`Toggling pending for ${animalId}. Action: ${shouldAdd ? 'Add' : 'Remove'}`);
         fetch(url, {
             method: "POST",
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/x-www-form-urlencoded', // Ensure correct content type
-                'Accept': 'application/json'
-            },
-            body: new URLSearchParams({ 'animal_id': animalId }) // Send as form data
+            headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
+            body: new URLSearchParams({ 'animal_id': animalId })
         })
-        .then(response => {
-             if (!response.ok) { // Check for HTTP errors first
-                 return response.json().then(errData => { // Try to parse error JSON from backend
-                     throw new Error(errData.error || `伺服器錯誤 ${response.status}`);
-                 }).catch(() => { // If parsing error JSON fails, throw generic HTTP error
-                     throw new Error(`伺服器錯誤 ${response.status}`);
-                 });
-             }
-             return response.json(); // Parse success JSON
-         })
+        .then(response => { if (!response.ok) { return response.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${response.status}`); }); } return response.json(); })
         .then(data => {
             console.log("Toggle Pending Response:", data);
             if (data.success) {
-                // Update the data-pending attribute on all relevant rows
+                const pendingTbody = document.getElementById('pendingTable')?.querySelector('tbody');
+
+                if (shouldAdd) { // ---- Adding ----
+                    if (pendingTbody && data.rendered_row_html) {
+                        addRowIfNotExists(pendingTbody, data.rendered_row_html, animalId);
+                    } else {
+                        console.warn("Add pending: Target tbody or rendered HTML missing.");
+                    }
+                } else { // ---- Removing ----
+                    if (pendingTbody) {
+                        const rowsToRemove = pendingTbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
+                        rowsToRemove.forEach(row => row.remove());
+                        // Check if empty and add placeholder
+                        if (pendingTbody.children.length === 0) {
+                            pendingTbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">待約清單是空的</td></tr>';
+                        }
+                    } else {
+                         console.warn("Remove pending: Target tbody missing.");
+                    }
+                }
+
+                // Update attributes on ALL potentially relevant rows everywhere AFTER DOM changes
                 updateRowsByAnimalId(animalId, (r) => {
                     r.setAttribute('data-pending', shouldAdd ? "true" : "false");
                 });
-                // Update the header count
+
+                // Update header count
                 if (data.pending_count !== undefined) {
                     updatePendingCount(data.pending_count);
                 }
-                // Optional: Show success message (e.g., using a temporary toast notification)
-                // alert(data.message || (shouldAdd ? '已加入待約' : '已移除待約'));
+                // alert(data.message); // Optional success message
+
             } else {
-                alert(data.error || '操作失敗'); // Show error from backend JSON
+                alert(data.error || '操作失敗');
             }
         })
-        .catch(error => {
-            console.error("Toggle Pending Error:", error);
-            alert(`操作待約時發生錯誤: ${error.message}`);
-        });
+        .catch(error => { console.error("Toggle Pending Error:", error); alert(`操作待約時發生錯誤: ${error.message}`); });
       }
 
-      // --- 更新頁首待約計數顯示 ---
+      // --- Update Pending Count in Header ---
       function updatePendingCount(count) {
           const pendingCountSpan = document.getElementById('pendingCountHeader');
           if (pendingCountSpan) pendingCountSpan.textContent = String(count);
-          const pendingBtn = document.getElementById('pendingListBtnHeader');
-          if(pendingBtn) pendingBtn.dataset.count = String(count); // Optional: store count in data attribute
+          // Optionally update button text or data attribute
       }
 
-      // --- 打開筆記 Modal (新增/查看/修改) ---
+      // --- Open Note Modal ---
       function openNoteModal(animalId, noteId, noteContent) {
           if (!isLoggedIn) { alert('請先登入'); return; }
           const modal = document.getElementById('noteModal');
@@ -746,137 +661,148 @@
           const title = document.getElementById('noteModalTitle');
           const textarea = document.getElementById('noteContent');
           const viewContent = document.getElementById('viewNoteContent');
-          const animalIdInput = document.getElementById('noteAnimalId'); // Hidden input for animal_id
-          const noteIdInput = document.getElementById('currentNoteId');   // Hidden input for note_id
+          const animalIdInput = document.getElementById('noteAnimalId');
+          const noteIdInput = document.getElementById('currentNoteId');
+          const deleteBtn = document.getElementById('deleteNoteBtn'); // Get delete button
 
-          if (!modal || !form || !viewSection || !title || !textarea || !viewContent || !animalIdInput || !noteIdInput) {
+          if (!modal || !form || !viewSection || !title || !textarea || !viewContent || !animalIdInput || !noteIdInput || !deleteBtn) {
               console.error("Note modal elements not found"); return;
           }
-
           console.log(`Opening note modal for animal ID: ${animalId}, Note ID: ${noteId}`);
+
           animalIdInput.value = animalId; // Set animal ID for the form
-          form.reset(); // Reset form fields
-          textarea.value = ''; // Explicitly clear textarea
+          deleteBtn.setAttribute('data-animal-id', animalId); // Set animal ID on delete button
+          form.reset();
+          textarea.value = '';
 
           if (noteId) { // Viewing/Editing existing note
               title.textContent = "查看/修改筆記";
-              noteIdInput.value = noteId; // Set note ID for potential update/delete
-              viewContent.textContent = noteContent || ''; // Display current content
-              textarea.value = noteContent || ''; // Pre-fill textarea for editing
-              viewSection.style.display = 'block'; // Show view section
-              form.style.display = 'none'; // Hide form initially
+              noteIdInput.value = noteId;
+              viewContent.textContent = noteContent || '';
+              textarea.value = noteContent || '';
+              viewSection.style.display = 'block';
+              form.style.display = 'none';
           } else { // Adding new note
               title.textContent = "加入筆記";
-              noteIdInput.value = ''; // Clear note ID
-              viewSection.style.display = 'none'; // Hide view section
-              form.style.display = 'block'; // Show form
-              textarea.focus(); // Focus on textarea
+              noteIdInput.value = '';
+              viewSection.style.display = 'none';
+              form.style.display = 'block';
+              textarea.focus();
           }
           modal.style.display = 'block';
       }
 
-      // --- 筆記表單提交 (新增/更新) ---
+      // --- Submit Note Form (Add/Update) ---
       document.getElementById('noteForm')?.addEventListener('submit', function(e) {
         e.preventDefault(); if (!isLoggedIn) return;
 
         const modal = document.getElementById('noteModal');
         const formData = new FormData(this);
         const animalId = document.getElementById('noteAnimalId').value;
-        const noteId = document.getElementById('currentNoteId').value; // Get note_id from hidden input
+        const noteId = document.getElementById('currentNoteId').value;
         const newContent = formData.get('content');
 
-        if (!newContent || newContent.trim() === '') {
-            alert('筆記內容不能為空'); return;
-        }
+        if (!newContent || newContent.trim() === '') { alert('筆記內容不能為空'); return; }
 
-        // Determine URL based on whether noteId exists
-        const url = noteId ? "{% url 'update_note' %}" : "{% url 'add_note' %}";
-        console.log(`Submitting note form. URL: ${url}, Animal ID: ${animalId}, Note ID: ${noteId}`);
-
-        // FormData already contains 'note_id' from the hidden input if noteId exists
+        // Use add_note URL for both add and update, backend handles logic
+        const url = "{% url 'add_note' %}";
+        console.log(`Submitting note form. URL: ${url}, Animal ID: ${animalId}, Note ID: ${noteId || '(New)'}`);
 
         fetch(url, {
             method: "POST",
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrfToken,
-                'Accept': 'application/json'
-            },
-            body: formData
+            headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'},
+            body: formData // Includes animal_id, content, and possibly note_id
         })
-        .then(res => {
-             if (!res.ok) { return res.json().then(err => {throw new Error(err.error || `伺服器錯誤 ${res.status}`)}) }
-             return res.json();
-        })
+        .then(res => { if (!res.ok) { return res.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${res.status}`); }); } return res.json(); })
         .then(data => {
             console.log("Save Note Response:", data);
             if (data.success) {
-                // Update rows with new note info
+                const notesTbody = document.getElementById('myNotesTable')?.querySelector('tbody');
+
+                // Add or replace the row in My Notes table
+                if (notesTbody && data.rendered_row_html) {
+                     insertOrReplaceRow(notesTbody, data.rendered_row_html, animalId);
+                     // We use insertOrReplace because even for an existing note,
+                     // the pending status or other details might have changed.
+                } else {
+                    console.warn("Save note: Target tbody or rendered HTML missing.");
+                }
+
+                // Update attributes and note row visibility everywhere
                 updateRowsByAnimalId(animalId, (r) => {
-                    r.setAttribute('data-note-id', data.note_id); // Use ID from response
-                    r.setAttribute('data-note-content', data.note_content); // Use content from response
+                    r.setAttribute('data-note-id', data.note_id);
+                    r.setAttribute('data-note-content', data.note_content);
                 });
-                modal.style.display = 'none'; // Close modal on success
-                alert(data.message || '筆記已儲存'); // Show success message
+
+                if(modal) modal.style.display = 'none';
+                alert(data.message || '筆記已儲存');
             } else {
-                alert(data.error || '儲存失敗'); // Show error from backend
+                alert(data.error || '儲存失敗');
             }
         })
-        .catch(err => {
-            console.error("Save Note Error:", err);
-            alert(`儲存筆記時發生錯誤: ${err.message}`);
-        });
+        .catch(err => { console.error("Save Note Error:", err); alert(`儲存筆記時發生錯誤: ${err.message}`); });
       });
 
-      // --- 刪除筆記按鈕 ---
+      // --- Delete Note Button ---
       document.getElementById('deleteNoteBtn')?.addEventListener('click', function() {
         if (!isLoggedIn) return;
         const modal = document.getElementById('noteModal');
-        const noteId = document.getElementById('currentNoteId').value; // Get note ID from hidden input
-        const animalId = document.getElementById('noteAnimalId').value;
+        const noteId = document.getElementById('currentNoteId').value;
+        const animalId = this.getAttribute('data-animal-id'); // Get animalId from button attribute
+
+        if (!animalId) { console.error("Delete Note: Animal ID missing from button."); return; }
 
         if (noteId && confirm("確定要刪除這條筆記嗎？")) {
           console.log(`Deleting note ID: ${noteId} for animal ID: ${animalId}`);
           const formData = new FormData();
-          formData.append('note_id', noteId); // Send note_id
+          formData.append('note_id', noteId);
 
           fetch("{% url 'delete_note' %}", {
               method: "POST",
-              headers: {
-                  'X-Requested-With': 'XMLHttpRequest',
-                  'X-CSRFToken': csrfToken,
-                  'Accept': 'application/json'
-              },
+              headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'},
               body: formData
           })
-          .then(res => {
-             if (!res.ok) { return res.json().then(err => {throw new Error(err.error || `伺服器錯誤 ${res.status}`)}) }
-             return res.json();
-          })
+          .then(res => { if (!res.ok) { return res.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${res.status}`); }); } return res.json(); })
           .then(data => {
             console.log("Delete Note Response:", data);
             if (data.success) {
-              // Update rows to remove note info
-              updateRowsByAnimalId(animalId, (r) => {
+              const notesTbody = document.getElementById('myNotesTable')?.querySelector('tbody');
+
+              // --- Option: Remove entire animal row from "My Notes" when note is deleted ---
+              if (notesTbody) {
+                    const rowsToRemove = notesTbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
+                    rowsToRemove.forEach(row => row.remove());
+                    // Check if empty and add placeholder
+                    if (notesTbody.children.length === 0) {
+                        notesTbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>';
+                    }
+               } else {
+                   console.warn("Delete Note: Target tbody #myNotesTable missing.");
+               }
+               // --- End Option ---
+
+              // Update attributes everywhere (remove note data)
+              // Need the correct animalId here, which we got from the button or response
+              const targetAnimalId = data.animal_id || animalId; // Prefer ID from response if available
+              updateRowsByAnimalId(targetAnimalId, (r) => {
                 r.removeAttribute('data-note-id');
                 r.removeAttribute('data-note-content');
+                // updateRowsByAnimalId should handle hiding the note row
               });
-              modal.style.display = 'none'; // Close modal
+
+              if(modal) modal.style.display = 'none';
               alert(data.message || '筆記已刪除');
             } else {
               alert(data.error || '刪除失敗');
             }
           })
-          .catch(err => {
-            console.error("Delete Note Error:", err);
-            alert(`刪除筆記時發生錯誤: ${err.message}`);
-          });
+          .catch(err => { console.error("Delete Note Error:", err); alert(`刪除筆記時發生錯誤: ${err.message}`); });
         } else if (!noteId) {
             console.warn("Delete button clicked but no note ID found.");
         }
       });
 
-      // --- 編輯筆記按鈕 (切換顯示 Form vs View) ---
+      // --- Edit Note Button (Switch View) ---
       document.getElementById('editNoteBtn')?.addEventListener('click', function() {
         const form = document.getElementById('noteForm');
         const viewSection = document.getElementById('viewNoteSection');
@@ -884,67 +810,52 @@
         const textarea = document.getElementById('noteContent');
         if(form && viewSection && title && textarea){
             console.log("Switching note modal to edit mode.");
-            viewSection.style.display = 'none'; // Hide view
-            form.style.display = 'block';      // Show form
-            title.textContent = "修改筆記";     // Update title
-            textarea.focus();                   // Focus textarea
+            viewSection.style.display = 'none';
+            form.style.display = 'block';
+            title.textContent = "修改筆記";
+            textarea.focus();
         }
       });
 
-      // --- 更新 Modal 內的照片/介紹區 ---
+      // --- Update Modal Photo/Intro Area ---
       function updatePhotoArea(areaElement, photoUrl, altText) {
           if (!areaElement) return;
-          areaElement.innerHTML = ''; // Clear previous content
+          areaElement.innerHTML = '';
           if (photoUrl && photoUrl !== 'None' && photoUrl !== '') {
               const img = document.createElement('img');
               img.src = photoUrl;
               img.alt = altText || '照片';
-              img.style.opacity = 0; // Start transparent for fade-in
-              img.onload = () => { img.style.opacity = 1; }; // Fade in on load
-              img.onerror = () => {
-                  console.error(`Failed to load image: ${photoUrl}`);
-                  areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">照片載入失敗</p>';
-              };
+              img.style.opacity = 0;
+              img.onload = () => { img.style.opacity = 1; };
+              img.onerror = () => { areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">照片載入失敗</p>'; };
               areaElement.appendChild(img);
           } else {
-              // Show placeholder if no photo URL
               areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">無照片</p>';
           }
       }
 
-      // --- 加載心得評論 ---
+      // --- Load Reviews ---
       function loadReviews(animalId) {
         const reviewList = document.getElementById('reviewList'); if (!reviewList) return;
         reviewList.innerHTML = '<p>載入心得中...</p>';
         console.log(`Loading reviews for animal ID: ${animalId}`);
-
-        fetch(`/add_review/?animal_id=${animalId}`, { // Use the correct URL for GETting reviews
-             method: 'GET', // Explicitly GET
-             headers: {'Accept': 'application/json'}
-        })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) throw new TypeError("伺服器未返回有效的 JSON");
-            return response.json();
-        })
+        fetch(`/add_review/?animal_id=${animalId}`, { method: 'GET', headers: {'Accept': 'application/json'} })
+        .then(response => { /* ... error/type checking ... */ if (!response.ok) throw new Error(`HTTP error ${response.status}`); const contentType = response.headers.get("content-type"); if (!contentType || !contentType.includes("application/json")) throw new TypeError("伺服器未返回有效的 JSON"); return response.json(); })
         .then(data => {
           console.log("Load Reviews Response:", data);
-          reviewList.innerHTML = ""; // Clear loading message
+          reviewList.innerHTML = "";
           if (data.reviews && data.reviews.length > 0) {
               data.reviews.forEach(review => {
                 const reviewDiv = document.createElement('div');
                 reviewDiv.className = "review-card";
-                let formattedDate = '';
-                if (review.created_at) { try { formattedDate = review.created_at; } catch (e) { console.warn("Invalid date format received:", review.created_at)} }
-
+                // (Keep the innerHTML generation as before)
                 reviewDiv.innerHTML = `
                   <div class="review-header">
                     <div class="review-user-info">
                       <span class="review-user">${review.user || '匿名'}</span>
                       <span class="review-total">總心得數：${review.totalCount || 0}</span>
                     </div>
-                    <span class="review-date">${formattedDate}</span>
+                    <span class="review-date">${review.created_at || ''}</span> {# Use formatted date from backend #}
                   </div>
                   <div class="review-body">
                     ${review.age ? `<div class="review-line"><div class="review-label">年紀</div><div class="review-value">${review.age}</div></div>` : ''}
@@ -962,108 +873,47 @@
                   </div>`;
                 reviewList.appendChild(reviewDiv);
               });
-          } else {
-              reviewList.innerHTML = '<p>目前沒有相關心得。</p>';
-          }
+          } else { reviewList.innerHTML = '<p>目前沒有相關心得。</p>'; }
         })
-        .catch(error => {
-            console.error("Load Reviews Error:", error);
-            reviewList.innerHTML = `<p>載入心得時發生錯誤: ${error.message}</p>`;
-        });
+        .catch(error => { console.error("Load Reviews Error:", error); reviewList.innerHTML = `<p>載入心得時發生錯誤: ${error.message}</p>`; });
       }
 
-      // --- 提交心得表單 ---
+      // --- Submit Review Form ---
       document.getElementById('reviewForm')?.addEventListener('submit', function(e) {
         e.preventDefault(); if (!isLoggedIn) return;
-
         const modal = document.getElementById('reviewSubmitModal');
         const animalIdInput = this.querySelector('input[name="animal_id"]');
         const animalId = animalIdInput ? animalIdInput.value : null;
-
-        if (!animalId) { alert('無法獲取美容師 ID，請重試'); console.error("Animal ID missing in review form submission."); return; }
-
+        if (!animalId) { alert('無法獲取美容師 ID，請重試'); return; }
         const formData = new FormData(this);
-
         // Frontend Validation
         if (document.querySelectorAll('#faceCheckboxes input:checked').length > 3) { alert('臉蛋最多只能選擇 3 個'); return; }
         if (document.querySelectorAll('#temperamentCheckboxes input:checked').length > 3) { alert('氣質最多只能選擇 3 個'); return; }
-        const contentValue = formData.get('content');
-        if (!contentValue || contentValue.trim() === '') {
-             alert('心得內容不能為空');
-             document.getElementById('content').focus();
-             return;
-        }
-
+        const contentValue = formData.get('content'); if (!contentValue || contentValue.trim() === '') { alert('心得內容不能為空'); return; }
         console.log(`Submitting review for animal ID: ${animalId}`);
-        fetch("{% url 'add_review' %}", {
-            method: "POST",
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrfToken,
-                'Accept': 'application/json'
-            }
-        })
-        .then(res => {
-             if (!res.ok) {
-                 return res.json().then(err => {
-                     let errorMsg = err.error || `伺服器錯誤 ${res.status}`;
-                     if (err.errors) { errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', '); }
-                     throw new Error(errorMsg);
-                 }).catch(() => { throw new Error(`伺服器錯誤 ${res.status}`); });
-             }
-             return res.json();
-         })
+        fetch("{% url 'add_review' %}", { method: "POST", body: formData, headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'} })
+        .then(res => { /* ... error handling ... */ if (!res.ok) { return res.json().then(err => { let errorMsg = err.error || `伺服器錯誤 ${res.status}`; if (err.errors) { errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', '); } throw new Error(errorMsg); }).catch(() => { throw new Error(`伺服器錯誤 ${res.status}`); }); } return res.json(); })
         .then(data => {
             console.log("Submit Review Response:", data);
             if (data.success) {
                 alert(data.message || '評論已提交，待審核');
-                modal.style.display = 'none';
-                this.reset();
-            } else {
-                 alert(data.error || '提交失敗');
-             }
+                if(modal) modal.style.display = 'none'; // Close modal on success
+                // No need to reset the form here, handled when opening the modal next time
+                // Optional: Update review count display immediately?
+                // updateRowsByAnimalId(animalId, (r) => { /* logic to potentially update count display if needed */ });
+            } else { alert(data.error || '提交失敗'); }
         })
-        .catch(err => {
-            console.error("Submit Review Error:", err);
-            alert(`提交心得時發生錯誤: ${err.message}`);
-        });
+        .catch(err => { console.error("Submit Review Error:", err); alert(`提交心得時發生錯誤: ${err.message}`); });
       });
 
-      // --- 處理表格時間格式 ---
-      function processTimeSlotCellsInContainer(container) {
-          if (!container) return;
-          container.querySelectorAll('.time-cell').forEach(td => {
-              if (td.querySelector('.time-cell-inner')) return; // Already processed
-              let text = td.textContent.trim(); if (!text) return;
-              let tokens = text.match(/(\d{1,2}:\d{2}|\d{1,2}|[a-zA-Z]+)/g) || [];
-              tokens = tokens.filter(t => t.trim() !== '').map(t => `<span class="time-slot">${t}</span>`);
-              td.innerHTML = `<div class="time-cell-inner">${tokens.join('')}</div>`;
-          });
-       }
-
-      // --- 在頁面載入時處理靜態 Modal 的時段 ---
+      // --- Process Initial Static Time Slots ---
       console.log("Processing initial time slots for static modals...");
-      const pendingTableBody = document.querySelector('#pendingTable tbody');
-      const latestReviewTableBody = document.querySelector('#latestReviewTable tbody');
-      const myNotesTableBody = document.querySelector('#myNotesTable tbody');
-
-      if (pendingTableBody) {
-          console.log("Processing #pendingTable...");
-          processTimeSlotCellsInContainer(pendingTableBody);
-      } else { console.warn("#pendingTable tbody not found."); }
-      if (latestReviewTableBody) {
-          console.log("Processing #latestReviewTable...");
-          processTimeSlotCellsInContainer(latestReviewTableBody);
-      } else { console.warn("#latestReviewTable tbody not found."); }
-      if (myNotesTableBody) {
-          console.log("Processing #myNotesTable...");
-          processTimeSlotCellsInContainer(myNotesTableBody);
-      } else { console.warn("#myNotesTable tbody not found."); }
+      document.querySelectorAll('#pendingTable tbody, #latestReviewTable tbody, #myNotesTable tbody').forEach(tbody => {
+          if(tbody) processTimeSlotCellsInContainer(tbody);
+      });
       console.log("Initial time slot processing finished.");
 
-
-      // --- Daily Schedule Modal 的 AJAX 處理 (館別切換) ---
+      // --- Daily Schedule Hall Menu Click Handler ---
       document.querySelectorAll('#dailyHallMenu a').forEach(link => {
         link.addEventListener('click', e => {
           e.preventDefault();
@@ -1074,77 +924,64 @@
           const photoArea = document.getElementById('dailyPhotoArea');
           const introP = document.getElementById('dailyIntroductionContent');
 
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem;">載入中...</td></tr>';
-          if(photoArea) updatePhotoArea(photoArea, null, ''); // Clear photo
-          if(introP) introP.textContent = '載入中...'; // Update intro text
+          tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">載入中...</td></tr>'; // Use class for styling
+          if(photoArea) updatePhotoArea(photoArea, null, '');
+          if(introP) introP.textContent = '載入中...';
 
           console.log(`Fetching daily schedule for hall_id: ${hallId}`);
-          fetch("{% url 'home' %}?hall_id=" + hallId + "&ajax=1", {
-              method: 'GET',
-              headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-          })
-            .then(response => {
-                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-                const ct = response.headers.get('content-type');
-                if (!ct || !ct.includes('application/json')) throw new TypeError('伺服器未返回 JSON');
-                return response.json();
-             })
+          fetch("{% url 'home' %}?hall_id=" + hallId + "&ajax=1", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+            .then(response => { /* ... error checking ... */ if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct || !ct.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
             .then(data => {
               console.log("Daily Schedule AJAX Response:", data);
               if (data.table_html !== undefined) {
                 tbody.innerHTML = data.table_html; // Update table content
-                processTimeSlotCellsInContainer(tbody); // Process time slots in the newly loaded table
+                // Process time slots AFTER innerHTML is set
+                processTimeSlotCellsInContainer(tbody);
 
-                // Update photo and intro based on the first animal in the response
+                // Update photo/intro based on first animal
                 if (data.first_animal && data.first_animal.name !== undefined) {
-                    console.log("Updating photo/intro with data:", data.first_animal);
                     if(photoArea) updatePhotoArea(photoArea, data.first_animal.photo_url, data.first_animal.name);
-                    if (introP) introP.textContent = data.first_animal.introduction || '無介紹'; // Provide default
-                } else {
-                    // Handle case where hall might be empty
-                    console.log("No first_animal data received, clearing photo/intro.");
+                    if (introP) introP.textContent = data.first_animal.introduction || '無介紹';
+                } else { // Handle empty hall
                     if(photoArea) updatePhotoArea(photoArea, null, '');
                     if (introP) introP.textContent = '此館別無班表資料或介紹';
+                    // Check if the table HTML itself indicates emptiness (backend should handle this)
+                    if (tbody.children.length === 0 || tbody.querySelector('.empty-table-message')) {
+                       // Already handled by backend render or innerHTML
+                    }
                 }
               } else {
-                // Handle case where backend returned an error in JSON
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">${data.error || '載入錯誤'}</td></tr>`;
-                console.log("Error or no table_html received, clearing photo/intro.");
+                tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入錯誤'}</td></tr>`;
                 if(photoArea) updatePhotoArea(photoArea, null, '');
                 if (introP) introP.textContent = '載入錯誤';
               }
             }).catch(error => {
               console.error("Daily Schedule AJAX Fetch Error:", error);
-              tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">網路錯誤: ${error.message}</td></tr>`;
-              // Clear photo/intro on error
-              console.log("AJAX fetch failed, clearing photo/intro.");
+              tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">網路錯誤: ${error.message}</td></tr>`;
               if(photoArea) updatePhotoArea(photoArea, null, '');
               if (introP) introP.textContent = '網路錯誤';
             });
         });
       });
 
-
-      // --- 全局點擊監聽器 (處理頁首按鈕觸發 Modal, Modal 關閉, 表格行點擊等) ---
+      // --- Global Click Listener ---
       document.addEventListener('click', function(e) {
         const target = e.target;
-        const targetClosest = (selector) => target.closest(selector); // Helper
+        const targetClosest = (selector) => target.closest(selector);
 
-        // 輔助函數打開 Modal
-        const openModal = (modalId) => {
+        const openModal = (modalId) => { /* ... (Keep existing openModal logic) ... */
             const modal = document.getElementById(modalId);
             if (modal) {
                 console.log(`Opening modal: #${modalId}`);
                 modal.style.display = 'block';
-                // Special handling for daily schedule initial load
                 if (modalId === 'dailyScheduleModal') {
                     const dailyModal = document.getElementById('dailyScheduleModal');
                     const tbody = dailyModal?.querySelector('#dailyAnimalTable tbody');
                     const initialLink = dailyModal?.querySelector('#dailyHallMenu a[data-hall-id="all"]');
-                    // Check if tbody contains the initial placeholder text
-                    if (tbody && initialLink && tbody.textContent.includes('請點擊上方館別載入班表')) {
+                    // Check if tbody contains the initial placeholder text (use class)
+                    if (tbody && initialLink && tbody.querySelector('.empty-table-message')?.textContent.includes('請點擊上方館別')) {
                        console.log('Triggering initial load for Daily Schedule Modal by clicking "all"');
-                       initialLink.click(); // Simulate click on "全部" to load initial data
+                       initialLink.click();
                     }
                 }
                 return true;
@@ -1152,96 +989,70 @@
             console.error(`Modal not found: #${modalId}`); return false;
         };
 
-        // 頁首按鈕
+        // Header Buttons
         if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
         if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
         if (targetClosest('#pendingListBtnHeader')) { openModal('pendingListModal'); return; }
         if (targetClosest('#myNotesBtnHeader')) { openModal('myNotesModal'); return; }
         if (targetClosest('#loginBtnHeader')) { openModal('loginModal'); return; }
 
-        // '+' 按鈕 (Plus Menu)
+        // Plus Button Click
         const plusBtn = targetClosest('.plus-menu-btn');
-        if (plusBtn) {
-            e.stopPropagation(); // Prevent row click event
-            showPlusDropdown(plusBtn);
-            return;
-        }
+        if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; }
 
-        // 心得數按鈕
+        // Review Count Button Click
         const reviewBtn = targetClosest('.review-count-btn');
         if (reviewBtn) {
-            e.stopPropagation(); // Prevent row click event
+            e.stopPropagation();
             const animalId = reviewBtn.dataset.animalId;
-            if (animalId) {
-                loadReviews(animalId);
-                openModal('reviewModal');
-            } else { console.error("Review button clicked, but no animal-id found."); }
+            if (animalId) { loadReviews(animalId); openModal('reviewModal'); }
+            else { console.error("Review button clicked, but no animal-id found."); }
             return;
         }
 
-        // Modal 內表格行點擊 (更新照片/介紹) - Exclude note rows
+        // Modal Table Row Click (Update Photo/Intro)
         const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
-        if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn')) { // Ensure click wasn't on a button within the row
+        if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn')) {
             const modal = tableRow.closest('.modal');
             if(modal){
                 let photoAreaId = null, introContentId = null;
-                switch (modal.id) {
-                    case 'dailyScheduleModal':
-                        photoAreaId = 'dailyPhotoArea';
-                        introContentId = 'dailyIntroductionContent';
-                        break;
-                    case 'pendingListModal':
-                        photoAreaId = 'pendingPhotoArea';
-                        introContentId = 'pendingIntroductionContent';
-                        break;
-                    case 'latestReviewModal':
-                        photoAreaId = 'latestPhotoArea';
-                        introContentId = 'latestIntroductionContent';
-                        break;
-                    case 'myNotesModal':
-                        photoAreaId = 'myNotesPhotoArea';
-                        introContentId = 'myNotesIntroductionContent';
-                        break;
+                switch (modal.id) { /* ... (Keep existing switch case for photo/intro IDs) ... */
+                    case 'dailyScheduleModal': photoAreaId = 'dailyPhotoArea'; introContentId = 'dailyIntroductionContent'; break;
+                    case 'pendingListModal': photoAreaId = 'pendingPhotoArea'; introContentId = 'pendingIntroductionContent'; break;
+                    case 'latestReviewModal': photoAreaId = 'latestPhotoArea'; introContentId = 'latestIntroductionContent'; break;
+                    case 'myNotesModal': photoAreaId = 'myNotesPhotoArea'; introContentId = 'myNotesIntroductionContent'; break;
                 }
-
                 if (photoAreaId && introContentId) {
                     const photoArea = document.getElementById(photoAreaId);
                     const introContent = document.getElementById(introContentId);
                     const photoUrl = tableRow.dataset.photo;
                     const introText = tableRow.dataset.intro || '無介紹';
-                    const animalName = tableRow.querySelector('.name')?.textContent || '美容師'; // Get name for alt text
-
-                    console.log(`Row clicked in modal ${modal.id}. Updating photo/intro. Photo: ${photoUrl}, Intro: ${introText}`);
+                    const animalName = tableRow.querySelector('.name')?.textContent || '美容師';
+                    console.log(`Row clicked in modal ${modal.id}. Updating photo/intro.`);
                     if(photoArea) updatePhotoArea(photoArea, photoUrl, animalName);
                     if(introContent) introContent.textContent = introText;
                 }
             }
-            return; // Row click handled
+            return;
         }
 
-        // Modal 關閉按鈕
+        // Modal Close Button
         const closeBtn = targetClosest('.close-modal');
         if (closeBtn) {
             const modal = targetClosest('.modal');
-            if(modal) {
-                console.log(`Closing modal: #${modal.id}`);
-                modal.style.display = 'none';
-            }
+            if(modal) { console.log(`Closing modal: #${modal.id}`); modal.style.display = 'none'; }
             return;
         }
 
-        // Modal 背景點擊 (關閉 Modal)
+        // Modal Background Click
         if (target.classList.contains('modal')) {
             console.log(`Closing modal via background click: #${target.id}`);
             target.style.display = 'none';
-            // Also close the bottom dropdown if it's open
-            if (document.getElementById('plusDropdown').classList.contains('open')) {
-                closePlusDropdown();
-            }
+            if (document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); }
             return;
         }
 
-        // 底部遮罩點擊 (關閉 Dropdown)
+        // Bottom Overlay Click (Close Dropdown)
         if (target === bottomOverlay && document.getElementById('plusDropdown').classList.contains('open')) {
             console.log("Closing plus dropdown via overlay click.");
             closePlusDropdown();
@@ -1250,62 +1061,63 @@
 
       }); // End global click listener
 
-
-      // --- Choices.js 初始化 ---
+      // --- Choices.js Initialization ---
       ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
           const el = document.getElementById(id);
           if (el) {
               try {
-                  // Check if Choices.js is already initialized for this element
                   if (!el.classList.contains('choices__input') && !el.hasAttribute('data-choice')) {
-                     new Choices(el, { searchEnabled: false, itemSelectText: '', allowHTML: false, shouldSort: false });
+                     // Initialize with placeholder if the first option is a placeholder
+                     const firstOptionValue = el.options[0]?.value;
+                     const placeholder = firstOptionValue === ""; // Check if first option is empty value
+                     const choicesInstance = new Choices(el, {
+                         searchEnabled: false,
+                         itemSelectText: '',
+                         allowHTML: false,
+                         shouldSort: false,
+                         placeholder: placeholder, // Enable placeholder if detected
+                         placeholderValue: placeholder ? el.options[0].text : null // Use first option text as placeholder
+                     });
+                     // Store instance if needed later, e.g., el.choices = choicesInstance;
                      console.log(`Choices.js initialized for #${id}`);
                   }
-              }
-              catch (e) { console.error(`Choices.js init error for #${id}:`, e); }
+              } catch (e) { console.error(`Choices.js init error for #${id}:`, e); }
           } else { console.warn(`Element #${id} not found for Choices.js initialization.`); }
       });
 
-      // --- 價格輸入框邏輯 ---
+
+      // --- Price Input Toggle Logic ---
       function togglePriceInput(selectId, priceInputId) {
           const sel = document.getElementById(selectId);
           const inp = document.getElementById(priceInputId);
-          if (!sel || !inp) {
-              console.warn(`Elements not found for price toggle: ${selectId}, ${priceInputId}`);
-              return;
-          }
+          if (!sel || !inp) { console.warn(`Elements not found for price toggle: ${selectId}, ${priceInputId}`); return; }
           const toggle = () => {
-              const showValues = ['可加值', '自談']; // Values that should show the price input
-              // Use the value from the original select if Choices.js is initialized
-              const selectValue = sel.hasAttribute('data-choice') ? sel.value : sel.options[sel.selectedIndex]?.value;
+              const showValues = ['可加值', '自談'];
+              // Get value correctly whether Choices.js is used or not
+              const selectValue = sel.choices ? sel.value : (sel.options[sel.selectedIndex]?.value || '');
+              // console.log(`Toggling price for ${selectId}. Selected value: ${selectValue}`); // Debugging
               if (showValues.includes(selectValue)) {
                   inp.style.display = 'block';
               } else {
                   inp.style.display = 'none';
-                  inp.value = ''; // Clear value when hidden
+                  inp.value = '';
               }
           };
-          // Ensure Choices.js instance is ready before attaching listener if applicable
-           if (sel.choices) { // Check if Choices instance exists
-              sel.addEventListener('change', toggle); // Use 'change' event, Choices forwards it
-          } else {
-               sel.addEventListener('change', toggle); // Fallback for regular select
-           }
+          // Add listener. Choices.js forwards 'change' event.
+          sel.addEventListener('change', toggle);
           toggle(); // Run on initial load
        }
       togglePriceInput('music', 'music_price');
       togglePriceInput('sports', 'sports_price');
 
-
-      // --- 登入錯誤訊息自動隱藏 ---
+      // --- Login Error Message Auto-hide ---
       const loginErrorMsg = document.getElementById('login-error-message');
       if (loginErrorMsg) {
           console.log("Login error message found, scheduling fade out.");
           setTimeout(() => {
-              loginErrorMsg.style.transition = 'opacity 0.5s ease';
-              loginErrorMsg.style.opacity = '0';
-              setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500); // Remove from layout after fade
-          }, 4000); // 4 seconds delay
+              loginErrorMsg.style.transition = 'opacity 0.5s ease'; loginErrorMsg.style.opacity = '0';
+              setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500);
+          }, 4000);
       }
 
     }); // End DOMContentLoaded
@@ -1313,3 +1125,4 @@
 
 </body>
 </html>
+```
