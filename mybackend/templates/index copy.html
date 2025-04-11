@@ -1,1652 +1,195 @@
-{% load static %}
-{% load my_filters %}
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>動物園每日展示</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
-  <style>
-    /* 全站基本設定 */
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      height: 100vh;
-      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
-      box-sizing: border-box;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-      font-size: 16px;
-      background: #ccc;
-      display: flex;
-      flex-direction: column;
-      line-height: 1.5;
-    }
-    *, *::before, *::after { box-sizing: inherit; }
-    
-    /* 右上角會員資訊 */
-    .user-info {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      background: rgba(255,255,255,0.8);
-      padding: 0.5rem 1rem;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 0.9rem;
-      white-space: nowrap;
-    }
-    .user-info form { display: inline; }
-    .user-info button {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      color: blue;
-      text-decoration: underline;
-      margin-left: 10px;
-    }
-    
-    /* 選單按鈕保持原位置 */
-    #menuBtn {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 1000;
-      padding: 0.5rem 1rem;
-      font-size: 1.5rem;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    /* 左側選單，改為 fixed 定位 */
-    #sidePanel {
-      position: fixed;
-      top: 0;
-      left: -250px;
-      width: 250px;
-      height: 100%;
-      background: #fff;
-      transition: left 0.3s ease;
-      z-index: 1150;
-      padding: 1.25rem;
-    }
-    #sidePanel.open { left: 0; }
-    #sidePanel button {
-      display: block;
-      width: 100%;
-      margin-bottom: 0.625rem;
-      padding: 0.625rem;
-      border: none;
-      background: #f8f8f8;
-      font-size: 1.125rem;
-      text-align: left;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    
-    /* 主內容區 */
-    .glass-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      align-items: stretch;
-      overflow: hidden;
-    }
-    .glass-background { display: none; }
-    .content {
-      position: relative;
-      z-index: 1;
-      background: #fff;
-      padding: 1.25rem;
-      border-radius: 15px;
-      width: 95%;
-      max-width: 500px;
-      margin: 1.25rem auto;
-      flex-grow: 1;
-      overflow: hidden;
-      animation: fadeInUp 1s forwards;
-      transform: translateZ(0);
-      will-change: opacity, transform;
-      background-clip: padding-box;
-      display: flex;
-      flex-direction: column;
-    }
-    @keyframes fadeInUp {
-      0% { opacity: 0; transform: translateY(20px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-    
-    /* 選單列 */
-    .hall-menu {
-      display: flex;
-      overflow-x: auto;
-      gap: 0.625rem;
-      background: transparent;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      padding: 0;
-      margin-bottom: 0.625rem;
-    }
-    .hall-menu a {
-      flex-shrink: 0;
-      padding: 0.5rem 0.75rem;
-      text-decoration: none;
-      color: #666;
-      background: #fff;
-      border: none;
-      border-radius: 5px;
-      white-space: nowrap;
-      transition: background 0.3s;
-      font-size: 1.05rem;
-    }
-    .hall-menu a.active,
-    .hall-menu a:hover {
-      background: #e0f7fa;
-      color: #007bff;
-      border-color: #bce8f1;
-    }
-    
-    /* 上方區：照片與介紹 */
-    .top-section {
-      display: flex;
-      align-items: stretch;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 0.625rem;
-    }
-    .photo-area {
-      flex: 0 0 50%;
-      height: 300px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-right: 1px solid #ccc;
-      background: #fff;
-      padding: 0.625rem;
-    }
-    .photo-area img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-    .intro-area {
-      flex: 0 0 50%;
-      padding: 1.25rem;
-      display: flex;
-      flex-direction: column;
-      height: 300px;
-    }
-    .intro-top {
-      flex: 1;
-      overflow-y: auto;
-    }
-    .intro-top p { margin: 0; font-size: 1rem; color: #333; white-space: pre-wrap; }
-    .page-title {
-      text-align: center;
-      margin-bottom: 0.625rem;
-      color: #666;
-      font-size: 2rem;
-    }
-    
-    /* 表格區 */
-    .table-wrapper {
-      margin-top: 0;
-      background: #fff;
-      border: none;
-      border-radius: 0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-height: 0;
-    }
-    .header-table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-      flex-shrink: 0;
-    }
-    .header-table th {
-      padding: 0.5rem 0.3rem;
-      border-bottom: 2px solid #ccc;
-      text-align: left;
-      background: #e9ecef;
-      white-space: normal;
-      word-break: break-word;
-      overflow-wrap: break-word;
-      line-height: 1;
-      vertical-align: middle;
-      font-size: 0.9rem;
-      color: #495057;
-      font-weight: bold;
-    }
-    .header-table th:nth-child(1),
-    .body-table td:nth-child(1) { width: 11%; }
-    .header-table th:nth-child(2),
-    .body-table td:nth-child(2) { width: 24%; }
-    .header-table th:nth-child(3),
-    .body-table td:nth-child(3) { width: 34%; }
-    .header-table th:nth-child(4),
-    .body-table td:nth-child(4) { width: 17%; }
-    .header-table th:nth-child(5),
-    .body-table td:nth-child(5) { width: 14%; text-align: center; }
-    
-    .body-wrapper {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      border-bottom: 1px solid #dee2e6;
-    }
-    .body-table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
-    .body-table td {
-      padding: 0.3rem 0.3rem;
-      border-top: 1px solid #dee2e6;
-      text-align: left;
-      white-space: normal;
-      word-break: break-word;
-      overflow-wrap: break-word;
-      background: #fff;
-      line-height: 1.5;
-      vertical-align: middle;
-      font-size: 1rem;
-      color: #555;
-    }
-    .body-table tr:hover { background: #f8f9fa; cursor: pointer; }
-    .body-table tr.note-row td {
-      border-top: none;
-    }
-    /* 修改 .time-slot 設定，保持 token 不被斷行 */
-    .time-slot {
-      display: inline-block;
-      white-space: nowrap;
-      margin-right: 0.1em;
-      break-inside: avoid;
-      word-break: keep-all;
-    }
-    /* 新增：包覆 .time-slot 的容器，利用 Flex 換行 */
-    .time-cell-inner {
-      display: flex;
-      flex-wrap: wrap;
-      row-gap: 0.1em;    /* 調小垂直間距 */
-      column-gap: 0.1em; /* 水平間距可依需求設定 */
-    }
-    
-    /* 費用欄位定位 */
-    .fee-cell .hall-name {
-      display: block;
-      font-size: 0.9rem;
-      color: #888;
-      margin-top: 0.25rem;
-    }
-    
-    /* 美容師資料格式 */
-    .beautician-cell {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: flex-start;
-      gap: 0.3rem;
-    }
-    .beautician-text .name-container .name {
-      font-size: 1rem;
-      color: #333;
-      word-break: break-all;
-    }
-    .beautician-text .size-container .size {
-      font-size: 0.95rem;
-      color: #999;
-      white-space: nowrap;
-    }
-    
-    /* review 按鈕樣式 */
-    .review-count-btn {
-      border: 1px solid #ccc;
-      background: #f0f0f0;
-      border-radius: 12px;
-      padding: 0.25rem 0.4rem;
-      font-size: 0.9rem;
-      cursor: pointer;
-      width: 100%;
-      text-align: center;
-    }
-    .review-count-btn:hover {
-      background: #e0f0f0;
-    }
-    
-    .circle-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 1px solid #ccc;
-      background-color: #fff;
-      font-size: 1.1rem;
-      line-height: 1;
-      color: #888;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background-color 0.2s, color 0.2s;
-    }
-    .circle-btn:hover {
-      background-color: #f0f0f0;
-      color: #555;
-    }
-    
-    /* + 下拉選單設定 */
-    .dropdown-menu {
-      position: fixed;
-      left: 0;
-      bottom: -100%;
-      width: 100%;
-      background: #fff;
-      border-top: 1px solid #ccc;
-      border-radius: 10px 10px 0 0;
-      box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
-      z-index: 3500;
-      padding: 1rem;
-      transition: bottom 0.3s ease;
-    }
-    .dropdown-menu.open {
-      bottom: 0;
-    }
-    .dropdown-menu button {
-      display: block;
-      width: 100%;
-      padding: 0.5rem 1rem;
-      background: none;
-      border: none;
-      text-align: left;
-      cursor: pointer;
-    }
-    .dropdown-menu button:hover { background: #f8f8f8; }
-    
-    .review-card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      background: #fafafa;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .review-header {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid #ddd;
-      margin-bottom: 1rem;
-      font-size: 1.125rem;
-      color: #333;
-    }
-    .review-user-info { display: flex; flex-direction: column; }
-    .review-user { color: #333; }
-    .review-total { font-size: 0.875rem; color: #666; }
-    .review-body p { margin: 0.3rem 0; font-size: 1rem; color: #555; }
-    .review-body p strong { color: #333; }
-    .review-line {
-      display: flex;
-      align-items: flex-start;
-      margin: 0.3rem 0;
-    }
-    .review-label { flex: 0 0 50px; font-weight: bold; }
-    .review-value {
-      flex: 1;
-      overflow-wrap: break-word;
-      word-break: break-all;
-      color: #666;
-    }
-    #reviewList p { white-space: pre-wrap; word-wrap: break-word; margin: 0.5rem 0; }
-    .label.newcomer { background: rgba(40, 167, 69, 0.15); font-size: 0.9rem; }
-    .label.hot { background: rgba(220, 53, 69, 0.15); font-size: 0.9rem; }
-    .label.exclusive { background: rgba(111, 66, 193, 0.15); font-size: 0.9rem; }
-    
-    /* 筆記顯示區 */
-    .note-box {
-      border: none;
-      background: #f9f9f9;
-      padding: 0.5rem;
-      margin-top: 0.1rem;
-      font-size: 0.9rem;
-      color: #333;
-      width: 100%;
-      text-align: left;
-    }
-    
-    /* Modal 樣式 */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 2999;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0, 0, 0, 0.4);
-    }
-    #reviewModal, #reviewSubmitModal {
-      z-index: 3000;
-    }
-    .modal-content {
-      background-color: #fff;
-      margin: 1.25rem auto;
-      padding: 1.25rem;
-      border-radius: 15px;
-      width: 95%;
-      max-width: 500px;
-      height: calc(100vh - 2.5rem);
-      display: flex;
-      flex-direction: column;
-      overflow: auto;
-      position: relative;
-      border: 1px solid rgba(0, 0, 0, 0.2);
-    }
-    .close-modal {
-      position: absolute;
-      top: 10px;
-      right: 15px;
-      font-size: 1.75rem;
-      font-weight: bold;
-      cursor: pointer;
-      color: #666;
-    }
-    .form-group { margin-bottom: 0.9375rem; }
-    .form-group label { display: block; margin-bottom: 0.3125rem; font-weight: bold; }
-    .form-group input[type="text"],
-    .form-group input[type="password"],
-    .form-group input[type="number"],
-    .form-group textarea,
-    .form-group select {
-      width: 100%;
-      padding: 0.5rem;
-      box-sizing: border-box;
-      border: 1px solid rgba(0, 0, 0, 0.2);
-      border-radius: 4px;
-    }
-    .form-group textarea { resize: vertical; }
-    input:focus,
-    textarea:focus,
-    select:focus {
-      outline: none;
-      border-color: #999;
-      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
-    }
-    button {
-      padding: 0.5rem 0.75rem;
-      border: none;
-      border-radius: 5px;
-      background: #fff;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    button:hover { background: #f8f8f8; }
-    .checkbox-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    .checkbox-group label { cursor: pointer; }
-    @media (max-width: 480px) {
-      .content { padding: 0.625rem; }
-      .photo-area, .intro-area { height: 200px; }
-      .intro-area { padding: 0.625rem; }
-    }
-    #myNotesModal .modal-content {
-      min-height: calc(100vh - 2.5rem);
-    }
-    
-    /* 左側遮罩 */
-    #leftOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.4);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      z-index: 1050;
-    }
-    #leftOverlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    
-    /* 底部遮罩 */
-    #bottomOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.4);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      z-index: 3000;
-    }
-    #bottomOverlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>標籤塗鴉樣式預覽</title>
+    <style>
+        /* --- Google Fonts Import (必須放在最前面) --- */
+        @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300&display=swap');
+
+        /* --- 基本頁面樣式 --- */
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            background-color: #f9f9f9;
+            line-height: 1.6;
+        }
+        h2 {
+            margin-top: 40px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+            color: #333;
+        }
+        .preview-container {
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* --- 塗鴉風格標籤 - 範本一 --- */
+        .style1 .labels { /* 加上 .style1 區分 */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .style1 .label {
+            font-family: 'Patrick Hand', cursive;
+            padding: 0.2em 0.6em;
+            font-size: 1rem; /* 稍微放大一點方便預覽 */
+            font-weight: normal;
+            line-height: 1.4;
+            border-radius: 8px;
+            border: 2px solid;
+            background: none;
+            text-align: center;
+            display: inline-block;
+            transform: rotate(-1deg);
+            margin: 2px;
+            transition: transform 0.2s ease-in-out; /* 添加平滑過渡 */
+        }
+
+        .style1 .label.newcomer {
+            border-color: #28a745;
+            color: #28a745;
+            transform: rotate(-1.5deg);
+        }
+
+        .style1 .label.hot {
+            border-color: #dc3545;
+            color: #dc3545;
+            transform: rotate(1deg);
+        }
+
+        .style1 .label.exclusive {
+            border-color: #6f42c1;
+            color: #6f42c1;
+            transform: rotate(-0.5deg);
+        }
+
+        .style1 .label:hover {
+            transform: scale(1.1) rotate(0deg);
+        }
+        /* --- 結束 塗鴉風格標籤 - 範本一 --- */
+
+
+        /* --- 塗鴉風格標籤 - 範本二 --- */
+        .style2 .labels { /* 加上 .style2 區分 */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem; /* 間距再大些 */
+            margin-bottom: 0.2rem;
+        }
+
+        .style2 .label {
+            font-family: 'Kalam', cursive;
+            padding: 0.3em 0.7em;
+            font-size: 0.95rem; /* 稍微放大一點方便預覽 */
+            line-height: 1.3;
+            border: none;
+            background: none;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            display: inline-block;
+            margin: 5px; /* 偽元素會佔空間，需要 margin */
+            transition: transform 0.2s ease-in-out; /* 添加平滑過渡 */
+        }
+
+        .style2 .label::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -3px;
+            right: -3px;
+            bottom: -2px;
+            background-color: currentColor;
+            border-radius: 8px 10px 9px 11px;
+            transform: rotate(-1.5deg) skewX(-3deg);
+            z-index: -1;
+            opacity: 0.15;
+            transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out; /* 添加平滑過渡 */
+        }
+
+        /* 讓文字顏色本身也是對應的彩色 */
+        .style2 .label.newcomer {
+            color: #1e7e34;
+        }
+        .style2 .label.newcomer::before {
+             transform: rotate(-2deg) skewX(-4deg);
+             border-radius: 10px 8px 11px 9px;
+        }
+
+        .style2 .label.hot {
+            color: #dc3545;
+        }
+        .style2 .label.hot::before {
+             transform: rotate(1deg) skewX(2deg);
+             border-radius: 9px 11px 8px 10px;
+             opacity: 0.2;
+        }
+
+        .style2 .label.exclusive {
+            color: #6f42c1;
+        }
+        .style2 .label.exclusive::before {
+             transform: rotate(-1deg) skewX(-2deg);
+             border-radius: 11px 9px 10px 8px;
+        }
+
+        /* 如果想讓文字顏色固定為深色 (可選) */
+        /*
+        .style2 .label span {
+             color: #333;
+        }
+        */
+
+        .style2 .label:hover::before {
+            transform: rotate(0deg) skewX(0deg) scale(1.05);
+            opacity: 0.3;
+        }
+        .style2 .label:hover {
+            transform: scale(1.02);
+        }
+        /* --- 結束 塗鴉風格標籤 - 範本二 --- */
+
+    </style>
 </head>
 <body>
-  {% if user.is_authenticated %}
-  <div class="user-info">
-    <span>登入中：{{ user.first_name|default:user.username }}</span>
-    <form action="{% url 'logout' %}" method="post">
-      {% csrf_token %}
-      <button type="submit">登出</button>
-    </form>
-  </div>
-  {% endif %}
 
-  <!-- 左側選單，位置不變 -->
-  <div id="sidePanel">
-    <button>每日班表</button>
-    <button>每週班表</button>
-    <button id="latestReviewBtn">最新心得</button>
-    <button>找美容師</button>
-    <button>最愛清單</button>
-    <button id="pendingListBtn" data-count="{% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %}">
-      待約清單 ({% if pending_appointments %}{{ pending_appointments|length }}{% else %}0{% endif %})
-    </button>
-    <button id="myNotesBtn">我的筆記</button>
-    <button id="loginBtn">會員登入</button>
-  </div>
+    <h1>美容師標籤 - 塗鴉樣式預覽</h1>
 
-  <div class="glass-overlay">
-    <div class="glass-background"></div>
-    <div class="content">
-      <button id="menuBtn" aria-label="打開選單">≡</button>
-      <div class="page-title">每日班表</div>
-      <section class="top-section">
-        <div class="photo-area" id="photoArea">
-          {% if animals|length > 0 and animals.0.photo %}
-            <img src="{{ animals.0.photo.url }}" alt="{{ animals.0.name }}">
-          {% endif %}
+    <!-- 範本一 -->
+    <h2>範本一：手寫字體 + 彩色邊框</h2>
+    <div class="preview-container style1">
+        <div class="labels">
+            <div class="label newcomer">新秀</div>
+            <div class="label hot">熱門</div>
+            <div class="label exclusive">專屬</div>
+            <div class="label newcomer">測試長標籤 newcomer</div>
+            <div class="label hot">短</div>
         </div>
-        <div class="intro-area" id="introArea">
-          <div class="intro-top">
-            {% if animals|length > 0 and animals.0.introduction %}
-              <p id="introductionContent">{{ animals.0.introduction }}</p>
-            {% else %}
-              <p id="introductionContent"></p>
-            {% endif %}
-          </div>
-        </div>
-      </section>
-      <nav class="hall-menu">
-        <a href="{% url 'home' %}" class="{% if not request.GET.hall_id %}active{% endif %}">全部</a>
-        {% for hall in halls %}
-          <a href="{% url 'home' %}?hall_id={{ hall.id }}" class="{% if request.GET.hall_id|stringformat:"s" == hall.id|stringformat:"s" %}active{% endif %}">
-            {{ hall.name }}
-          </a>
-        {% endfor %}
-      </nav>
-      <div class="table-wrapper">
-        <table class="header-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>美容師</th>
-              <th>時段</th>
-              <th>台費</th>
-              <th>心得</th>
-            </tr>
-          </thead>
-        </table>
-        <div class="body-wrapper">
-          <table class="body-table" id="animalTable">
-            <tbody>
-              {% for animal in animals %}
-                {% with animal_id_str=animal.id|stringformat:"s" %}
-                  {% with note=notes_by_animal|get_item:animal_id_str %}
-                    <tr data-photo="{% if animal.photo %}{{ animal.photo.url }}{% else %}{% endif %}"
-                        data-intro="{% if animal.introduction %}{{ animal.introduction }}{% else %}{% endif %}"
-                        data-animal-id="{{ animal.id }}"
-                        data-hall="{{ animal.hall.name }}"
-                        data-review-count="{{ animal.approved_review_count }}"
-                        data-pending="{% if pending_ids and animal.id|stringformat:"s" in pending_ids %}true{% else %}false{% endif %}"
-                        {% if note %}
-                          data-note-id="{{ note.id }}"
-                          data-note-content="{{ note.content }}"
-                        {% endif %}>
-                      <td>
-                        <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
-                      </td>
-                      <td>
-                        <div class="beautician-cell">
-                          <div class="labels">
-                            {% if animal.is_newcomer %}
-                              <span class="label newcomer">新人</span>
-                            {% endif %}
-                            {% if animal.is_hot %}
-                              <span class="label hot">熱門</span>
-                            {% endif %}
-                            {% if animal.is_exclusive %}
-                              <span class="label exclusive">獨家</span>
-                            {% endif %}
-                          </div>
-                          <div class="beautician-text">
-                            <div class="name-container">
-                              <span class="name">{{ animal.name }}</span>
-                            </div>
-                            <div class="size-container">
-                              <span class="size">{{ animal.size_display }}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="time-cell">{{ animal.time_slot }}</td>
-                      <td class="fee-cell">{{ animal.fee }}<span class="hall-name">{{ animal.hall.name }}</span></td>
-                      <td class="review-count-cell">
-                        <button class="review-count-btn" data-animal-id="{{ animal.id }}">{{ animal.approved_review_count }}</button>
-                      </td>
-                    </tr>
-                    {% if note %}
-                    <tr class="note-row">
-                      <td></td>
-                      <td colspan="4">
-                        <div class="note-box">
-                          {{ note.content }}
-                        </div>
-                      </td>
-                    </tr>
-                    {% endif %}
-                  {% endwith %}
-                {% endwith %}
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {% if login_error %}
-      <div style="color: red; text-align: center;">{{ login_error }}</div>
-      {% endif %}
+        <p>使用 Google Font 'Patrick Hand'，加上彩色邊框和輕微旋轉。</p>
     </div>
-  </div>
 
-  <!-- 會員登入 Modal -->
-  <div id="loginModal" class="modal" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <span class="close-modal" id="closeLoginModal" aria-label="關閉">&times;</span>
-      <h2>會員登入</h2>
-      <form id="loginForm" action="{% url 'login' %}" method="POST">
-        {% csrf_token %}
-        <div class="form-group">
-          <label for="username">帳號：</label>
-          <input type="text" id="username" name="username" placeholder="請輸入帳號">
+    <!-- 範本二 -->
+    <h2>範本二：偽元素模擬背景</h2>
+    <div class="preview-container style2">
+        <div class="labels">
+             <!-- 這裡的 span 是可選的，如果想讓文字顏色不同於背景色才需要 -->
+            <div class="label newcomer"><span>新秀</span></div>
+            <div class="label hot"><span>熱門</span></div>
+            <div class="label exclusive"><span>專屬</span></div>
+            <div class="label newcomer"><span>測試長標籤 newcomer</span></div>
+            <div class="label hot"><span>短</span></div>
         </div>
-        <div class="form-group">
-          <label for="password">密碼：</label>
-          <input type="password" id="password" name="password" placeholder="請輸入密碼">
-        </div>
-        <button type="submit">登入</button>
-      </form>
+         <p>使用 Google Font 'Kalam'，利用 <code>::before</code> 偽元素創建不規則、有透明度的背景色塊，並加上旋轉和傾斜效果。</p>
     </div>
-  </div>
 
-  <!-- 查看心得 Modal -->
-  <div id="reviewModal" class="modal" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <span class="close-modal" id="closeReviewModal" aria-label="關閉">&times;</span>
-      <h2>心得評論</h2>
-      <div id="reviewList"></div>
-    </div>
-  </div>
-
-  <!-- 填寫心得 Modal -->
-  <div id="reviewSubmitModal" class="modal" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <span class="close-modal" id="closeReviewSubmitModal" aria-label="關閉">&times;</span>
-      <h2>填寫心得</h2>
-      <form id="reviewForm">
-        {% csrf_token %}
-        <div class="form-group">
-          <label for="age">年紀</label>
-          <input type="number" id="age" name="age" placeholder="請輸入大約年紀數字, 不可有中文字">
-        </div>
-        <div class="form-group">
-          <label for="looks">顏值</label>
-          <select id="looks" name="looks">
-            <option value="">請選擇</option>
-            <option value="S級 (一見難忘)">S級 (一見難忘)</option>
-            <option value="A級 (出眾)">A級 (出眾)</option>
-            <option value="B級 (優異)">B級 (優異)</option>
-            <option value="C級 (中上)">C級 (中上)</option>
-            <option value="D級 (大眾)">D級 (大眾)</option>
-            <option value="E級 (較平凡)">E級 (較平凡)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>臉蛋（最多選3個）</label>
-          <div id="faceCheckboxes" class="checkbox-group">
-            <label><input type="checkbox" name="face" value="醫美"> 醫美</label>
-            <label><input type="checkbox" name="face" value="可愛"> 可愛</label>
-            <label><input type="checkbox" name="face" value="甜美"> 甜美</label>
-            <label><input type="checkbox" name="face" value="稚嫩"> 稚嫩</label>
-            <label><input type="checkbox" name="face" value="呆萌"> 呆萌</label>
-            <label><input type="checkbox" name="face" value="清秀"> 清秀</label>
-            <label><input type="checkbox" name="face" value="清純"> 清純</label>
-            <label><input type="checkbox" name="face" value="仙氣"> 仙氣</label>
-            <label><input type="checkbox" name="face" value="艷麗"> 艷麗</label>
-            <label><input type="checkbox" name="face" value="性感"> 性感</label>
-            <label><input type="checkbox" name="face" value="古典"> 古典</label>
-            <label><input type="checkbox" name="face" value="個性"> 個性</label>
-            <label><input type="checkbox" name="face" value="鄰家"> 鄰家</label>
-            <label><input type="checkbox" name="face" value="大眾"> 大眾</label>
-            <label><input type="checkbox" name="face" value="平凡"> 平凡</label>
-            <label><input type="checkbox" name="face" value="單眼皮"> 單眼皮</label>
-            <label><input type="checkbox" name="face" value="輕熟"> 輕熟</label>
-            <label><input type="checkbox" name="face" value="熟女"> 熟女</label>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>氣質（最多選3個）</label>
-          <div id="temperamentCheckboxes" class="checkbox-group">
-            <label><input type="checkbox" name="temperament" value="優雅"> 優雅</label>
-            <label><input type="checkbox" name="temperament" value="成熟"> 成熟</label>
-            <label><input type="checkbox" name="temperament" value="清新"> 清新</label>
-            <label><input type="checkbox" name="temperament" value="自然"> 自然</label>
-            <label><input type="checkbox" name="temperament" value="禮貌"> 禮貌</label>
-            <label><input type="checkbox" name="temperament" value="女友感"> 女友感</label>
-            <label><input type="checkbox" name="temperament" value="女人味"> 女人味</label>
-            <label><input type="checkbox" name="temperament" value="OL"> OL</label>
-            <label><input type="checkbox" name="temperament" value="台妹"> 台妹</label>
-            <label><input type="checkbox" name="temperament" value="普通"> 普通</label>
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="physique">體態</label>
-          <select id="physique" name="physique">
-            <option value="">請選擇體態</option>
-            <option value="骨感">骨感</option>
-            <option value="瘦">瘦</option>
-            <option value="瘦有肉">瘦有肉</option>
-            <option value="標準">標準</option>
-            <option value="曲線迷人">曲線迷人</option>
-            <option value="瘦偏肉">瘦偏肉</option>
-            <option value="微肉">微肉</option>
-            <option value="棉花糖">棉花糖</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="cup">罩杯</label>
-          <select id="cup" name="cup">
-            <option value="">請選擇</option>
-            <option value="天然">天然</option>
-            <option value="醫美">醫美</option>
-            <option value="自體醫美">自體醫美</option>
-            <option value="不確定">不確定</option>
-          </select>
-          <input type="text" id="cup_size" name="cup_size" placeholder="請填寫罩杯大約大小 A~L英文字母, 不可有中文字" style="margin-top:0.5rem;" pattern="[A-L]">
-        </div>
-        <div class="form-group">
-          <label for="skin_texture">膚質</label>
-          <select id="skin_texture" name="skin_texture">
-            <option value="">請選擇</option>
-            <option value="絲滑">絲滑</option>
-            <option value="還不錯">還不錯</option>
-            <option value="正常">正常</option>
-            <option value="普通">普通</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="skin_color">膚色</label>
-          <select id="skin_color" name="skin_color">
-            <option value="">請選擇</option>
-            <option value="白皙">白皙</option>
-            <option value="偏白">偏白</option>
-            <option value="正常黃">正常黃</option>
-            <option value="偏黃">偏黃</option>
-            <option value="健康黑">健康黑</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="music">音樂</label>
-          <select id="music" name="music">
-            <option value="">請選擇</option>
-            <option value="未詢問">未詢問</option>
-            <option value="無此服務">無此服務</option>
-            <option value="可加值">可加值 (費用待填)</option>
-            <option value="自談">可加值 (自談)</option>
-          </select>
-          <input type="number" id="music_price" name="music_price" placeholder="請填寫大約金額數字, 不可有中文字" style="display:none; margin-top:0.5rem;">
-        </div>
-        <div class="form-group">
-          <label for="sports">體育</label>
-          <select id="sports" name="sports">
-            <option value="">請選擇</option>
-            <option value="未詢問">未詢問</option>
-            <option value="無此服務">無此服務</option>
-            <option value="可加值">可加值 (費用待填)</option>
-            <option value="自談">可加值 (自談)</option>
-            <option value="體含音">體含音</option>
-          </select>
-          <input type="number" id="sports_price" name="sports_price" placeholder="請填寫大約金額數字, 不可有中文字" style="display:none; margin-top:0.5rem;">
-        </div>
-        <div class="form-group">
-          <label>尺度</label>
-          <div id="scaleCheckboxes" class="checkbox-group">
-            <label><input type="checkbox" name="scale" value="三光"> 三光</label>
-            <label><input type="checkbox" name="scale" value="兩光"> 兩光</label>
-            <label><input type="checkbox" name="scale" value="LG"> LG</label>
-            <label><input type="checkbox" name="scale" value="親"> 親</label>
-            <label><input type="checkbox" name="scale" value="舔"> 舔</label>
-            <label><input type="checkbox" name="scale" value="伸"> 伸</label>
-            <label><input type="checkbox" name="scale" value="摸"> 摸</label>
-            <label><input type="checkbox" name="scale" value="磨"> 磨</label>
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="content">心得</label>
-          <textarea name="content" id="content" placeholder="請填寫心得" rows="4" style="width:100%;"></textarea>
-        </div>
-        <button type="submit">提交評論</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- 待約清單 Modal -->
-  <div id="pendingListModal" class="modal" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <span class="close-modal" id="closePendingListModal" aria-label="關閉">&times;</span>
-      <h2>待約清單</h2>
-      <section class="top-section">
-        <div class="photo-area" id="pendingPhotoArea">
-          {% if pending_appointments and pending_appointments.0.animal.photo %}
-            <img src="{{ pending_appointments.0.animal.photo.url }}" alt="{{ pending_appointments.0.animal.name }}">
-          {% endif %}
-        </div>
-        <div class="intro-area" id="pendingIntroArea">
-          <div class="intro-top">
-            {% if pending_appointments and pending_appointments.0.animal.introduction %}
-              <p id="pendingIntroductionContent">{{ pending_appointments.0.animal.introduction }}</p>
-            {% else %}
-              <p id="pendingIntroductionContent"></p>
-            {% endif %}
-          </div>
-        </div>
-      </section>
-      <div class="table-wrapper">
-        <table class="header-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>美容師</th>
-              <th>時段</th>
-              <th>台費</th>
-              <th>心得</th>
-            </tr>
-          </thead>
-        </table>
-        <div class="body-wrapper">
-          <table class="body-table" id="pendingTable">
-            <tbody>
-              {% if pending_appointments %}
-                {% for appointment in pending_appointments %}
-                  <tr data-photo="{% if appointment.animal.photo %}{{ appointment.animal.photo.url }}{% else %}{% endif %}"
-                      data-intro="{% if appointment.animal.introduction %}{{ appointment.animal.introduction }}{% else %}{% endif %}"
-                      data-animal-id="{{ appointment.animal.id }}"
-                      data-hall="{{ appointment.animal.hall.name }}"
-                      data-review-count="{{ appointment.animal.approved_review_count }}"
-                      data-pending="true">
-                    <td>
-                      <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
-                    </td>
-                    <td>
-                      <div class="beautician-cell">
-                        <div class="labels">
-                          {% if appointment.animal.is_newcomer %}<span class="label newcomer">新人</span>{% endif %}
-                          {% if appointment.animal.is_hot %}<span class="label hot">熱門</span>{% endif %}
-                          {% if appointment.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
-                        </div>
-                        <div class="beautician-text">
-                          <div class="name-container">
-                            <span class="name">{{ appointment.animal.name }}</span>
-                          </div>
-                          <div class="size-container">
-                            <span class="size">{{ appointment.animal.size_display }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="time-cell">{{ appointment.animal.time_slot }}</td>
-                    <td class="fee-cell">{{ appointment.animal.fee }}<span class="hall-name">{{ appointment.animal.hall.name }}</span></td>
-                    <td class="review-count-cell">
-                      <button class="review-count-btn" data-animal-id="{{ appointment.animal.id }}">{{ appointment.animal.approved_review_count }}</button>
-                    </td>
-                  </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="5" style="text-align:center;"></td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 最新心得 Modal -->
-  <div id="latestReviewModal" class="modal" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <span class="close-modal" id="closeLatestReviewModal" aria-label="關閉">&times;</span>
-      <h2>最新心得</h2>
-      <section class="top-section">
-        <div class="photo-area" id="latestPhotoArea">
-          {% if latest_reviews and latest_reviews.0.animal.photo %}
-            <img src="{{ latest_reviews.0.animal.photo.url }}" alt="{{ latest_reviews.0.animal.name }}">
-          {% endif %}
-        </div>
-        <div class="intro-area" id="latestIntroArea">
-          <div class="intro-top">
-            {% if latest_reviews and latest_reviews.0.animal.introduction %}
-              <p id="latestIntroductionContent">{{ latest_reviews.0.animal.introduction }}</p>
-            {% else %}
-              <p id="latestIntroductionContent"></p>
-            {% endif %}
-          </div>
-        </div>
-      </section>
-      <div class="table-wrapper">
-        <table class="header-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>美容師</th>
-              <th>時段</th>
-              <th>台費</th>
-              <th>心得</th>
-            </tr>
-          </thead>
-        </table>
-        <div class="body-wrapper">
-          <table class="body-table" id="latestReviewTable">
-            <tbody>
-              {% if latest_reviews %}
-                {% for review in latest_reviews %}
-                  <tr data-photo="{% if review.animal.photo %}{{ review.animal.photo.url }}{% endif %}"
-                      data-intro="{% if review.animal.introduction %}{{ review.animal.introduction }}{% endif %}"
-                      data-animal-id="{{ review.animal.id }}"
-                      data-hall="{{ review.animal.hall.name }}"
-                      data-review-count="{{ review.animal.approved_review_count }}"
-                      data-pending="false">
-                    <td>
-                      <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
-                    </td>
-                    <td>
-                      <div class="beautician-cell">
-                        <div class="labels">
-                          {% if review.animal.is_newcomer %}<span class="label newcomer">新人</span>{% endif %}
-                          {% if review.animal.is_hot %}<span class="label hot">熱門</span>{% endif %}
-                          {% if review.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
-                        </div>
-                        <div class="beautician-text">
-                          <div class="name-container">
-                            <span class="name">{{ review.animal.name }}</span>
-                          </div>
-                          <div class="size-container">
-                            <span class="size">{{ review.animal.size_display }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="time-cell">{{ review.animal.time_slot }}</td>
-                    <td class="fee-cell">{{ review.animal.fee }}<span class="hall-name">{{ review.animal.hall.name }}</span></td>
-                    <td class="review-count-cell">
-                      <button class="review-count-btn" data-animal-id="{{ review.animal.id }}">{{ review.animal.approved_review_count }}</button>
-                    </td>
-                  </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="5" style="text-align:center;">無資料</td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 筆記 Modal -->
-  <div id="noteModal" class="modal" role="dialog" aria-modal="true" style="display:none;">
-    <div class="modal-content">
-      <span class="close-modal" id="closeNoteModal" aria-label="關閉">&times;</span>
-      <h2 id="noteModalTitle">加入筆記</h2>
-      <form id="noteForm" action="{% url 'add_note' %}" method="POST">
-        {% csrf_token %}
-        <input type="hidden" id="noteAnimalId" name="animal_id" value="">
-        <div id="noteFormSection">
-          <div class="form-group">
-            <textarea name="content" id="noteContent" rows="4" placeholder="請輸入筆記內容" style="width:100%;"></textarea>
-          </div>
-          <button type="submit" id="saveNoteBtn">儲存筆記</button>
-        </div>
-      </form>
-      <div id="viewNoteSection" style="display:none;">
-         <p id="viewNoteContent"></p>
-         <button id="editNoteBtn">修改筆記</button>
-         <button id="deleteNoteBtn">刪除筆記</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 我的筆記 Modal -->
-  <div id="myNotesModal" class="modal" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <span class="close-modal" id="closeMyNotesModal" aria-label="關閉">&times;</span>
-      <h2>我的筆記</h2>
-      <section class="top-section">
-        <div class="photo-area" id="myNotesPhotoArea">
-          {% if my_notes and my_notes.0.animal.photo %}
-            <img src="{{ my_notes.0.animal.photo.url }}" alt="{{ my_notes.0.animal.name }}">
-          {% endif %}
-        </div>
-        <div class="intro-area" id="myNotesIntroArea">
-          <div class="intro-top">
-            {% if my_notes and my_notes.0.animal.introduction %}
-              <p id="myNotesIntroductionContent">{{ my_notes.0.animal.introduction }}</p>
-            {% else %}
-              <p id="myNotesIntroductionContent"></p>
-            {% endif %}
-          </div>
-        </div>
-      </section>
-      <div class="table-wrapper">
-        <table class="header-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>美容師</th>
-              <th>時段</th>
-              <th>台費</th>
-              <th>心得</th>
-            </tr>
-          </thead>
-        </table>
-        <div class="body-wrapper">
-          <table class="body-table" id="myNotesTable">
-            <tbody>
-              {% if my_notes %}
-                {% for note in my_notes %}
-                  <tr data-photo="{% if note.animal.photo %}{{ note.animal.photo.url }}{% endif %}"
-                      data-intro="{% if note.animal.introduction %}{{ note.animal.introduction }}{% endif %}"
-                      data-animal-id="{{ note.animal.id }}"
-                      data-hall="{{ note.animal.hall.name }}"
-                      data-review-count="{{ note.animal.approved_review_count }}"
-                      data-pending="false">
-                    <td>
-                      <button class="circle-btn plus-menu-btn" aria-label="新增">+</button>
-                    </td>
-                    <td>
-                      <div class="beautician-cell">
-                        <div class="labels">
-                          {% if note.animal.is_newcomer %}<span class="label newcomer">新人</span>{% endif %}
-                          {% if note.animal.is_hot %}<span class="label hot">熱門</span>{% endif %}
-                          {% if note.animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
-                        </div>
-                        <div class="beautician-text">
-                          <div class="name-container">
-                            <span class="name">{{ note.animal.name }}</span>
-                          </div>
-                          <div class="size-container">
-                            <span class="size">{{ note.animal.size_display }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="time-cell">{{ note.animal.time_slot }}</td>
-                    <td class="fee-cell">{{ note.animal.fee }}<span class="hall-name">{{ note.animal.hall.name }}</span></td>
-                    <td class="review-count-cell">
-                      <button class="review-count-btn" data-animal-id="{{ note.animal.id }}">{{ note.animal.approved_review_count }}</button>
-                    </td>
-                  </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="5" style="text-align:center;">尚無筆記</td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- + 底部滑出面板 -->
-  <div id="plusDropdown" class="dropdown-menu"></div>
-  
-  <!-- 分離的遮罩：左側與底部分別使用 -->
-  <div id="leftOverlay"></div>
-  <div id="bottomOverlay"></div>
-  
-  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-  <!-- 全域 getCookie 函式 -->
-  <script>
-    function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-          const cookie = cookies[i].trim();
-          if (cookie.substring(0, name.length + 1) === (name + '=')) {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-            break;
-          }
-        }
-      }
-      return cookieValue;
-    }
-  </script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // 定義遮罩元素（分離的）
-      const leftOverlay = document.getElementById('leftOverlay');
-      const bottomOverlay = document.getElementById('bottomOverlay');
-
-      // 定義 showPlusDropdown 函式（底部滑出面板用）
-      function showPlusDropdown(triggerBtn) {
-        const dropdown = document.getElementById('plusDropdown');
-        dropdown.innerHTML = "";
-        const btnReview = document.createElement('button');
-        btnReview.textContent = "填寫心得";
-        const btnAddWait = document.createElement('button');
-        const row = triggerBtn.closest('tr');
-        const pendingAction = row.getAttribute('data-pending') === "true" ? "移除待約" : "加入待約";
-        btnAddWait.textContent = pendingAction;
-        const btnAddNote = document.createElement('button');
-        btnAddNote.textContent = row.getAttribute('data-note-id') ? "查看筆記" : "加入筆記";
-        
-        dropdown.appendChild(btnReview);
-        dropdown.appendChild(btnAddWait);
-        dropdown.appendChild(btnAddNote);
-        dropdown.classList.add('open');
-        bottomOverlay.classList.add('open');
-        
-        const animalId = row.getAttribute('data-animal-id');
-        
-        btnReview.addEventListener('click', function(e) {
-          const reviewSubmitModal = document.getElementById('reviewSubmitModal');
-          reviewSubmitModal.style.display = 'block';
-          reviewSubmitModal.setAttribute('data-animal-id', animalId);
-          dropdown.classList.remove('open');
-          bottomOverlay.classList.remove('open');
-          e.stopPropagation();
-        });
-        btnAddWait.addEventListener('click', function(e) {
-          togglePending(row);
-          dropdown.classList.remove('open');
-          bottomOverlay.classList.remove('open');
-          e.stopPropagation();
-        });
-        btnAddNote.addEventListener('click', function(e) {
-          const noteModal = document.getElementById('noteModal');
-          if (row.getAttribute('data-note-id')) {
-            document.getElementById('noteModalTitle').textContent = "查看筆記";
-            document.getElementById('viewNoteSection').style.display = 'block';
-            document.getElementById('noteFormSection').style.display = 'none';
-            document.getElementById('viewNoteContent').textContent = row.getAttribute('data-note-content');
-            noteModal.setAttribute('data-note-id', row.getAttribute('data-note-id'));
-          } else {
-            document.getElementById('noteModalTitle').textContent = "加入筆記";
-            document.getElementById('noteFormSection').style.display = 'block';
-            document.getElementById('viewNoteSection').style.display = 'none';
-            noteModal.removeAttribute('data-note-id');
-          }
-          document.getElementById('noteAnimalId').value = animalId;
-          noteModal.style.display = 'block';
-          dropdown.classList.remove('open');
-          bottomOverlay.classList.remove('open');
-          e.stopPropagation();
-        });
-      }
-      
-      // 事件委派：監聽所有 .plus-menu-btn 點擊事件
-      document.addEventListener('click', function(e) {
-        const plusBtn = e.target.closest('.plus-menu-btn');
-        if (plusBtn) {
-          e.stopPropagation();
-          showPlusDropdown(plusBtn);
-        }
-      });
-
-      // Modal 關閉按鈕事件
-      document.getElementById('closeLoginModal').addEventListener('click', function() {
-        document.getElementById('loginModal').style.display = 'none';
-      });
-      document.getElementById('closeReviewModal').addEventListener('click', function() {
-        document.getElementById('reviewModal').style.display = 'none';
-      });
-      document.getElementById('closeReviewSubmitModal').addEventListener('click', function() {
-        document.getElementById('reviewSubmitModal').style.display = 'none';
-      });
-      document.getElementById('closePendingListModal').addEventListener('click', function() {
-        document.getElementById('pendingListModal').style.display = 'none';
-      });
-      document.getElementById('closeLatestReviewModal').addEventListener('click', function() {
-        document.getElementById('latestReviewModal').style.display = 'none';
-      });
-      document.getElementById('closeNoteModal').addEventListener('click', function() {
-        document.getElementById('noteModal').style.display = 'none';
-      });
-      document.getElementById('closeMyNotesModal').addEventListener('click', function() {
-        document.getElementById('myNotesModal').style.display = 'none';
-      });
-
-      /* 左側面板內按鈕事件：不關閉側邊面板 */
-      document.getElementById('latestReviewBtn').addEventListener('click', function(e) {
-        document.getElementById('latestReviewModal').style.display = 'block';
-        e.stopPropagation();
-      });
-      document.getElementById('pendingListBtn').addEventListener('click', function(e) {
-        document.getElementById('pendingListModal').style.display = 'block';
-        e.stopPropagation();
-      });
-      document.getElementById('loginBtn').addEventListener('click', function(e) {
-        document.getElementById('loginModal').style.display = 'block';
-        e.stopPropagation();
-      });
-      document.getElementById('myNotesBtn').addEventListener('click', function(e) {
-        document.getElementById('myNotesModal').style.display = 'block';
-        e.stopPropagation();
-      });
-
-      const menuBtn = document.getElementById('menuBtn');
-      menuBtn.addEventListener('click', function() {
-        document.getElementById('sidePanel').classList.toggle('open');
-        leftOverlay.classList.toggle('open');
-      });
-      leftOverlay.addEventListener('click', function() {
-        document.getElementById('sidePanel').classList.remove('open');
-        leftOverlay.classList.remove('open');
-      });
-      bottomOverlay.addEventListener('click', function() {
-        const dropdown = document.getElementById('plusDropdown');
-        if(dropdown.classList.contains('open')) { dropdown.classList.remove('open'); }
-        bottomOverlay.classList.remove('open');
-      });
-
-      function syncTableColumnWidths() {
-        const headerTable = document.querySelector('.header-table');
-        const bodyTable = document.querySelector('.body-table');
-        const headerCells = headerTable.querySelectorAll('th');
-        const firstBodyRow = bodyTable.querySelector('tr');
-        if (!firstBodyRow) return;
-        const bodyCells = firstBodyRow.querySelectorAll('td');
-        headerCells.forEach((th, index) => {
-          const cellWidth = bodyCells[index].getBoundingClientRect().width;
-          th.style.width = cellWidth + "px";
-        });
-      }
-      
-      /* 修改：包裝 .time-slot token 至一個 flex 容器 */
-      function processTimeSlotCells() {
-        document.querySelectorAll('.time-cell').forEach(function(td) {
-          let text = td.textContent.trim();
-          let tokens = text.split('.').filter(token => token.trim() !== '');
-          tokens = tokens.map(token => '<span class="time-slot">' + token + '-</span>');
-          // 包入新的容器
-          td.innerHTML = '<div class="time-cell-inner">' + tokens.join('') + '</div>';
-        });
-      }
-      
-      function processPendingTimeCells() {
-        document.querySelectorAll('.pending-time').forEach(function(el) {
-          let text = el.textContent.trim();
-          let tokens = text.split('.').filter(token => token.trim() !== '');
-          tokens = tokens.map(token => '<span class="time-slot">' + token + '.</span>');
-          el.innerHTML = '<div class="time-cell-inner">' + tokens.join('') + '</div>';
-        });
-      }
-      
-      function addToPendingList(row) {
-        const animalId = row.getAttribute('data-animal-id');
-        fetch("{% url 'add_pending' %}", {
-          method: "POST",
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': getCookie('csrftoken'),
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: new URLSearchParams({ 'animal_id': animalId })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            location.reload();
-          } else {
-            alert(data.error);
-          }
-        });
-      }
-      
-      function togglePending(row) {
-        if (row.getAttribute('data-pending') === "true") {
-          const animalId = row.getAttribute('data-animal-id');
-          fetch("{% url 'remove_pending' %}", {
-            method: "POST",
-            headers: {
-              'X-Requested-With': 'XMLHttpRequest',
-              'X-CSRFToken': getCookie('csrftoken'),
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({ 'animal_id': animalId })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              location.reload();
-            } else {
-              alert(data.error);
-            }
-          });
-        } else {
-          addToPendingList(row);
-        }
-      }
-      
-      // 為 review-count 按鈕加入事件
-      document.querySelectorAll('.review-count-btn').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-          const animalId = this.getAttribute('data-animal-id');
-          document.getElementById('reviewModal').style.display = 'block';
-          loadReviews(animalId);
-          e.stopPropagation();
-        });
-      });
-
-      document.querySelectorAll('#animalTable tbody tr').forEach(function(row) {
-        row.addEventListener('click', function() {
-          const photoUrl = this.getAttribute('data-photo');
-          const photoArea = document.getElementById('photoArea');
-          if(photoUrl === "") {
-            photoArea.innerHTML = '';
-          } else {
-            let imgElement = photoArea.querySelector('img');
-            if(imgElement) {
-              imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.name').textContent;
-            } else {
-              photoArea.innerHTML = '';
-              imgElement = document.createElement('img');
-              imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.name').textContent;
-              photoArea.appendChild(imgElement);
-            }
-          }
-          const introText = this.getAttribute('data-intro');
-          document.getElementById('introductionContent').innerText = introText || '';
-        });
-      });
-
-      document.querySelectorAll('#pendingTable tbody tr').forEach(function(row) {
-        row.addEventListener('click', function() {
-          const photoUrl = this.getAttribute('data-photo');
-          const pendingPhotoArea = document.getElementById('pendingPhotoArea');
-          if(photoUrl === "") {
-            pendingPhotoArea.innerHTML = '';
-          } else {
-            let imgElement = pendingPhotoArea.querySelector('img');
-            if(imgElement) {
-              imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.name').textContent;
-            } else {
-              pendingPhotoArea.innerHTML = '';
-              imgElement = document.createElement('img');
-              imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.name').textContent;
-              pendingPhotoArea.appendChild(imgElement);
-            }
-          }
-          const introText = this.getAttribute('data-intro');
-          document.getElementById('pendingIntroductionContent').innerText = introText || '';
-        });
-      });
-
-      document.querySelectorAll('#latestReviewTable tbody tr').forEach(function(row) {
-        row.addEventListener('click', function() {
-          const photoUrl = this.getAttribute('data-photo');
-          const latestPhotoArea = document.getElementById('latestPhotoArea');
-          if(photoUrl === "") {
-            latestPhotoArea.innerHTML = '';
-          } else {
-            let imgElement = latestPhotoArea.querySelector('img');
-            if(imgElement) {
-              imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.name').textContent;
-            } else {
-              latestPhotoArea.innerHTML = '';
-              imgElement = document.createElement('img');
-              imgElement.src = photoUrl;
-              imgElement.alt = this.cells[1].querySelector('.name').textContent;
-              latestPhotoArea.appendChild(imgElement);
-            }
-          }
-          const introText = this.getAttribute('data-intro');
-          document.getElementById('latestIntroductionContent').innerText = introText || '';
-        });
-      });
-
-      document.getElementById('reviewForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const animalId = document.getElementById('reviewSubmitModal').getAttribute('data-animal-id');
-        const formData = new FormData(this);
-        formData.append('animal_id', animalId);
-        submitReview(animalId, formData);
-      });
-
-      document.getElementById('noteForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const noteModal = document.getElementById('noteModal');
-        const noteId = noteModal.getAttribute('data-note-id');
-        const formData = new FormData(this);
-        if(noteId) {
-          formData.append('note_id', noteId);
-          fetch("{% url 'update_note' %}", {
-            method: "POST",
-            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') },
-            body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-            if(data.success) {
-              alert(data.message);
-              document.querySelectorAll('#animalTable tbody tr').forEach(function(row) {
-                if(row.getAttribute('data-animal-id') === document.getElementById('noteAnimalId').value){
-                  row.setAttribute('data-note-content', data.note_content);
-                }
-              });
-              noteModal.style.display = 'none';
-              document.getElementById('noteForm').reset();
-            } else {
-              alert(data.error);
-            }
-          });
-        } else {
-          fetch("{% url 'add_note' %}", {
-            method: "POST",
-            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') },
-            body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-            if(data.success) {
-              alert(data.message);
-              const animalId = document.getElementById('noteAnimalId').value;
-              document.querySelectorAll('#animalTable tbody tr').forEach(function(row) {
-                if(row.getAttribute('data-animal-id') === animalId){
-                  row.setAttribute('data-note-id', data.note_id);
-                  row.setAttribute('data-note-content', document.getElementById('noteContent').value);
-                }
-              });
-              noteModal.style.display = 'none';
-              document.getElementById('noteForm').reset();
-            } else {
-              alert(data.error);
-            }
-          });
-        }
-      });
-
-      document.getElementById('deleteNoteBtn').addEventListener('click', function() {
-        const noteId = document.getElementById('noteModal').getAttribute('data-note-id');
-        if(confirm("確定要刪除筆記嗎？")) {
-          const formData = new FormData();
-          formData.append('note_id', noteId);
-          fetch("{% url 'delete_note' %}", {
-            method: "POST",
-            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') },
-            body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-            if(data.success) {
-              alert(data.message);
-              const animalId = document.getElementById('noteAnimalId').value;
-              document.querySelectorAll('#animalTable tbody tr').forEach(function(row) {
-                if(row.getAttribute('data-animal-id') === animalId){
-                  row.removeAttribute('data-note-id');
-                  row.removeAttribute('data-note-content');
-                }
-              });
-              document.getElementById('noteModal').style.display = 'none';
-            } else {
-              alert(data.error);
-            }
-          });
-        }
-      });
-
-      document.getElementById('editNoteBtn').addEventListener('click', function() {
-        document.getElementById('viewNoteSection').style.display = 'none';
-        document.getElementById('noteFormSection').style.display = 'block';
-        document.getElementById('noteContent').value = document.getElementById('viewNoteContent').textContent;
-        document.getElementById('noteModalTitle').textContent = "修改筆記";
-      });
-      
-      function loadReviews(animalId) {
-        fetch(`/add_review/?animal_id=${animalId}`)
-        .then(response => response.json())
-        .then(data => {
-          const reviewList = document.getElementById('reviewList');
-          reviewList.innerHTML = "";
-          data.reviews.forEach(review => {
-            const reviewDiv = document.createElement('div');
-            reviewDiv.className = "review-card";
-            reviewDiv.innerHTML = `
-              <div class="review-header">
-                <div class="review-user-info">
-                  <span class="review-user">${review.user || '匿名'}</span>
-                  <span class="review-total">總心得數：${review.totalCount || 0}</span>
-                </div>
-                <span class="review-date">${review.created_at || ''}</span>
-              </div>
-              <div class="review-body">
-                <div class="review-line">
-                  <div class="review-label"><strong>年紀</strong></div>
-                  <div class="review-value">${review.age || ''}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>顏值</strong></div>
-                  <div class="review-value">${review.looks || ''}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>臉蛋</strong></div>
-                  <div class="review-value">${review.face || ''}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>氣質</strong></div>
-                  <div class="review-value">${review.temperament || ''}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>體態</strong></div>
-                  <div class="review-value">${review.physique || ''}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>罩杯</strong></div>
-                  <div class="review-value">${review.cup || ''} ${review.cup_size || ''}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>膚質</strong></div>
-                  <div class="review-value">${review.skin_texture || ''}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>膚色</strong></div>
-                  <div class="review-value">${review.skin_color || ''}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>音樂</strong></div>
-                  <div class="review-value">${review.music || ''} ${review.music_price ? "(" + review.music_price + ")" : ""}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>體育</strong></div>
-                  <div class="review-value">${review.sports || ''} ${review.sports_price ? "(" + review.sports_price + ")" : ""}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>尺度</strong></div>
-                  <div class="review-value">${review.scale || ''}</div>
-                </div>
-                <div class="review-line">
-                  <div class="review-label"><strong>心得</strong></div>
-                  <div class="review-value">${review.content || ''}</div>
-                </div>
-              </div>
-            `;
-            reviewList.appendChild(reviewDiv);
-          });
-        });
-      }
-
-      function submitReview(animalId, formData) {
-        fetch("/add_review/", {
-          method: "POST",
-          body: formData,
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': getCookie('csrftoken')
-          }
-        })
-        .then(response => response.json())
-        .then(data => {
-          if(data.success) {
-            alert(data.message);
-            document.getElementById('reviewSubmitModal').style.display = 'none';
-            document.getElementById('reviewForm').reset();
-          } else {
-            alert(data.error);
-          }
-        });
-      }
-
-      window.addEventListener('resize', syncTableColumnWidths);
-      syncTableColumnWidths();
-      processTimeSlotCells();
-      processPendingTimeCells();
-    });
-  </script>
 </body>
 </html>
