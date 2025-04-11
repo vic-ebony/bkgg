@@ -65,9 +65,7 @@
         position: relative;
         box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         border: none;
-        /* --- MODIFICATION START: Add min-height --- */
-        min-height: 95%; /* 設定最小高度，例如 80% 視窗高度 (可調整) */
-        /* --- MODIFICATION END --- */
+        min-height: 95%; /* 設定最小高度 */
     }
     .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background-color: #f8f9fa;}
     .modal-header h2 { margin: 0; font-size: 1.3rem; color: #333; flex-grow: 1; margin-right: 0.5rem; }
@@ -81,7 +79,7 @@
     .modal-body .table-wrapper { margin-top: 0; background: #fff; border: none; border-radius: 0; overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0; }
     .modal-body .header-table { width: 100%; border-collapse: collapse; table-layout: fixed; flex-shrink: 0; }
     .modal-body .header-table th { padding: 0.5rem 0.3rem; border-bottom: 2px solid #ccc; text-align: left; background: #e9ecef; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; vertical-align: middle; font-size: 0.85rem; color: #495057; font-weight: bold; }
-    .modal-body .body-wrapper { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; border-bottom: 1px solid #dee2e6; } /* Body wrapper 負責內部表格滾動 */
+    .modal-body .body-wrapper { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; border-bottom: 1px solid #dee2e6; }
     .modal-body .body-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .modal-body .body-table td { padding: 0.3rem 0.3rem; border-top: 1px solid #dee2e6; text-align: left; white-space: normal; word-break: break-word; overflow-wrap: break-word; background: #fff; line-height: 1.4; vertical-align: middle; font-size: 0.95rem; color: #555; }
     .modal-body .body-table tr:not(.note-row):hover { background: #f8f9fa; cursor: pointer; }
@@ -109,7 +107,7 @@
     .modal-body .hall-menu a { flex-shrink: 0; padding: 0.5rem 0.75rem; text-decoration: none; color: #666; background: #fff; border: 1px solid #ddd; border-radius: 5px; white-space: nowrap; transition: background 0.3s, color 0.3s, border-color 0.3s; font-size: 1.0rem; }
     .modal-body .hall-menu a.active, .modal-body .hall-menu a:hover { background: #e0f7fa; color: #007bff; border-color: #bce8f1; }
 
-    /* === 新增 Header Toggle Notes Checkbox Style === */
+    /* === Header Toggle Notes Checkbox Style === */
     .modal-header .header-toggle-notes {
         margin-left: auto; padding-right: 1rem; flex-shrink: 0;
     }
@@ -118,7 +116,6 @@
         color: #555; white-space: nowrap;
     }
     .modal-header .header-toggle-notes input[type="checkbox"] { margin-right: 0.4rem; vertical-align: middle; }
-    /* === End Header Checkbox Style === */
 
     /* --- Other Element Styles --- */
     /* ... (保持你原始的其他樣式) ... */
@@ -132,7 +129,16 @@
     .note-box { border: 1px dashed #ddd; background: #f9f9f9; padding: 0.6rem; margin: 0; font-size: 0.9rem; color: #333; width: 100%; text-align: left; border-radius: 4px; white-space: pre-wrap; word-break: break-word; }
     .form-group { margin-bottom: 1rem; } .form-group label { display: block; margin-bottom: 0.4rem; font-weight: bold; font-size: 0.95rem; color: #555; } .form-group input[type="text"], .form-group input[type="password"], .form-group input[type="number"], .form-group textarea, .form-group select { width: 100%; padding: 0.6rem 0.75rem; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; } .form-group textarea { resize: vertical; min-height: 80px; } input:focus, textarea:focus, select:focus { outline: none; border-color: #80bdff; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); } .choices__inner { padding: 0.45rem 0.75rem !important; border-radius: 4px !important; border: 1px solid #ced4da !important; font-size: 1rem !important; min-height: auto !important;} .choices__list--single { padding: 0 !important; } .choices[data-type*="select-one"]:after { right: 11.5px !important; } .choices.is-focused .choices__inner, .choices.is-open .choices__inner { border-color: #80bdff !important; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important; }
     button { padding: 0.6rem 1rem; border: 1px solid #ccc; border-radius: 5px; background: #fff; color: #333; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, color 0.2s; font-size: 1rem; line-height: 1.5; } button:hover { background: #f8f8f8; border-color: #bbb; } button[type="submit"] { background-color: #007bff; border-color: #007bff; color: white; } button[type="submit"]:hover { background-color: #0056b3; border-color: #0056b3; } .button-secondary { background-color: #6c757d; border-color: #6c757d; color: white; } .button-secondary:hover { background-color: #5a6268; border-color: #545b62; } .button-danger { background-color: #dc3545; border-color: #dc3545; color: white; } .button-danger:hover { background-color: #c82333; border-color: #bd2130; }
-    .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.5rem 0.8rem; } .checkbox-group label { cursor: pointer; display: inline-flex; align-items: center; padding: 0.3rem 0.6rem; border: 1px solid #ddd; border-radius: 15px; font-size: 0.9rem; transition: background-color 0.2s, border-color 0.2s; } .checkbox-group label:hover { background-color: #f0f0f0; } .checkbox-group input[type="checkbox"] { margin-right: 0.4rem; }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.5rem 0.8rem; } .checkbox-group label { cursor: pointer; display: inline-flex; align-items: center; padding: 0.3rem 0.6rem; border: 1px solid #ddd; border-radius: 15px; font-size: 0.9rem; transition: background-color 0.2s, border-color 0.2s, opacity 0.2s; } .checkbox-group label:hover { background-color: #f0f0f0; } .checkbox-group input[type="checkbox"] { margin-right: 0.4rem; }
+
+    /* --- Style for disabled checkbox labels --- */
+    .checkbox-group label.label-disabled {
+        opacity: 0.5; /* Make it look faded */
+        cursor: not-allowed; /* Indicate it's not clickable */
+        pointer-events: none; /* Prevent hover effects etc. */
+        background-color: #eee; /* Optional: slightly different background */
+    }
+    /* --- End of disabled label style --- */
 
     /* --- Responsive Adjustments --- */
     @media (max-width: 768px) { .page-header { flex-direction: column; align-items: stretch; gap: 0.75rem; } .header-promo { display: none; } .header-actions { order: 1; justify-content: center; } .modal-header h2 { font-size: 1.1rem; } .modal-header .header-toggle-notes label { font-size: 0.8rem;} }
@@ -150,11 +156,9 @@
             max-width: none;
             margin: 0;
             border-radius: 0;
-            max-height: 100vh; /* 維持最大高度限制 */
+            max-height: 100vh;
             padding: 0;
-            /* --- MODIFICATION START: Add min-height for small screens --- */
-            min-height: 100%; /* 在小螢幕也設定最小高度 (可調整) */
-            /* --- MODIFICATION END --- */
+            min-height: 100%;
         }
         .modal-header { padding: 0.75rem 1rem; }
         .modal-header h2 { font-size: 1.1rem; }
@@ -276,11 +280,70 @@
                 <div class="form-group"><label>臉蛋（最多選3個）</label><div id="faceCheckboxes" class="checkbox-group"><label><input type="checkbox" name="face" value="醫美"> 醫美</label><label><input type="checkbox" name="face" value="可愛"> 可愛</label><label><input type="checkbox" name="face" value="甜美"> 甜美</label><label><input type="checkbox" name="face" value="稚嫩"> 稚嫩</label><label><input type="checkbox" name="face" value="呆萌"> 呆萌</label><label><input type="checkbox" name="face" value="清秀"> 清秀</label><label><input type="checkbox" name="face" value="清純"> 清純</label><label><input type="checkbox" name="face" value="仙氣"> 仙氣</label><label><input type="checkbox" name="face" value="艷麗"> 艷麗</label><label><input type="checkbox" name="face" value="性感"> 性感</label><label><input type="checkbox" name="face" value="古典"> 古典</label><label><input type="checkbox" name="face" value="個性"> 個性</label><label><input type="checkbox" name="face" value="鄰家"> 鄰家</label><label><input type="checkbox" name="face" value="大眾"> 大眾</label><label><input type="checkbox" name="face" value="平凡"> 平凡</label><label><input type="checkbox" name="face" value="單眼皮"> 單眼皮</label><label><input type="checkbox" name="face" value="輕熟"> 輕熟</label><label><input type="checkbox" name="face" value="熟女"> 熟女</label></div></div>
                 <div class="form-group"><label>氣質（最多選3個）</label><div id="temperamentCheckboxes" class="checkbox-group"><label><input type="checkbox" name="temperament" value="優雅"> 優雅</label><label><input type="checkbox" name="temperament" value="成熟"> 成熟</label><label><input type="checkbox" name="temperament" value="清新"> 清新</label><label><input type="checkbox" name="temperament" value="自然"> 自然</label><label><input type="checkbox" name="temperament" value="禮貌"> 禮貌</label><label><input type="checkbox" name="temperament" value="女友感"> 女友感</label><label><input type="checkbox" name="temperament" value="女人味"> 女人味</label><label><input type="checkbox" name="temperament" value="OL"> OL</label><label><input type="checkbox" name="temperament" value="台妹"> 台妹</label><label><input type="checkbox" name="temperament" value="普通"> 普通</label></div></div>
                 <div class="form-group"><label for="physique">體態</label><select id="physique" name="physique"><option value="">請選擇體態</option><option value="骨感">骨感</option> <option value="瘦">瘦</option> <option value="瘦有肉">瘦有肉</option> <option value="標準">標準</option> <option value="曲線迷人">曲線迷人</option> <option value="瘦偏肉">瘦偏肉</option> <option value="微肉">微肉</option> <option value="棉花糖">棉花糖</option></select></div>
-                <div class="form-group"><label for="cup">罩杯</label><select id="cup" name="cup"><option value="">請選擇</option> <option value="天然">天然</option> <option value="醫美">醫美</option> <option value="自體醫美">自體醫美</option> <option value="不確定">不確定</option></select><input type="text" id="cup_size" name="cup_size" placeholder="請填寫罩杯大約大小 A~L英文字母, 不可有中文字" style="margin-top:0.5rem;" pattern="[A-Za-z]"></div>
+                <div class="form-group">
+                    <label for="cup">罩杯類型</label>
+                    <select id="cup" name="cup">
+                        <option value="">請選擇類型</option>
+                        <option value="天然">天然</option>
+                        <option value="醫美">醫美</option>
+                        <option value="自體醫美">自體醫美</option>
+                        <option value="不確定">不確定</option>
+                    </select>
+                    <label for="cup_size" style="margin-top:0.5rem;">罩杯大小</label>
+                    <select id="cup_size" name="cup_size">
+                        <option value="">請選擇大小</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                        <option value="E">E</option>
+                        <option value="F">F</option>
+                        <option value="G">G</option>
+                        <option value="H">H</option>
+                        <option value="I">I</option>
+                        <option value="J">J</option>
+                        <option value="K">K</option>
+                        <option value="L">L</option>
+                        <option value="M">M</option>
+                        <option value="N">N</option>
+                        <option value="O">O</option>
+                        <option value="P">P</option>
+                        <option value="Q">Q</option>
+                        <option value="R">R</option>
+                        <option value="S">S</option>
+                        <option value="T">T</option>
+                        <option value="U">U</option>
+                        <option value="V">V</option>
+                        <option value="W">W</option>
+                        <option value="X">X</option>
+                        <option value="Y">Y</option>
+                        <option value="Z">Z</option>
+                    </select>
+                </div>
                 <div class="form-group"><label for="skin_texture">膚質</label><select id="skin_texture" name="skin_texture"><option value="">請選擇</option> <option value="絲滑">絲滑</option> <option value="還不錯">還不錯</option> <option value="正常">正常</option> <option value="普通">普通</option></select></div>
                 <div class="form-group"><label for="skin_color">膚色</label><select id="skin_color" name="skin_color"><option value="">請選擇</option> <option value="白皙">白皙</option> <option value="偏白">偏白</option> <option value="正常黃">正常黃</option> <option value="偏黃">偏黃</option> <option value="健康黑">健康黑</option></select></div>
-                <div class="form-group"><label for="music">音樂</label><select id="music" name="music"><option value="">請選擇</option> <option value="未詢問">未詢問</option> <option value="無此服務">無此服務</option> <option value="可加值">可加值</option> <option value="自談">自談</option></select><input type="text" id="music_price" name="music_price" placeholder="請填寫大約金額或'私談'" style="display:none; margin-top:0.5rem;"></div>
-                <div class="form-group"><label for="sports">體育</label><select id="sports" name="sports"><option value="">請選擇</option> <option value="未詢問">未詢問</option> <option value="無此服務">無此服務</option> <option value="可加值">可加值</option> <option value="自談">自談</option> <option value="體含音">體含音</option></select><input type="text" id="sports_price" name="sports_price" placeholder="請填寫大約金額或'私談'" style="display:none; margin-top:0.5rem;"></div>
+                <div class="form-group">
+                    <label for="music">音樂</label>
+                    <select id="music" name="music">
+                        <option value="">請選擇</option>
+                        <option value="未詢問">未詢問</option>
+                        <option value="無此服務">無此服務</option>
+                        <option value="可加值">可加值</option>
+                        <option value="自談">自談</option>
+                    </select>
+                    <input type="number" id="music_price" name="music_price" placeholder="請填寫大約金額(數字)" style="display:none; margin-top:0.5rem;" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="sports">體育</label>
+                    <select id="sports" name="sports">
+                        <option value="">請選擇</option>
+                        <option value="未詢問">未詢問</option>
+                        <option value="無此服務">無此服務</option>
+                        <option value="可加值">可加值</option>
+                        <option value="自談">自談</option>
+                    </select>
+                    <input type="number" id="sports_price" name="sports_price" placeholder="請填寫大約金額(數字)" style="display:none; margin-top:0.5rem;" min="0">
+                </div>
                 <div class="form-group"><label>尺度</label><div id="scaleCheckboxes" class="checkbox-group"><label><input type="checkbox" name="scale" value="三光"> 三光</label> <label><input type="checkbox" name="scale" value="兩光"> 兩光</label> <label><input type="checkbox" name="scale" value="LG"> LG</label> <label><input type="checkbox" name="scale" value="親"> 親</label> <label><input type="checkbox" name="scale" value="舔"> 舔</label> <label><input type="checkbox" name="scale" value="伸"> 伸</label> <label><input type="checkbox" name="scale" value="摸"> 摸</label> <label><input type="checkbox" name="scale" value="磨"> 磨</label></div></div>
                 <div class="form-group"><label for="content">心得</label><textarea name="content" id="content" placeholder="請填寫心得" rows="4" required></textarea></div>
                 <button type="submit">提交評論</button>
@@ -294,14 +357,12 @@
         <div class="modal-content">
            <div class="modal-header">
              <h2>待約清單</h2>
-             <!-- === Checkbox in Header === -->
              <div class="header-toggle-notes">
                  <label>
                      <input type="checkbox" class="toggle-notes-checkbox" data-table-id="pendingTable">
                      顯示筆記
                  </label>
              </div>
-             <!-- === End Checkbox === -->
              <button class="close-modal" aria-label="關閉">×</button>
            </div>
            <div class="modal-body" data-layout="table">
@@ -309,7 +370,6 @@
                 <div class="photo-area" id="pendingPhotoArea">{% if pending_appointments and pending_appointments.0.animal.photo %}<img src="{{ pending_appointments.0.animal.photo.url }}" alt="{{ pending_appointments.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
                 <div class="intro-area" id="pendingIntroArea"><div class="intro-top"><p id="pendingIntroductionContent">{% if pending_appointments and pending_appointments.0.animal.introduction %}{{ pending_appointments.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
               </section>
-              {# Removed Checkbox from body #}
               <div class="table-wrapper">
                 <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                 <div class="body-wrapper">
@@ -333,14 +393,12 @@
          <div class="modal-content">
            <div class="modal-header">
              <h2>最新心得</h2>
-             <!-- === Checkbox in Header === -->
              <div class="header-toggle-notes">
                  <label>
                      <input type="checkbox" class="toggle-notes-checkbox" data-table-id="latestReviewTable">
                      顯示筆記
                  </label>
              </div>
-             <!-- === End Checkbox === -->
              <button class="close-modal" aria-label="關閉">×</button>
            </div>
            <div class="modal-body" data-layout="table">
@@ -348,7 +406,6 @@
                 <div class="photo-area" id="latestPhotoArea">{% if latest_reviews and latest_reviews.0.animal.photo %}<img src="{{ latest_reviews.0.animal.photo.url }}" alt="{{ latest_reviews.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
                 <div class="intro-area" id="latestIntroArea"><div class="intro-top"><p id="latestIntroductionContent">{% if latest_reviews and latest_reviews.0.animal.introduction %}{{ latest_reviews.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
               </section>
-              {# Removed Checkbox from body #}
               <div class="table-wrapper">
                 <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                 <div class="body-wrapper">
@@ -396,14 +453,12 @@
         <div class="modal-content">
            <div class="modal-header">
              <h2>我的筆記</h2>
-             <!-- === Checkbox in Header === -->
              <div class="header-toggle-notes">
                  <label>
                      <input type="checkbox" class="toggle-notes-checkbox" data-table-id="myNotesTable">
                      顯示筆記
                  </label>
              </div>
-             <!-- === End Checkbox === -->
              <button class="close-modal" aria-label="關閉">×</button>
            </div>
            <div class="modal-body" data-layout="table">
@@ -411,7 +466,6 @@
                 <div class="photo-area" id="myNotesPhotoArea">{% if my_notes and my_notes.0.animal.photo %}<img src="{{ my_notes.0.animal.photo.url }}" alt="{{ my_notes.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
                 <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">{% if my_notes and my_notes.0.animal.introduction %}{{ my_notes.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
               </section>
-              {# Removed Checkbox from body #}
               <div class="table-wrapper">
                 <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                 <div class="body-wrapper">
@@ -435,14 +489,12 @@
           <div class="modal-content">
               <div class="modal-header">
                 <h2>每日班表</h2>
-                <!-- === Checkbox in Header === -->
                 <div class="header-toggle-notes">
                     <label>
                         <input type="checkbox" class="toggle-notes-checkbox" data-table-id="dailyAnimalTable">
                         顯示筆記
                     </label>
                 </div>
-                <!-- === End Checkbox === -->
                 <button class="close-modal" aria-label="關閉">×</button>
               </div>
               <div class="modal-body" data-layout="table">
@@ -454,7 +506,6 @@
                       <a href="#" data-hall-id="all" class="active">全部</a>
                       {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %}
                   </nav>
-                  {# Removed Checkbox from body #}
                   <div class="table-wrapper">
                       <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                       <div class="body-wrapper">
@@ -482,7 +533,7 @@
     function getCookie(name) { let cookieValue = null; if (document.cookie && document.cookie !== '') { const cookies = document.cookie.split(';'); for (let i = 0; i < cookies.length; i++) { const cookie = cookies[i].trim(); if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; } } } return cookieValue; }
   </script>
   <script>
-    // --- Main JavaScript Logic (Keep as provided previously) ---
+    // --- Main JavaScript Logic ---
     document.addEventListener('DOMContentLoaded', function() {
       const csrfToken = getCookie('csrftoken');
       const bottomOverlay = document.getElementById('bottomOverlay');
@@ -513,9 +564,53 @@
         if (isLoggedIn) {
             const btnReview = document.createElement('button'); btnReview.textContent = "填寫心得";
             btnReview.addEventListener('click', (e) => {
-                const modal = document.getElementById('reviewSubmitModal'); if(modal){ const hiddenInput = modal.querySelector('input[name="animal_id"]'); if (hiddenInput) hiddenInput.value = animalId; else console.error("Hidden input for animal_id not found in review form"); const form = document.getElementById('reviewForm'); if(form) form.reset(); ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => { const selectElement = document.getElementById(id); if (selectElement && selectElement.choices) { try { selectElement.choices.setChoiceByValue(''); } catch(err){} } else if (selectElement) { selectElement.selectedIndex = 0; } }); modal.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false); const musicPriceInput = document.getElementById('music_price'); if(musicPriceInput) musicPriceInput.style.display = 'none'; const sportsPriceInput = document.getElementById('sports_price'); if(sportsPriceInput) sportsPriceInput.style.display = 'none'; modal.style.display = 'block'; }
-                closePlusDropdown(); e.stopPropagation();
-            }); dropdown.appendChild(btnReview);
+                const modal = document.getElementById('reviewSubmitModal');
+                if(modal){
+                    // 1. Get elements
+                    const hiddenInput = modal.querySelector('input[name="animal_id"]');
+                    const form = document.getElementById('reviewForm');
+
+                    // 2. Set animal ID and reset form elements
+                    if (hiddenInput) hiddenInput.value = animalId;
+                    else console.error("Hidden input for animal_id not found in review form");
+
+                    if(form) form.reset(); // 重置原生表單元素 (包含 checkbox 和 新的 select)
+
+                    // Reset Choices.js selects (Looks, Physique, Cup Type, Skin, Music, Sports)
+                    // 注意：現在 cup_size 不是 Choices.js 控制的了
+                    ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
+                        const selectElement = document.getElementById(id);
+                        if (selectElement && selectElement.choices) { // Check if it's a Choices instance
+                            try { selectElement.choices.setChoiceByValue(''); } catch(err){}
+                        } else if (selectElement) {
+                            // For standard selects like the new cup_size, reset selectedIndex
+                            selectElement.selectedIndex = 0;
+                        }
+                    });
+                    // Reset price inputs visibility and value
+                    const musicPriceInput = document.getElementById('music_price');
+                    if(musicPriceInput) {
+                         musicPriceInput.style.display = 'none';
+                         musicPriceInput.value = ''; // Clear value too
+                    }
+                    const sportsPriceInput = document.getElementById('sports_price');
+                    if(sportsPriceInput) {
+                        sportsPriceInput.style.display = 'none';
+                        sportsPriceInput.value = ''; // Clear value too
+                    }
+
+                    // 3. Re-apply checkbox limit logic AFTER form reset
+                    limitCheckboxSelection('faceCheckboxes', 3);
+                    limitCheckboxSelection('temperamentCheckboxes', 3);
+
+                    // 4. Show the modal
+                    modal.style.display = 'block';
+                 }
+                closePlusDropdown();
+                e.stopPropagation();
+            });
+            dropdown.appendChild(btnReview);
+
             const btnAddWait = document.createElement('button'); const isPending = row.getAttribute('data-pending') === "true"; btnAddWait.textContent = isPending ? "移除待約" : "加入待約";
             btnAddWait.addEventListener('click', (e) => { togglePending(animalId, !isPending); closePlusDropdown(); e.stopPropagation(); }); dropdown.appendChild(btnAddWait);
             const btnAddNote = document.createElement('button'); const noteId = row.getAttribute('data-note-id'); const noteContent = row.getAttribute('data-note-content') || ''; btnAddNote.textContent = noteId ? "查看/修改筆記" : "加入筆記";
@@ -534,7 +629,6 @@
           if (!containerElement) return;
           containerElement.querySelectorAll('.time-cell:not(:has(.time-cell-inner))').forEach(td => {
               let text = td.textContent.trim(); if (!text) return;
-              // Improved regex to better handle various formats, including Chinese characters
               let tokens = text.match(/(\d{1,2}:\d{2}|\d{1,2}(?:點|時)?(?:半)?(?:-|~)?\d{1,2}(?::\d{2}|(?:點|時)?(?:半)?)?|\d{1,2}:\d{2}|\d{1,2}(?:點|時)?(?:半)?|[\u4e00-\u9fa5A-Za-z]+(?:-|~)?[\u4e00-\u9fa5A-Za-z]*)/g) || [];
               tokens = tokens.filter(t => t.trim() !== '').map(t => `<span class="time-slot">${t.trim()}</span>`);
               td.innerHTML = `<div class="time-cell-inner">${tokens.join('')}</div>`;
@@ -552,7 +646,6 @@
                   const addedElement = tbody.appendChild(node.cloneNode(true));
                   if (!addedElement.classList.contains('note-row')) { processTimeSlotCellsInContainer(addedElement); }
                   console.log("Added/Replaced row:", addedElement);
-                  // === 新增: 確保新添加的筆記行符合 Checkbox 狀態 ===
                   if (addedElement.classList.contains('note-row')) {
                      const tableId = tbody.closest('.body-table')?.id;
                      if (tableId) {
@@ -563,7 +656,6 @@
                          }
                      }
                   }
-                  // === 結束新增 ===
               }
           });
           const emptyRow = tbody.querySelector('tr.empty-table-message'); if (emptyRow && tbody.querySelector('tr:not(.empty-table-message)')) emptyRow.remove();
@@ -580,7 +672,6 @@
               if (node.nodeType === Node.ELEMENT_NODE) {
                   const addedElement = tbody.appendChild(node.cloneNode(true));
                   if (!addedElement.classList.contains('note-row')) { processTimeSlotCellsInContainer(addedElement); }
-                   // === 新增: 確保新添加的筆記行符合 Checkbox 狀態 ===
                    if (addedElement.classList.contains('note-row')) {
                      const tableId = tbody.closest('.body-table')?.id;
                      if (tableId) {
@@ -591,7 +682,6 @@
                          }
                      }
                   }
-                  // === 結束新增 ===
                   console.log("Added new row:", addedElement); added = true;
               }
           });
@@ -624,8 +714,7 @@
                 }
                 updateRowsByAnimalId(animalId, (r) => { r.setAttribute('data-pending', shouldAdd ? "true" : "false"); });
                 if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
-                // === Sync checkbox for pending list ===
-                if (pendingTbody) syncCheckboxWithNoteRows('pendingTable'); // Sync checkbox state if tbody exists
+                if (pendingTbody) syncCheckboxWithNoteRows('pendingTable');
             } else { alert(data.error || '操作失敗'); }
         })
         .catch(error => { console.error("Toggle Pending Error:", error); alert(`操作待約時發生錯誤: ${error.message}`); });
@@ -656,43 +745,35 @@
         const modal = document.getElementById('noteModal'); const formData = new FormData(this);
         const animalId = document.getElementById('noteAnimalId').value; const noteId = document.getElementById('currentNoteId').value;
         const newContent = formData.get('content'); if (!newContent || newContent.trim() === '') { alert('筆記內容不能為空'); return; }
-        const url = noteId ? "{% url 'update_note' %}" : "{% url 'add_note' %}"; // Use update_note URL if noteId exists
+        const url = noteId ? "{% url 'update_note' %}" : "{% url 'add_note' %}";
         console.log(`Submitting note form. URL: ${url}, Animal ID: ${animalId}, Note ID: ${noteId || '(New)'}`);
         fetch(url, { method: "POST", headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'}, body: formData })
         .then(res => { if (!res.ok) { return res.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${res.status}`); }); } return res.json(); })
         .then(data => {
             console.log("Save/Update Note Response:", data);
             if (data.success) {
-                const currentAnimalId = data.animal_id || animalId; // Prefer animal_id from response if available
+                const currentAnimalId = data.animal_id || animalId;
                 const tablesToUpdate = ['myNotesTable', 'pendingTable', 'latestReviewTable', 'dailyAnimalTable'];
-                // 1. Add or replace row in relevant tables
                 tablesToUpdate.forEach(tableId => {
                     const tbody = document.getElementById(tableId)?.querySelector('tbody');
                     if (tbody && data.rendered_row_html) { insertOrReplaceRow(tbody, data.rendered_row_html, currentAnimalId); }
                     else if (tbody) { console.warn(`Table body found for ${tableId} but no rendered_row_html in response.`); }
                 });
-                // 2. Update note attributes everywhere for non-note rows
                  updateRowsByAnimalId(currentAnimalId, (r) => {
-                    // Only update non-note rows' attributes here; note rows are handled by insertOrReplaceRow
                     if (!r.classList.contains('note-row')) {
                          r.setAttribute('data-note-id', data.note_id);
                          r.setAttribute('data-note-content', data.note_content);
-                         // Also update the "Add/Edit Note" button text in the dropdown if it's currently open for this animal
                          const dropdown = document.getElementById('plusDropdown');
                          if (dropdown && dropdown.classList.contains('open')) {
                               const plusBtn = document.querySelector(`.plus-menu-btn[data-animal-id="${currentAnimalId}"]`);
-                              if(plusBtn && plusBtn.closest('tr') === r) { // Check if this row triggered the dropdown
-                                   const noteBtn = dropdown.querySelector('button:last-child'); // Assuming note button is last
+                              if(plusBtn && plusBtn.closest('tr') === r) {
+                                   const noteBtn = dropdown.querySelector('button:last-child');
                                    if (noteBtn) noteBtn.textContent = "查看/修改筆記";
                               }
                          }
                     }
                  });
-                // 3. Explicitly SHOW relevant note rows (already handled by insertOrReplaceRow's logic)
-
-                // 4. Sync Checkboxes AFTER rows are potentially shown/hidden by insertOrReplaceRow
                 tablesToUpdate.forEach(tableId => syncCheckboxWithNoteRows(tableId));
-                // 5. Close modal and show message
                 if(modal) modal.style.display = 'none'; alert(data.message || '筆記已儲存');
             } else { alert(data.error || '儲存失敗'); }
         })
@@ -711,46 +792,37 @@
           .then(data => {
               console.log("Delete Note Response:", data);
               if (data.success) {
-                  const targetAnimalId = data.animal_id || animalId; // Get animal ID from response
+                  const targetAnimalId = data.animal_id || animalId;
                   const tablesToUpdate = ['myNotesTable', 'pendingTable', 'latestReviewTable', 'dailyAnimalTable'];
-                  // 1. Remove ONLY the note row(s) from tables
                   tablesToUpdate.forEach(tableId => {
                        const tbody = document.getElementById(tableId)?.querySelector('tbody');
                        if(tbody) {
                            const noteRowsToRemove = tbody.querySelectorAll(`tr.note-row[data-animal-id="${targetAnimalId}"]`);
                            noteRowsToRemove.forEach(row => row.remove());
-                           // Special handling for 'My Notes' modal: if NO main rows left, remove the animal entirely
                            if (tableId === 'myNotesTable' && !tbody.querySelector(`tr[data-animal-id="${targetAnimalId}"]:not(.note-row)`)) {
                                 const mainRowToRemove = tbody.querySelector(`tr[data-animal-id="${targetAnimalId}"]`);
                                 if(mainRowToRemove) mainRowToRemove.remove();
                            }
-                           // Check if the 'My Notes' table is now completely empty
                            if (tableId === 'myNotesTable' && tbody.children.length === 0) {
                                tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>';
                            }
                        }
                    });
-                  // 2. Update attributes on NON-note rows everywhere
                    updateRowsByAnimalId(targetAnimalId, (r) => {
                       if (!r.classList.contains('note-row')) {
                            r.removeAttribute('data-note-id');
                            r.removeAttribute('data-note-content');
-                            // Update "Add/Edit Note" button text in dropdown if open
                             const dropdown = document.getElementById('plusDropdown');
                              if (dropdown && dropdown.classList.contains('open')) {
                                  const plusBtn = document.querySelector(`.plus-menu-btn[data-animal-id="${targetAnimalId}"]`);
                                  if(plusBtn && plusBtn.closest('tr') === r) {
-                                     const noteBtn = dropdown.querySelector('button:last-child'); // Assuming note button is last
+                                     const noteBtn = dropdown.querySelector('button:last-child');
                                      if (noteBtn) noteBtn.textContent = "加入筆記";
                                  }
                              }
                       }
                    });
-                  // 3. Explicitly HIDE relevant note rows (already handled by removal)
-
-                  // 4. Sync Checkboxes AFTER rows are removed/hidden
                   tablesToUpdate.forEach(tableId => syncCheckboxWithNoteRows(tableId));
-                  // 5. Close modal and show message
                   if(modal) modal.style.display = 'none'; alert(data.message || '筆記已刪除');
               } else { alert(data.error || '刪除失敗'); }
           })
@@ -775,19 +847,17 @@
       }
       function updateIntroArea(introElement, introText) {
           if (!introElement) return;
-          const pElement = introElement.querySelector('p'); // Assuming intro is inside a <p>
+          const pElement = introElement.querySelector('p');
           if (pElement) {
-              pElement.textContent = introText || '無介紹'; // Update text or show default
+              pElement.textContent = introText || '無介紹';
           } else {
-              // Fallback if structure changes
               introElement.innerHTML = `<p>${introText || '無介紹'}</p>`;
           }
-          // Find the scrollable container (intro-top) and reset scroll
           const scrollContainer = introElement.querySelector('.intro-top');
           if (scrollContainer) {
               scrollContainer.scrollTop = 0;
           } else {
-              introElement.scrollTop = 0; // Fallback to introArea itself
+              introElement.scrollTop = 0;
           }
       }
 
@@ -817,7 +887,13 @@
                               let displayValue = value;
                               if (['臉蛋', '氣質', '尺度'].includes(label) && typeof value === 'string') { displayValue = value.split(',').map(s => s.trim()).filter(s => s).join(', '); }
                               if (label === '心得' && typeof displayValue === 'string') { displayValue = displayValue.replace(/\n/g, '<br>'); }
-                              if (label === '罩杯' && typeof value === 'object' && value !== null) { displayValue = `${value.cup || ''}${value.cup && value.cup_size ? ' - ' : ''}${value.cup_size || ''}`.trim(); if (!displayValue) return ''; }
+                              // Modified logic for Cup Size display to combine type and size
+                              if (label === '罩杯' && typeof value === 'object' && value !== null) {
+                                  let cupType = value.cup || ''; // e.g., '天然'
+                                  let cupSize = value.cup_size || ''; // e.g., 'C'
+                                  displayValue = `${cupType}${cupType && cupSize ? ' - ' : ''}${cupSize}`.trim(); // Combine like "天然 - C" or just "C" or "天然"
+                                  if (!displayValue) return ''; // If both are empty, don't show line
+                              }
                               if ((label === '音樂' || label === '體育') && typeof value === 'object' && value !== null) { displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim(); if (!displayValue) return ''; }
                               return `<div class="review-line"><span class="review-label">${label}:</span><span class="review-value">${displayValue}</span></div>`;
                           } return '';
@@ -862,8 +938,11 @@
       document.getElementById('reviewForm')?.addEventListener('submit', function(e) {
           e.preventDefault(); if (!isLoggedIn) return; const modal = document.getElementById('reviewSubmitModal');
           const animalIdInput = this.querySelector('input[name="animal_id"]'); const animalId = animalIdInput ? animalIdInput.value : null; if (!animalId) { alert('無法獲取美容師 ID，請重試'); return; }
-          const formData = new FormData(this); if (document.querySelectorAll('#faceCheckboxes input:checked').length > 3) { alert('臉蛋最多只能選擇 3 個'); return; }
+          const formData = new FormData(this);
+          // --- Checkbox Limits Validation ---
+          if (document.querySelectorAll('#faceCheckboxes input:checked').length > 3) { alert('臉蛋最多只能選擇 3 個'); return; }
           if (document.querySelectorAll('#temperamentCheckboxes input:checked').length > 3) { alert('氣質最多只能選擇 3 個'); return; }
+          // --- End Checkbox Limits Validation ---
           const contentValue = formData.get('content'); if (!contentValue || contentValue.trim() === '') { alert('心得內容不能為空'); document.getElementById('content').focus(); return; }
           fetch("{% url 'add_review' %}", { method: "POST", body: formData, headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'} })
           .then(res => { if (!res.ok) { return res.json().then(err => { let errorMsg = err.error || `伺服器錯誤 ${res.status}`; if (err.errors) { errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', '); } throw new Error(errorMsg); }).catch(() => { throw new Error(`伺服器錯誤 ${res.status}`); }); } return res.json(); })
@@ -953,6 +1032,44 @@
             } else { console.warn(`syncCheckboxWithNoteRows: Could not find checkbox or tbody for ${tableId}`); }
         }
 
+      // --- NEW FUNCTION: Limit Checkbox Selection ---
+      function limitCheckboxSelection(groupId, maxCount) {
+          const group = document.getElementById(groupId);
+          if (!group) {
+              console.error(`Checkbox group with ID '${groupId}' not found.`);
+              return;
+          }
+          const checkboxes = group.querySelectorAll('input[type="checkbox"]');
+
+          const checkLimit = () => {
+              const checkedCheckboxes = group.querySelectorAll('input[type="checkbox"]:checked');
+              const currentCount = checkedCheckboxes.length;
+              const limitReached = currentCount >= maxCount;
+
+              checkboxes.forEach(cb => {
+                  const label = cb.closest('label'); // Find the parent label
+                  if (!cb.checked && limitReached) {
+                      cb.disabled = true;
+                      if (label) label.classList.add('label-disabled'); // Add class to label
+                  } else {
+                      cb.disabled = false;
+                      if (label) label.classList.remove('label-disabled'); // Remove class from label
+                  }
+              });
+          };
+
+          // Add event listener to each checkbox in the group
+          checkboxes.forEach(checkbox => {
+              checkbox.removeEventListener('change', checkLimit); // Remove existing listener first to avoid duplicates
+              checkbox.addEventListener('change', checkLimit);
+          });
+
+          // Initial check
+          checkLimit();
+      }
+      // --- END NEW FUNCTION ---
+
+
       // --- Global Click Listener ---
       document.addEventListener('click', function(e) {
           const target = e.target;
@@ -963,7 +1080,6 @@
               if (modal) {
                   console.log(`Opening modal: #${modalId}`);
                   modal.style.display = 'block';
-                  // Prevent body scroll when modal is open
                   document.body.style.overflow = 'hidden';
 
                   const checkbox = modal.querySelector('.toggle-notes-checkbox');
@@ -991,19 +1107,20 @@
                    if (modalId === 'pendingListModal') syncCheckboxWithNoteRows('pendingTable');
                    if (modalId === 'latestReviewModal') syncCheckboxWithNoteRows('latestReviewTable');
                    if (modalId === 'myNotesModal') syncCheckboxWithNoteRows('myNotesTable');
+
+                  // Note: Reset logic for reviewSubmitModal is now inside showPlusDropdown
+
                   return true;
               }
               console.error(`Modal not found: #${modalId}`); return false;
           };
 
-          // Function to close a modal
           const closeModal = (modalElement) => {
               if (modalElement) {
                    modalElement.style.display = 'none';
-                   // Restore body scroll only if no other modals are open
                    const anyModalOpen = document.querySelector('.modal[style*="display: block"]');
                    if (!anyModalOpen) {
-                       document.body.style.overflow = ''; // Restore body scroll
+                       document.body.style.overflow = '';
                    }
               }
           };
@@ -1045,36 +1162,63 @@
                 } return;
             }
           // Modal Close Button
-          const closeBtn = targetClosest('.close-modal'); if (closeBtn) { closeModal(targetClosest('.modal')); return; } // Use closeModal function
+          const closeBtn = targetClosest('.close-modal'); if (closeBtn) { closeModal(targetClosest('.modal')); return; }
           // Modal Background Click
-          if (target.classList.contains('modal')) { closeModal(target); if (document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); } return; } // Use closeModal function
+          if (target.classList.contains('modal')) { closeModal(target); if (document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); } return; }
           // Bottom Overlay Click
           if (target === bottomOverlay && document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); return; }
       });
 
       // --- Choices.js Initialization ---
+      // Initialize only the specific selects that should use Choices.js
       ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
-          const el = document.getElementById(id); if (!el) return; try { if (!el.classList.contains('choices__input') && !el.hasAttribute('data-choice')) { const firstOptionValue = el.options[0]?.value; const placeholder = firstOptionValue === ""; const choicesInstance = new Choices(el, { searchEnabled: false, itemSelectText: '', allowHTML: false, shouldSort: false, placeholder: placeholder, placeholderValue: placeholder ? el.options[0].text : null }); el.choices = choicesInstance; console.log(`Choices.js initialized for #${id}`); } } catch (e) { console.error(`Choices.js init error for #${id}:`, e); }
+          const el = document.getElementById(id); if (!el) return; // Skip if element not found
+          // Check if it's not already initialized and not the new cup_size select
+          if (!el.classList.contains('choices__input') && !el.hasAttribute('data-choice') && id !== 'cup_size') {
+              try {
+                  const firstOptionValue = el.options[0]?.value;
+                  const placeholder = firstOptionValue === "";
+                  const choicesInstance = new Choices(el, {
+                      searchEnabled: false,
+                      itemSelectText: '',
+                      allowHTML: false,
+                      shouldSort: false,
+                      placeholder: placeholder,
+                      placeholderValue: placeholder ? el.options[0].text : null
+                  });
+                  el.choices = choicesInstance; // Store instance if needed later
+                  console.log(`Choices.js initialized for #${id}`);
+              } catch (e) {
+                  console.error(`Choices.js init error for #${id}:`, e);
+              }
+          } else if (id === 'cup_size') {
+               console.log(`Skipping Choices.js for standard select #${id}`);
+          }
       });
 
       // --- Price Input Toggle Logic ---
       function togglePriceInput(selectId, priceInputId) {
-          const sel = document.getElementById(selectId); const inp = document.getElementById(priceInputId); if (!sel || !inp) return;
+          const sel = document.getElementById(selectId);
+          const inp = document.getElementById(priceInputId);
+          if (!sel || !inp) return;
+
           const toggle = () => {
-               const selectValue = sel.choices ? sel.choices.getValue(true) : (sel.options[sel.selectedIndex]?.value || '');
-               const showValues = ['可加值', '自談', '體含音'];
-               if (showValues.includes(selectValue)) {
-                   inp.style.display = 'block';
-                   inp.placeholder = (selectValue === '自談' || selectValue === '體含音') ? "請填寫 '私談' 或大約金額" : "請填寫大約金額";
-               } else {
-                   inp.style.display = 'none';
-                   inp.value = '';
-               }
-           };
+              // Use .value directly for standard select, or getValue for Choices.js
+              const selectValue = sel.choices ? sel.choices.getValue(true) : sel.value;
+              if (selectValue === '可加值') {
+                  inp.style.display = 'block';
+                  inp.placeholder = "請填寫大約金額(數字)"; // Updated placeholder
+              } else {
+                  inp.style.display = 'none';
+                  inp.value = '';
+              }
+          };
+
           sel.addEventListener('change', toggle);
-          toggle();
+          toggle(); // Initial call
        }
-      togglePriceInput('music', 'music_price'); togglePriceInput('sports', 'sports_price');
+      togglePriceInput('music', 'music_price');
+      togglePriceInput('sports', 'sports_price');
 
       // --- Login Error Message Auto-hide ---
       const loginErrorMsg = document.getElementById('login-error-message');
@@ -1096,13 +1240,17 @@
           });
       });
 
-      // --- Initial Sync for all Checkboxes on page load ---
+      // --- Initial Sync for all Note Checkboxes on page load ---
        setTimeout(() => {
             console.log("Running initial sync for all note checkboxes...");
             document.querySelectorAll('.toggle-notes-checkbox').forEach(checkbox => {
                 syncCheckboxWithNoteRows(checkbox.dataset.tableId);
             });
        }, 0);
+
+      // --- Initialize Checkbox Limits on page load ---
+      limitCheckboxSelection('faceCheckboxes', 3);
+      limitCheckboxSelection('temperamentCheckboxes', 3);
 
 
     }); // End DOMContentLoaded
