@@ -574,16 +574,15 @@
                     if (hiddenInput) hiddenInput.value = animalId;
                     else console.error("Hidden input for animal_id not found in review form");
 
-                    if(form) form.reset(); // 重置原生表單元素 (包含 checkbox 和 新的 select)
+                    if(form) form.reset(); // 重置原生表單元素 (包含 checkbox)
 
-                    // Reset Choices.js selects (Looks, Physique, Cup Type, Skin, Music, Sports)
-                    // 注意：現在 cup_size 不是 Choices.js 控制的了
-                    ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
+                    // Reset Choices.js selects (including the newly added cup_size)
+                    ['looks', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => { // <-- Included cup_size here
                         const selectElement = document.getElementById(id);
                         if (selectElement && selectElement.choices) { // Check if it's a Choices instance
                             try { selectElement.choices.setChoiceByValue(''); } catch(err){}
                         } else if (selectElement) {
-                            // For standard selects like the new cup_size, reset selectedIndex
+                            // Fallback for standard selects if somehow not initialized by Choices.js
                             selectElement.selectedIndex = 0;
                         }
                     });
@@ -1170,16 +1169,17 @@
       });
 
       // --- Choices.js Initialization ---
-      // Initialize only the specific selects that should use Choices.js
-      ['looks', 'physique', 'cup', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
+      // Initialize selects that should use Choices.js
+      // ***** MODIFICATION START *****
+      ['looks', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => { // <-- Added 'cup_size' to the array
           const el = document.getElementById(id); if (!el) return; // Skip if element not found
-          // Check if it's not already initialized and not the new cup_size select
-          if (!el.classList.contains('choices__input') && !el.hasAttribute('data-choice') && id !== 'cup_size') {
+          // Check if it's not already initialized
+          if (!el.classList.contains('choices__input') && !el.hasAttribute('data-choice')) { // <-- Removed "&& id !== 'cup_size'" condition
               try {
                   const firstOptionValue = el.options[0]?.value;
                   const placeholder = firstOptionValue === "";
                   const choicesInstance = new Choices(el, {
-                      searchEnabled: false,
+                      searchEnabled: false, // Keep search disabled for all
                       itemSelectText: '',
                       allowHTML: false,
                       shouldSort: false,
@@ -1191,10 +1191,10 @@
               } catch (e) {
                   console.error(`Choices.js init error for #${id}:`, e);
               }
-          } else if (id === 'cup_size') {
-               console.log(`Skipping Choices.js for standard select #${id}`);
           }
+          // Removed the 'else if (id === 'cup_size')' block entirely
       });
+      // ***** MODIFICATION END *****
 
       // --- Price Input Toggle Logic ---
       function togglePriceInput(selectId, priceInputId) {
@@ -1214,7 +1214,13 @@
               }
           };
 
-          sel.addEventListener('change', toggle);
+          // Check if Choices.js is initialized for this select
+          if (sel.choices) {
+              sel.addEventListener('change', toggle);
+          } else {
+              // If not (or not yet) initialized, add listener to the native element
+              sel.addEventListener('change', toggle);
+          }
           toggle(); // Initial call
        }
       togglePriceInput('music', 'music_price');
