@@ -624,60 +624,117 @@
           });
        }
 
-      function insertOrReplaceRow(tbody, htmlString, animalId) {
-          if (!tbody || !htmlString || !animalId) { console.error("insertOrReplaceRow: Missing args"); return; }
-          const existingRows = tbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`); existingRows.forEach(row => row.remove());
-          const template = document.createElement('template'); template.innerHTML = htmlString.trim();
-          const newNodes = Array.from(template.content.childNodes);
-          let firstNewDataRow = null;
-          newNodes.forEach(node => {
-              if (node.nodeType === Node.ELEMENT_NODE) {
-                  const addedElement = tbody.appendChild(node.cloneNode(true));
-                  if (!addedElement.classList.contains('note-row')) {
-                       processTimeSlotCellsInContainer(addedElement);
-                       if (!firstNewDataRow) firstNewDataRow = addedElement;
-                  }
-                  if (addedElement.classList.contains('note-row')) {
-                     const tableId = tbody.closest('.body-table')?.id;
-                     if (tableId) {
-                         const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                         if (checkbox && !checkbox.checked) {
-                             addedElement.style.display = 'none';
-                         }
-                     }
-                  }
-              }
-          });
-          const emptyRow = tbody.querySelector('tr.empty-table-message'); if (emptyRow && tbody.querySelector('tr:not(.empty-table-message)')) emptyRow.remove();
-          return firstNewDataRow;
-      }
-
+       // --- MODIFIED addRowIfNotExists (Inserts at the beginning) ---
        function addRowIfNotExists(tbody, htmlString, animalId) {
           if (!tbody || !htmlString || !animalId) { console.error("addRowIfNotExists: Missing args"); return false; }
           if (tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`)) { /* console.log(`Row exists for ${animalId}. Skipping add.`); */ return false; }
           const emptyRow = tbody.querySelector('tr.empty-table-message'); if (emptyRow) emptyRow.remove();
-          const template = document.createElement('template'); template.innerHTML = htmlString.trim();
-          const newNodes = Array.from(template.content.childNodes); let addedDataRow = null;
+
+          const template = document.createElement('template');
+          template.innerHTML = htmlString.trim();
+          const newNodes = Array.from(template.content.childNodes);
+          let mainRowNode = null;
+          let noteRowNode = null;
+
+          // Find the main row and note row nodes first
           newNodes.forEach(node => {
               if (node.nodeType === Node.ELEMENT_NODE) {
-                  const addedElement = tbody.appendChild(node.cloneNode(true));
-                  if (!addedElement.classList.contains('note-row')) {
-                       processTimeSlotCellsInContainer(addedElement);
-                       if (!addedDataRow) addedDataRow = addedElement;
-                  }
-                  if (addedElement.classList.contains('note-row')) {
-                     const tableId = tbody.closest('.body-table')?.id;
-                     if (tableId) {
-                         const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                         if (checkbox && !checkbox.checked) {
-                             addedElement.style.display = 'none';
-                         }
-                     }
+                  if (!node.classList.contains('note-row')) {
+                      mainRowNode = node;
+                  } else {
+                      noteRowNode = node;
                   }
               }
           });
-          return !!addedDataRow;
+
+          let addedMainRow = null;
+          let prependedNoteRow = null;
+
+          // Insert main row at the beginning
+          if (mainRowNode) {
+              addedMainRow = tbody.insertBefore(mainRowNode.cloneNode(true), tbody.firstChild);
+              processTimeSlotCellsInContainer(addedMainRow); // Process time slots for the newly inserted row
+          }
+
+          // If there's a note row, insert it *before* the main row (so it appears below visually)
+          if (noteRowNode) {
+               const targetNodeForNote = addedMainRow || tbody.firstChild; // Insert before main row or at the very beginning
+               prependedNoteRow = tbody.insertBefore(noteRowNode.cloneNode(true), targetNodeForNote);
+               // Sync the visibility of the note row
+               const tableId = tbody.closest('.body-table')?.id;
+               if (tableId) {
+                   const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
+                   if (checkbox && !checkbox.checked) {
+                       prependedNoteRow.style.display = 'none';
+                   } else if (checkbox && checkbox.checked) {
+                        prependedNoteRow.style.display = ''; // Ensure it's visible if checkbox is checked
+                   }
+               }
+          }
+
+          return !!addedMainRow; // Return true if the main row was successfully added
       }
+      // --- End MODIFIED addRowIfNotExists ---
+
+
+      // --- MODIFIED insertOrReplaceRow (Inserts at the beginning) ---
+      function insertOrReplaceRow(tbody, htmlString, animalId) {
+          if (!tbody || !htmlString || !animalId) { console.error("insertOrReplaceRow: Missing args"); return null; } // Return null on error
+          const existingRows = tbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
+          existingRows.forEach(row => row.remove()); // Remove old rows first
+
+          const template = document.createElement('template');
+          template.innerHTML = htmlString.trim();
+          const newNodes = Array.from(template.content.childNodes);
+          let mainRowNode = null;
+          let noteRowNode = null;
+
+          // Find the main row and note row nodes
+          newNodes.forEach(node => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                  if (!node.classList.contains('note-row')) {
+                      mainRowNode = node;
+                  } else {
+                      noteRowNode = node;
+                  }
+              }
+          });
+
+          let prependedMainRow = null;
+          let prependedNoteRow = null;
+
+          // Insert the new main row at the beginning
+          if (mainRowNode) {
+               prependedMainRow = tbody.insertBefore(mainRowNode.cloneNode(true), tbody.firstChild);
+               processTimeSlotCellsInContainer(prependedMainRow); // Process its time slots
+          }
+
+          // Insert the new note row *before* the main row (or at the very beginning)
+          if (noteRowNode) {
+               const targetNodeForNote = prependedMainRow || tbody.firstChild;
+               prependedNoteRow = tbody.insertBefore(noteRowNode.cloneNode(true), targetNodeForNote);
+               // Sync the note row's visibility
+               const tableId = tbody.closest('.body-table')?.id;
+               if (tableId) {
+                   const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
+                   if (checkbox && !checkbox.checked) {
+                       prependedNoteRow.style.display = 'none';
+                   } else if (checkbox && checkbox.checked) {
+                       prependedNoteRow.style.display = '';
+                   }
+               }
+          }
+
+          // Check if the empty table message needs to be removed
+          const emptyRow = tbody.querySelector('tr.empty-table-message');
+          if (emptyRow && tbody.querySelector('tr:not(.empty-table-message)')) {
+               emptyRow.remove();
+          }
+
+          return prependedMainRow; // Return the newly inserted main row element
+      }
+      // --- End MODIFIED insertOrReplaceRow ---
+
 
       function togglePending(animalId, shouldAdd) {
         if (!isLoggedIn) { alert('請先登入'); return; }
@@ -691,6 +748,7 @@
                 const pendingTbody = document.getElementById('pendingTable')?.querySelector('tbody');
                 if (shouldAdd) {
                     if (pendingTbody && data.rendered_row_html) {
+                        // Use the modified function to add at the beginning
                         const added = addRowIfNotExists(pendingTbody, data.rendered_row_html, animalId);
                          if(added && pendingTbody.querySelectorAll('tr:not(.note-row)').length === 1) {
                              const firstRow = pendingTbody.querySelector('tr[data-animal-id]:not(.note-row)');
@@ -789,6 +847,7 @@
                 tablesToUpdate.forEach(tableId => {
                     const tbody = document.getElementById(tableId)?.querySelector('tbody');
                     if (tbody && data.rendered_row_html) {
+                        // Use the modified function to insert/replace at the beginning
                         const firstNewRow = insertOrReplaceRow(tbody, data.rendered_row_html, currentAnimalId);
                         if (tableId === 'myNotesTable' && firstNewRow) firstAddedRowInMyNotes = firstNewRow;
                     } else if (tbody) { console.warn(`Table body found for ${tableId} but no rendered_row_html in response.`); }
@@ -808,10 +867,12 @@
                          }
                     }
                  });
+                 // Update top section if the inserted row is the new first row in My Notes
                  if(firstAddedRowInMyNotes) {
                      const myNotesTbody = document.getElementById('myNotesTable')?.querySelector('tbody');
-                     if(myNotesTbody && myNotesTbody.querySelectorAll('tr:not(.note-row)').length === 1) {
-                           updateTopSectionFromRow(document.getElementById('myNotesPhotoArea'), document.getElementById('myNotesIntroArea'), firstAddedRowInMyNotes);
+                     // Check if this was the *only* row added/replaced (or the first one overall)
+                     if (myNotesTbody && firstAddedRowInMyNotes === myNotesTbody.querySelector('tr[data-animal-id]:not(.note-row)')) {
+                          updateTopSectionFromRow(document.getElementById('myNotesPhotoArea'), document.getElementById('myNotesIntroArea'), firstAddedRowInMyNotes);
                      }
                  }
                 tablesToUpdate.forEach(tableId => syncCheckboxWithNoteRows(tableId));
@@ -839,14 +900,18 @@
                   tablesToUpdate.forEach(tableId => {
                        const tbody = document.getElementById(tableId)?.querySelector('tbody');
                        if(tbody) {
-                           tbody.querySelectorAll(`tr.note-row[data-animal-id="${targetAnimalId}"]`).forEach(row => row.remove());
+                           const noteRowToRemove = tbody.querySelector(`tr.note-row[data-animal-id="${targetAnimalId}"]`);
+                           if (noteRowToRemove) noteRowToRemove.remove(); // Remove note row first
+
                            if (tableId === 'myNotesTable') {
                                 const mainRow = tbody.querySelector(`tr[data-animal-id="${targetAnimalId}"]:not(.note-row)`);
                                 if (mainRow && mainRow.getAttribute('data-pending') !== 'true') {
                                     const wasFirstRow = mainRow === tbody.querySelector('tr[data-animal-id]:not(.note-row)');
-                                    mainRow.remove(); if (wasFirstRow) myNotesFirstRowChanged = true;
+                                    mainRow.remove(); // Remove main row only if it's not pending
+                                    if (wasFirstRow) myNotesFirstRowChanged = true;
                                 }
-                                if (tbody.querySelectorAll('tr:not(.note-row)').length === 0) {
+                                // Check if table is empty *after* potential removal
+                                if (tbody.querySelectorAll('tr:not(.note-row)').length === 0 && !tbody.querySelector('.empty-table-message')) {
                                     tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>';
                                     myNotesTableBecameEmpty = true;
                                 }

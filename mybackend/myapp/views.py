@@ -60,7 +60,14 @@ def home(request):
 
             animals_for_ajax = animals_qs.annotate(
                 approved_review_count=Count('reviews', filter=Q(reviews__approved=True))
-            ).order_by(*Animal._meta.ordering) # Use default ordering from model
+            ).order_by(   # Apply custom sorting for daily schedule
+                '-is_hidden_edition', # True (隱藏版) 在前
+                '-is_exclusive',      # True (獨家) 在前
+                '-is_hot',            # True (熱門) 在前
+                '-is_newcomer',       # True (新人) 在前
+                'order',              # 按自訂排序欄位
+                'name'                # 最後按名字排序以確保一致性
+            )
 
             pending_ids = set()
             notes_by_animal = {}
@@ -140,11 +147,16 @@ def home(request):
 
         if request.user.is_authenticated:
             try:
-                # Fetch base querysets for pending and notes
-                pending_appointments_qs = PendingAppointment.objects.filter(user=request.user).select_related('animal', 'animal__hall')
-                notes_qs = Note.objects.filter(user=request.user).select_related('animal', 'animal__hall')
+                # Fetch base querysets for pending and notes with ORDERING
+                pending_appointments_qs = PendingAppointment.objects.filter(
+                    user=request.user
+                ).select_related('animal', 'animal__hall').order_by('-added_at') # Order pending list
 
-                # Prepare lists (will attach counts later)
+                notes_qs = Note.objects.filter(
+                    user=request.user
+                ).select_related('animal', 'animal__hall').order_by('-updated_at') # Order notes list
+
+                # Prepare lists (now they are already ordered from the queryset)
                 pending_appointments_list = list(pending_appointments_qs)
                 my_notes_list = list(notes_qs)
 
@@ -221,8 +233,8 @@ def home(request):
         # Add data to context
         context['pending_ids'] = pending_ids # Set for quick lookups
         context['notes_by_animal'] = notes_by_animal # Dict for quick lookups
-        context['pending_appointments'] = pending_appointments_list # List with counts attached
-        context['my_notes'] = my_notes_list # List with counts attached
+        context['pending_appointments'] = pending_appointments_list # List is already ordered from the query
+        context['my_notes'] = my_notes_list # List is already ordered from the query
         context['latest_reviewed_animals'] = latest_reviewed_animals_qs # List already has counts annotated
 
         # Handle login error message
@@ -239,6 +251,7 @@ def home(request):
             traceback.print_exc()
             # Return a simple error response for full page load failure
             return render(request, 'error_page.html', {'error_message': '渲染頁面時發生內部錯誤'}, status=500) # Assumes error_page.html exists
+
 
 # --- Image Upload View (Optional) ---
 # @login_required
@@ -497,8 +510,11 @@ def add_note(request):
              try:
                  note = Note.objects.get(id=note_id_from_post, user=user, animal=animal)
                  note.content = content
-                 note.save(update_fields=['content']) # Update only the content field
+                 # --- MODIFIED: Remove update_fields to trigger auto_now ---
+                 note.save() # No update_fields, so updated_at will be set
+                 # --- End MODIFIED ---
                  created = False # It was an update
+                 print(f"Note {note.id} updated. Updated_at: {note.updated_at}") # <-- Debug print
              except Note.DoesNotExist:
                  # If ID provided but not found/valid, return error
                  print(f"Add/Update note failed: Note ID {note_id_from_post} provided but not found for user {user.username}, animal {animal_id}.")
@@ -510,6 +526,8 @@ def add_note(request):
                 animal=animal,
                 defaults={"content": content}
             )
+            # update_or_create automatically handles auto_now, no explicit save needed here
+            print(f"Note {'created' if created else 'updated via update_or_create'}. ID: {note.id}. Updated_at: {note.updated_at}") # <-- Debug print
 
         message = "筆記已新增" if created else "筆記已更新"
         print(f"Note for animal {animal_id} by user {user.username}: {'Created' if created else 'Updated'}.")
@@ -623,8 +641,10 @@ def update_note(request):
 
         # Update the content
         note.content = content
-        note.save(update_fields=['content']) # Efficient update
-        print(f"Note {note_id_int} updated (via update_note view) for animal {animal.id} by user {user.username}.")
+        # --- MODIFIED: Remove update_fields to trigger auto_now ---
+        note.save() # No update_fields, so updated_at will be set
+        # --- End MODIFIED ---
+        print(f"Note {note_id_int} updated (via update_note view) for animal {animal.id} by user {user.username}. Updated_at: {note.updated_at}") # <-- Debug print
 
         # ---- Render row HTML ----
         # Need current state for partial render
