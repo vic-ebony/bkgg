@@ -71,7 +71,7 @@ def home(request):
                  # Cast animal_id to string for keys
                  notes_by_animal = {str(note.animal_id): note for note in Note.objects.filter(user=request.user, animal_id__in=animal_ids_in_current_ajax)}
 
-            # --- START: Corrected AJAX HTML Rendering ---
+            # --- START: AJAX HTML Rendering ---
             rendered_rows_html_list = []
             print(f"    Rendering partial template for {len(animals_for_ajax)} animals...")
             for animal_instance in animals_for_ajax:
@@ -96,7 +96,7 @@ def home(request):
 
             table_html = "".join(rendered_rows_html_list) # Join all rendered rows
             print(f"    AJAX Partial HTML rendered successfully (total length: {len(table_html)}).")
-            # --- END: Corrected AJAX HTML Rendering ---
+            # --- END: AJAX HTML Rendering ---
 
             first_animal_data = {}
             try:
@@ -126,7 +126,6 @@ def home(request):
         try: context['announcement'] = Announcement.objects.filter(is_active=True).order_by('-created_at').first()
         except Exception as e: print(f"Error fetching announcement: {e}"); context['announcement'] = None
         try:
-            # Ensure promo logic fetches an active animal with a photo
             first_animal_for_promo = Animal.objects.filter(is_active=True, photo__isnull=False).exclude(photo='').order_by('?').first()
             context['promo_photo_url'] = first_animal_for_promo.photo.url if first_animal_for_promo else None
             context['promo_animal_name'] = first_animal_for_promo.name if first_animal_for_promo else None
@@ -141,82 +140,90 @@ def home(request):
 
         if request.user.is_authenticated:
             try:
+                # Fetch base querysets for pending and notes
                 pending_appointments_qs = PendingAppointment.objects.filter(user=request.user).select_related('animal', 'animal__hall')
                 notes_qs = Note.objects.filter(user=request.user).select_related('animal', 'animal__hall')
 
-                # Prepare data structures (Casting IDs to string)
-                pending_ids = set(str(pa.animal_id) for pa in pending_appointments_qs if pa.animal_id)
-                notes_by_animal = {str(note.animal_id): note for note in notes_qs if note.animal_id}
+                # Prepare lists (will attach counts later)
                 pending_appointments_list = list(pending_appointments_qs)
                 my_notes_list = list(notes_qs)
 
+                # Prepare sets for quick lookups (used by template/JS)
+                pending_ids = set(str(pa.animal_id) for pa in pending_appointments_list if pa.animal_id)
+                notes_by_animal = {str(note.animal_id): note for note in my_notes_list if note.animal_id}
+
             except Exception as e:
-                print(f"Error fetching pending/notes data for user {request.user.username}: {e}")
+                print(f"Error fetching pending/notes base data for user {request.user.username}: {e}")
                 traceback.print_exc()
 
         # Fetch Latest Reviewed Animals (Visible to all users)
         try:
+            # This query annotates counts correctly for *this* list
             latest_reviewed_animals_qs = Animal.objects.filter(is_active=True) \
                 .annotate(
                     latest_review_time=Max('reviews__created_at', filter=Q(reviews__approved=True))
                 ) \
                 .filter(latest_review_time__isnull=False) \
                 .annotate(
-                    approved_review_count=Count('reviews', filter=Q(reviews__approved=True))
+                    approved_review_count=Count('reviews', filter=Q(reviews__approved=True)) # Annotation for this list
                 ) \
                 .select_related('hall') \
                 .order_by('-latest_review_time') \
                 [:20] # Limit to 20
             print(f"    Fetched {len(latest_reviewed_animals_qs)} latest reviewed animals for full page render.")
-            # ---- Verification Print for Debugging Latest Review Intro ----
             if latest_reviewed_animals_qs:
                 first_latest_animal = latest_reviewed_animals_qs[0]
-                print(f"    First latest reviewed animal: ID={first_latest_animal.id}, Name='{first_latest_animal.name}', Photo URL='{first_latest_animal.photo.url if first_latest_animal.photo else 'None'}', Intro Length={len(first_latest_animal.introduction or '')}")
+                print(f"    First latest reviewed animal: ID={first_latest_animal.id}, Name='{first_latest_animal.name}', Intro Length={len(first_latest_animal.introduction or '')}, Count (annotated)={getattr(first_latest_animal, 'approved_review_count', 'N/A')}")
             else:
                  print("    Latest reviewed animals list is empty.")
-            # ---- End Verification Print ----
 
         except Exception as e:
              print(f"Error fetching latest reviewed animals for full page render: {e}")
              traceback.print_exc()
              latest_reviewed_animals_qs = Animal.objects.none()
 
-        # Optimize review counts for animals displayed in other modals (Pending, My Notes)
+        # ---- START: CORRECTED Review Count Fetching for Pending & My Notes Modals ----
         if request.user.is_authenticated:
              try:
-                 animal_ids_in_other_modals = set(pa.animal_id for pa in pending_appointments_list if pa.animal_id) | \
-                                              set(n.animal_id for n in my_notes_list if n.animal_id)
+                 # Get all animal IDs that appear in the Pending or My Notes lists
+                 animal_ids_in_modals = set(pa.animal_id for pa in pending_appointments_list if pa.animal_id) | \
+                                          set(n.animal_id for n in my_notes_list if n.animal_id)
 
-                 if animal_ids_in_other_modals:
-                     # Exclude animals already fetched in latest_reviewed_animals_qs if counts are already annotated there
-                     ids_to_fetch_counts_for = animal_ids_in_other_modals - set(a.id for a in latest_reviewed_animals_qs)
+                 counts_dict_for_modals = {}
+                 if animal_ids_in_modals:
+                     print(f"    Fetching review counts for {len(animal_ids_in_modals)} animals in Pending/My Notes modals.")
+                     # Fetch counts specifically for these animals
+                     counts_query = Animal.objects.filter(id__in=animal_ids_in_modals).annotate(
+                         # Use the standard name expected by the template
+                         approved_review_count=Count('reviews', filter=Q(reviews__approved=True))
+                     ).values('id', 'approved_review_count') # Fetch ID and the count
 
-                     if ids_to_fetch_counts_for:
-                          counts_for_modals = Animal.objects.filter(id__in=ids_to_fetch_counts_for).annotate(
-                              modal_review_count=Count('reviews', filter=Q(reviews__approved=True))
-                          ).values('id', 'modal_review_count')
-                          counts_dict = {item['id']: item['modal_review_count'] for item in counts_for_modals}
+                     counts_dict_for_modals = {item['id']: item['approved_review_count'] for item in counts_query}
+                     print(f"    Counts fetched: {counts_dict_for_modals}") # Debug print
 
-                          # Add count to objects in Pending and My Notes lists
-                          for item_list in [pending_appointments_list, my_notes_list]:
-                              for obj in item_list:
-                                   if hasattr(obj, 'animal') and obj.animal and obj.animal_id in counts_dict:
-                                        # Check if count isn't already set (e.g., if somehow the animal also appeared in latest reviews)
-                                        if not hasattr(obj.animal, 'approved_review_count'):
-                                             obj.animal.approved_review_count = counts_dict.get(obj.animal_id, 0)
-                     else:
-                           print("    No additional review counts needed for Pending/My Notes modals (already covered by Latest Reviews fetch).")
+                 # Now, iterate through the lists and explicitly attach the count
+                 for item_list in [pending_appointments_list, my_notes_list]:
+                     for obj in item_list:
+                          # Check if the object has an animal and animal_id
+                          if hasattr(obj, 'animal') and obj.animal and obj.animal_id:
+                              # Get the count from our fetched dictionary, default to 0 if not found
+                              count = counts_dict_for_modals.get(obj.animal_id, 0)
+                              # Set the attribute directly on the animal object
+                              obj.animal.approved_review_count = count
+                              # Debug print (optional)
+                              # print(f"      Attached count {count} to {obj.animal.name} (ID: {obj.animal_id}) in {'Pending' if isinstance(obj, PendingAppointment) else 'Notes'} list.")
 
              except Exception as e:
-                  print(f"Error optimizing review counts for other modals for user {request.user.username}: {e}")
+                  print(f"Error fetching/attaching review counts for Pending/My Notes modals for user {request.user.username}: {e}")
                   traceback.print_exc()
+        # ---- END: CORRECTED Review Count Fetching ----
 
         # Add data to context
-        context['pending_ids'] = pending_ids
-        context['notes_by_animal'] = notes_by_animal
-        context['pending_appointments'] = pending_appointments_list
-        context['my_notes'] = my_notes_list
-        context['latest_reviewed_animals'] = latest_reviewed_animals_qs # Use the new variable
+        context['pending_ids'] = pending_ids # Set for quick lookups
+        context['notes_by_animal'] = notes_by_animal # Dict for quick lookups
+        context['pending_appointments'] = pending_appointments_list # List with counts attached
+        context['my_notes'] = my_notes_list # List with counts attached
+        context['latest_reviewed_animals'] = latest_reviewed_animals_qs # List already has counts annotated
 
         # Handle login error message
         login_error = request.session.pop('login_error', None);
@@ -288,7 +295,8 @@ def add_review(request):
         if age_str:
             try: age = int(age_str); assert age > 0
             except (ValueError, AssertionError): errors['age'] = "年紀必須是正整數"
-        if cup_size_str and not cup_size_str.isalpha(): # Basic check
+        # Allowing empty cup_size, but if provided, must be alpha
+        if cup_size_str and not cup_size_str.isalpha():
             errors['cup_size'] = "罩杯大小請填寫英文字母"
 
         if errors:
@@ -303,7 +311,7 @@ def add_review(request):
                 temperament=','.join(temperament_list),
                 physique=request.POST.get("physique") or None,
                 cup=request.POST.get("cup") or None,
-                cup_size=cup_size_str or None,
+                cup_size=cup_size_str or None, # Save empty string if not provided
                 skin_texture=request.POST.get("skin_texture") or None,
                 skin_color=request.POST.get("skin_color") or None,
                 music=request.POST.get("music") or None,
@@ -312,7 +320,7 @@ def add_review(request):
                 sports_price=request.POST.get("sports_price") or None,
                 scale=','.join(scale_list),
                 content=content,
-                approved=False
+                approved=False # Default to not approved
             )
             print(f"Review {new_review.id} created for animal {animal_id} by user {request.user.username}.")
             return JsonResponse({"success": True, "message": "評論已提交，待審核後將顯示"})
@@ -332,6 +340,7 @@ def add_review(request):
         user_review_counts = {}
         if user_ids:
             try:
+                 # Count only *approved* reviews for the total count display
                  counts_query = Review.objects.filter(user_id__in=user_ids, approved=True).values('user_id').annotate(totalCount=Count('id'))
                  user_review_counts = {item['user_id']: item['totalCount'] for item in counts_query}
             except Exception as count_err:
@@ -341,6 +350,7 @@ def add_review(request):
         for r in reviews_qs:
             user_display_name = "匿名"
             if hasattr(r, 'user') and r.user:
+                # Use first_name if available, otherwise username
                 user_display_name = r.user.first_name or r.user.username
 
             formatted_date = ""
@@ -383,23 +393,25 @@ def add_pending_appointment(request):
         print(f"Pending action for animal {animal_id} by user {user.username}: {'Added' if created else 'Already Exists'}. Count: {pending_count}")
 
         # ---- Render row HTML ----
-        current_pending_ids = {str(animal.id)}
+        # Prepare data needed by the partial template
+        current_pending_ids = {str(animal.id)} # It's now pending
         note_instance = Note.objects.filter(user=user, animal=animal).first()
         current_notes_by_animal = {str(animal.id): note_instance} if note_instance else {}
 
-        # Ensure review count is attached (could be fetched or use cached value)
-        if not hasattr(animal, 'approved_review_count'): # Simple check
-             try:
-                 # Fetch count if not present
-                 animal.approved_review_count = Review.objects.filter(animal=animal, approved=True).count()
-             except Exception:
-                  animal.approved_review_count = 0 # Default to 0 on error
+        # Ensure review count is attached for the partial render
+        # Fetch it directly here for simplicity in this isolated action
+        try:
+            animal.approved_review_count = Review.objects.filter(animal=animal, approved=True).count()
+        except Exception as count_err:
+            print(f"    Warning: Error fetching review count for partial render in add_pending: {count_err}")
+            animal.approved_review_count = 0 # Default to 0 on error
 
         row_context = {
             'animal': animal,
             'user': user,
             'pending_ids': current_pending_ids,
             'notes_by_animal': current_notes_by_animal
+            # animal object now has .approved_review_count attached
         }
         rendered_row_html = render_to_string('partials/_animal_table_rows.html', row_context, request=request)
         # --------
@@ -407,9 +419,10 @@ def add_pending_appointment(request):
         return JsonResponse({
             "success": True, "message": message,
             "pending_count": pending_count,
-            "rendered_row_html": rendered_row_html
+            "rendered_row_html": rendered_row_html # Send back the HTML for the row(s)
         })
     except (ValueError, TypeError) as e:
+        # Catch potential errors if animal_id is not a valid integer format
         print(f"Error adding pending (invalid ID format?) for animal_id '{animal_id}': {e}")
         return JsonResponse({"success": False, "error": "無效的動物 ID"}, status=400)
     except Exception as e:
@@ -423,20 +436,28 @@ def remove_pending(request):
     animal_id = request.POST.get("animal_id")
     user = request.user
     try:
-        try: animal_id_int = int(animal_id)
-        except (ValueError, TypeError): raise ValueError("無效的動物 ID 格式")
+        # Validate animal_id format first
+        try:
+            animal_id_int = int(animal_id)
+        except (ValueError, TypeError):
+            raise ValueError("無效的動物 ID 格式") # Raise specific error for catching
 
+        # Attempt to delete
         deleted_count, _ = PendingAppointment.objects.filter(user=user, animal_id=animal_id_int).delete()
 
         if deleted_count == 0:
+            # Check if the animal itself exists before saying it wasn't pending
             if not Animal.objects.filter(id=animal_id_int).exists():
                 print(f"Remove pending failed: Animal {animal_id_int} not found (User: {user.username}).")
                 return JsonResponse({"success": False, "error": "找不到該動物"}, status=404)
             else:
+                # Animal exists, but wasn't in pending list for this user
                 print(f"Remove pending failed: Animal {animal_id_int} was not pending for user {user.username}.")
-                return JsonResponse({"success": False, "error": "該待約項目不存在"})
+                return JsonResponse({"success": False, "error": "該待約項目不存在"}) # Or maybe just success=True but indicate 0 removed? Changed to False for clarity.
 
+        # If deletion was successful (deleted_count > 0)
         pending_count = PendingAppointment.objects.filter(user=user).count()
+        # Get animal name for message (handle case where animal might be deleted concurrently? Unlikely but safe)
         animal_name = Animal.objects.filter(id=animal_id_int).values_list('name', flat=True).first() or "該美容師"
         print(f"Pending removed for animal {animal_id_int} by user {user.username}. Count: {pending_count}")
 
@@ -445,6 +466,7 @@ def remove_pending(request):
             "pending_count": pending_count
         })
     except ValueError as ve:
+         # Catch the specific ValueError raised for format issues
          print(f"Error removing pending: {ve} (Raw ID: '{animal_id}')")
          return JsonResponse({"success": False, "error": str(ve)}, status=400)
     except Exception as e:
@@ -475,8 +497,8 @@ def add_note(request):
              try:
                  note = Note.objects.get(id=note_id_from_post, user=user, animal=animal)
                  note.content = content
-                 note.save(update_fields=['content'])
-                 created = False
+                 note.save(update_fields=['content']) # Update only the content field
+                 created = False # It was an update
              except Note.DoesNotExist:
                  # If ID provided but not found/valid, return error
                  print(f"Add/Update note failed: Note ID {note_id_from_post} provided but not found for user {user.username}, animal {animal_id}.")
@@ -493,17 +515,20 @@ def add_note(request):
         print(f"Note for animal {animal_id} by user {user.username}: {'Created' if created else 'Updated'}.")
 
         # ---- Render row HTML ----
+        # We need the state *after* the add/update for the partial render
         is_pending = PendingAppointment.objects.filter(user=user, animal=animal).exists()
         current_pending_ids = {str(animal.id)} if is_pending else set()
-        current_notes_by_animal = {str(animal.id): note}
+        current_notes_by_animal = {str(animal.id): note} # The note we just saved
 
-        # Ensure review count
-        if not hasattr(animal, 'approved_review_count'):
-            try: animal.approved_review_count = Review.objects.filter(animal=animal, approved=True).count()
-            except Exception: animal.approved_review_count = 0
+        # Ensure review count is attached
+        try:
+            animal.approved_review_count = Review.objects.filter(animal=animal, approved=True).count()
+        except Exception:
+            animal.approved_review_count = 0
 
         row_context = {
-            'animal': animal, 'user': user,
+            'animal': animal,
+            'user': user,
             'pending_ids': current_pending_ids,
             'notes_by_animal': current_notes_by_animal
         }
@@ -512,11 +537,12 @@ def add_note(request):
 
         return JsonResponse({
             "success": True, "message": message,
-            "note_id": note.id, "note_content": note.content,
+            "note_id": note.id, "note_content": note.content, # Return the saved note details
             "animal_id": animal.id,
-            "rendered_row_html": rendered_row_html
+            "rendered_row_html": rendered_row_html # Send back the HTML for the row(s)
         })
     except (ValueError, TypeError) as e:
+         # Catch potential errors if animal_id is not valid
          print(f"Error adding/updating note (invalid ID?) for animal_id '{animal_id}': {e}")
          return JsonResponse({"success": False, "error": "無效的動物 ID"}, status=400)
     except Exception as e:
@@ -532,27 +558,37 @@ def delete_note(request):
     if not note_id: return JsonResponse({"success": False, "error": "缺少筆記 ID"}, status=400)
     user = request.user
     try:
-        try: note_id_int = int(note_id)
-        except (ValueError, TypeError): raise ValueError("無效的筆記 ID 格式")
+        # Validate note_id format
+        try:
+            note_id_int = int(note_id)
+        except (ValueError, TypeError):
+            raise ValueError("無效的筆記 ID 格式")
 
+        # Use get_object_or_404 to handle DoesNotExist and ensure ownership
         note_to_delete = get_object_or_404(Note, id=note_id_int, user=user)
-        animal_id = note_to_delete.animal_id
+        animal_id = note_to_delete.animal_id # Get animal ID *before* deleting
 
+        # Perform deletion
         deleted_count, _ = note_to_delete.delete()
 
+        # deleted_count should be 1 because get_object_or_404 succeeded
         if deleted_count == 0:
+             # This case should be rare due to get_object_or_404
              print(f"Delete note failed: Note {note_id_int} not found or already deleted (User: {user.username}).")
-             return JsonResponse({"success": False, "error": "刪除失敗"}) # Should be rare with get_object_or_404
+             return JsonResponse({"success": False, "error": "刪除失敗"})
 
         print(f"Note {note_id_int} deleted for animal {animal_id} by user {user.username}.")
+        # Return success and the animal_id so the frontend knows which row's note info to clear
         return JsonResponse({
             "success": True, "message": "筆記已刪除",
-            "animal_id": animal_id
+            "animal_id": animal_id # Return the associated animal ID
         })
     except Note.DoesNotExist:
+        # This case is technically handled by get_object_or_404, but good practice
         print(f"Delete note failed: Note {note_id} does not exist or no permission for user {user.username}.")
         return JsonResponse({"success": False, "error": "筆記不存在或無權限"}, status=404)
     except ValueError as ve:
+         # Catch the specific ValueError for format issues
          print(f"Error deleting note: {ve} (Raw ID: '{note_id}')")
          return JsonResponse({"success": False, "error": str(ve)}, status=400)
     except Exception as e:
@@ -564,7 +600,8 @@ def delete_note(request):
 @require_POST
 @login_required
 def update_note(request):
-    # This view specifically handles updates via the update_note URL
+    # This view specifically handles updates via the update_note URL,
+    # expecting note_id and content.
     note_id = request.POST.get("note_id");
     content = request.POST.get("content", "").strip();
 
@@ -573,28 +610,37 @@ def update_note(request):
 
     user = request.user
     try:
-        try: note_id_int = int(note_id)
-        except (ValueError, TypeError): raise ValueError("無效的筆記 ID 格式")
+        # Validate note_id format
+        try:
+            note_id_int = int(note_id)
+        except (ValueError, TypeError):
+            raise ValueError("無效的筆記 ID 格式")
 
-        # Use select_related for efficiency when accessing animal
+        # Use get_object_or_404, ensuring the note exists and belongs to the user
+        # Use select_related for efficiency when accessing animal later for rendering
         note = get_object_or_404(Note.objects.select_related('animal'), id=note_id_int, user=user)
-        animal = note.animal
+        animal = note.animal # Get the related animal
 
+        # Update the content
         note.content = content
         note.save(update_fields=['content']) # Efficient update
         print(f"Note {note_id_int} updated (via update_note view) for animal {animal.id} by user {user.username}.")
 
         # ---- Render row HTML ----
+        # Need current state for partial render
         is_pending = PendingAppointment.objects.filter(user=user, animal=animal).exists()
         current_pending_ids = {str(animal.id)} if is_pending else set()
-        current_notes_by_animal = {str(animal.id): note}
+        current_notes_by_animal = {str(animal.id): note} # The updated note
 
-        if not hasattr(animal, 'approved_review_count'):
-             try: animal.approved_review_count = Review.objects.filter(animal=animal, approved=True).count()
-             except Exception: animal.approved_review_count = 0
+        # Ensure review count
+        try:
+            animal.approved_review_count = Review.objects.filter(animal=animal, approved=True).count()
+        except Exception:
+            animal.approved_review_count = 0
 
         row_context = {
-            'animal': animal, 'user': user,
+            'animal': animal,
+            'user': user,
             'pending_ids': current_pending_ids,
             'notes_by_animal': current_notes_by_animal
         }
@@ -603,14 +649,15 @@ def update_note(request):
 
         return JsonResponse({
             "success": True, "message": "筆記已更新",
-            "note_id": note.id, "note_content": note.content,
+            "note_id": note.id, "note_content": note.content, # Return updated details
             "animal_id": animal.id,
-            "rendered_row_html": rendered_row_html
+            "rendered_row_html": rendered_row_html # Return updated row HTML
         })
     except Note.DoesNotExist:
         print(f"Update note failed: Note {note_id} not found or no permission for user {user.username}.")
         return JsonResponse({"success": False, "error": "筆記不存在或無權限"}, status=404)
     except ValueError as ve:
+         # Catch specific format error
          print(f"Error updating note: {ve} (Raw ID: '{note_id}')")
          return JsonResponse({"success": False, "error": str(ve)}, status=400)
     except Exception as e:
