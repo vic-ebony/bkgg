@@ -37,4 +37,10 @@ https://www.figma.com/community/plugin/1159123024924461424/html.to.design
 心得面板 3000
 底部遮罩 3000
 底部選單 3500
-<!--  -->
+<!-- 標籤漸變色 -->
+ .label.label--style-hidden {
+        background: linear-gradient(45deg, rgba(111, 66, 193, 0.8), rgba(0, 123, 255, 0.8)); /* 紫色到藍色漸變 */
+        color: #ffffff; /* 白色文字 */
+        border: none; /* 移除邊框可能效果更好 */
+        /* font-style: normal; */
+        padding: 0.15em 0.5em; /* 可能需要微調 padding */

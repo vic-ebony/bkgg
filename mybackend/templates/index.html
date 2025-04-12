@@ -137,7 +137,39 @@
     .time-slot { display: inline-block; white-space: nowrap; margin: 0.1em 0.2em; break-inside: avoid; word-break: keep-all; font-size: 0.9em; background-color: #e9ecef; padding: 0.1em 0.3em; border-radius: 3px; border: 1px solid #ced4da; }
     .time-cell-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2em; padding: 0.1rem 0; }
     .fee-cell .hall-name { display: block; font-size: 0.85rem; color: #888; margin-top: 0.15rem; }
-    .beautician-cell { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 0.2rem; } .labels { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-bottom: 0.2rem;} .label { padding: 0.1em 0.4em; border-radius: 3px; font-size: 0.8rem; font-weight: bold; line-height: 1.2; } .label.newcomer { background: rgba(40, 167, 69, 0.15); color: #1e7e34; } .label.hot { background: rgba(220, 53, 69, 0.15); color: #dc3545; } .label.exclusive { background: rgba(111, 66, 193, 0.15); color: #6f42c1; } .beautician-text .name-container .name { font-size: 1rem; color: #333; font-weight: 500; word-break: break-all; } .beautician-text .size-container .size { font-size: 0.9rem; color: #777; white-space: nowrap; }
+    .beautician-cell { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 0.2rem; }
+    .labels { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-bottom: 0.2rem;}
+    .label { padding: 0.1em 0.4em; border-radius: 3px; font-size: 0.8rem; font-weight: bold; line-height: 1.2; }
+    /* --- 標籤漸變樣式 (獨立風格) --- */
+    /* 新人 - 綠色系漸變 */
+    .label.newcomer {
+        background: linear-gradient(45deg, rgba(40, 167, 69, 0.9), rgba(32, 201, 151, 0.9)); /* 綠色到青色 */
+        color: #ffffff; /* 白色文字 */
+        border: none; /* 移除邊框 */
+    }
+    /* 熱門 - 紅色/橙色系漸變 */
+    .label.hot {
+        background: linear-gradient(45deg, rgba(220, 53, 69, 0.9), rgba(253, 126, 20, 0.9)); /* 紅色到橙色 */
+        color: #ffffff; /* 白色文字 */
+        border: none; /* 移除邊框 */
+    }
+    /* 隱藏版 - 紫色/藍色系漸變 */
+    .label.hidden-edition {
+        background: linear-gradient(45deg, rgba(111, 66, 193, 0.8), rgba(0, 123, 255, 0.8)); /* 紫色到藍色 */
+        color: #ffffff; /* 白色文字 */
+        border: none; /* 移除邊框 */
+    }
+    /* --- 獨家標籤樣式 (暗金) --- */
+    .label.exclusive {
+    background: linear-gradient(45deg, #a1844c, #d4af37); /* 暗金到亮金 */
+    color: #ffffff; /* 白色文字 */
+    border: none;
+    /* 可以加一點點陰影增加質感 */
+    /* box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); */
+}
+    /* --- End Label Styles --- */
+    .beautician-text .name-container .name { font-size: 1rem; color: #333; font-weight: 500; word-break: break-all; }
+    .beautician-text .size-container .size { font-size: 0.9rem; color: #777; white-space: nowrap; }
     .review-count-btn { border: 1px solid #ccc; background: #f8f9fa; color: #007bff; border-radius: 12px; padding: 0.2rem 0.4rem; font-size: 0.85rem; cursor: pointer; width: auto; min-width: 30px; display: inline-block; text-align: center; transition: background-color 0.2s, border-color 0.2s; } .review-count-btn:hover { background: #e2e6ea; border-color: #adb5bd; }
     .circle-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #ccc; background-color: #fff; font-size: 1.1rem; line-height: 1; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s, color 0.2s, transform 0.1s; padding: 0; } .circle-btn:hover { background-color: #f0f0f0; color: #555; } .circle-btn:active { transform: scale(0.95); }
     .review-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); } .review-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 0.75rem; margin-bottom: 1rem; font-size: 1rem; color: #555; } .review-user-info { display: flex; flex-direction: column; gap: 0.1rem; } .review-user { color: #333; font-weight: 500; } .review-total { font-size: 0.8rem; color: #888; } .review-date { font-size: 0.85rem; color: #999;} .review-body { padding-top: 0.5rem; } .review-body p { margin: 0.3rem 0; font-size: 1rem; color: #555; white-space: pre-wrap; word-wrap: break-word; } .review-line { display: flex; align-items: flex-start; margin: 0.5rem 0; font-size: 0.95rem; } .review-label { flex: 0 0 60px; font-weight: bold; color: #444; padding-right: 10px; } .review-value { flex: 1; color: #666; word-break: break-word; white-space: pre-wrap; /* Ensure values also wrap */ } #reviewList { padding: 0 0.5rem; }

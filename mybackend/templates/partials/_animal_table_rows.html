@@ -26,6 +26,9 @@
             {% if animal.is_newcomer %}<span class="label newcomer">新人</span>{% endif %}
             {% if animal.is_hot %}<span class="label hot">熱門</span>{% endif %}
             {% if animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
+            {# --- 新增隱藏版標籤判斷 --- #}
+            {% if animal.is_hidden_edition %}<span class="label hidden-edition">隱藏版</span>{% endif %}
+            {# --- End 新增隱藏版標籤判斷 --- #}
           </div>
           <div class="beautician-text">
             <div class="name-container"><span class="name">{{ animal.name }}</span></div>

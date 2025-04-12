@@ -9,11 +9,13 @@ class HallAdmin(admin.ModelAdmin):
 
 @admin.register(Animal)
 class AnimalAdmin(admin.ModelAdmin):
-    list_display = ('name', 'hall', 'size_display', 'fee', 'is_active', 'is_exclusive', 'is_hot', 'is_newcomer', 'order')
-    list_filter = ('hall', 'is_active', 'is_exclusive', 'is_hot', 'is_newcomer')
+    # --- 修改 list_display ---
+    list_display = ('name', 'hall', 'size_display', 'fee', 'is_active', 'is_exclusive', 'is_hot', 'is_newcomer', 'is_hidden_edition', 'order') # 加入 is_hidden_edition
+    # --- 修改 list_filter ---
+    list_filter = ('hall', 'is_active', 'is_exclusive', 'is_hot', 'is_newcomer', 'is_hidden_edition') # 加入 is_hidden_edition
     search_fields = ('name', 'introduction')
     list_editable = ('is_active', 'order') # Allow editing status and order
-    # Use fieldsets for better organization in the detail view
+    # --- 修改 fieldsets ---
     fieldsets = (
         (None, {
             'fields': ('name', 'hall', 'is_active', 'order', 'photo')
@@ -23,7 +25,8 @@ class AnimalAdmin(admin.ModelAdmin):
             'classes': ('collapse',) # Collapsible section
         }),
         ('標籤', {
-            'fields': ('is_exclusive', 'is_hot', 'is_newcomer'),
+            # 在 '標籤' 這個區塊加入 is_hidden_edition
+            'fields': ('is_exclusive', 'is_hot', 'is_newcomer', 'is_hidden_edition'),
         }),
         ('介紹', {
             'fields': ('introduction',),
