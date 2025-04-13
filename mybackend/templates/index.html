@@ -230,6 +230,9 @@
 
     /* Empty table message style */
     .empty-table-message td { text-align: center !important; padding: 2rem !important; color: #777; font-style: italic; }
+    /* Loading message style */
+    .loading-message td { text-align: center !important; padding: 2rem !important; color: #777; }
+
 
      /* Style adjustments in View Note section */
      #viewNoteSection .note-box { border: none !important; background: transparent !important; padding: 0 !important; margin: 0 0 1rem 0 !important; font-style: normal !important; color: #333 !important; box-shadow: none !important; border-radius: 0 !important; }
@@ -395,19 +398,16 @@
                 </div>
                 <div class="modal-body" data-layout="table">
                     <section class="top-section">
-                        <div class="photo-area" id="pendingPhotoArea">{% if pending_appointments and pending_appointments.0.animal.photo %}<img src="{{ pending_appointments.0.animal.photo.url }}" alt="{{ pending_appointments.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
-                        <div class="intro-area" id="pendingIntroArea"><div class="intro-top"><p id="pendingIntroductionContent">{% if pending_appointments and pending_appointments.0.animal.introduction %}{{ pending_appointments.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
+                        <div class="photo-area" id="pendingPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div>
+                        <div class="intro-area" id="pendingIntroArea"><div class="intro-top"><p id="pendingIntroductionContent">載入中...</p></div></div>
                     </section>
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                         <div class="body-wrapper"> {# Padding handled by CSS #}
                             <table class="body-table" id="pendingTable">
                                 <tbody>
-                                {% for appointment in pending_appointments %}
-                                    {% include 'partials/_animal_table_rows.html' with animal=appointment.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
-                                {% empty %}
-                                    <tr class="empty-table-message"><td colspan="5">待約清單是空的</td></tr>
-                                {% endfor %}
+                                    {# Content will be loaded via AJAX #}
+                                    <tr class="loading-message"><td colspan="5">載入中...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -426,27 +426,16 @@
                 </div>
                 <div class="modal-body" data-layout="table">
                     <section class="top-section">
-                        <div class="photo-area" id="latestPhotoArea">
-                        {% if latest_reviewed_animals and latest_reviewed_animals.0.photo %}<img src="{{ latest_reviewed_animals.0.photo.url }}" alt="{{ latest_reviewed_animals.0.name }}">
-                        {% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}
-                        </div>
-                        <div class="intro-area" id="latestIntroArea">
-                            <div class="intro-top"><p id="latestIntroductionContent">
-                                {% if latest_reviewed_animals and latest_reviewed_animals.0.introduction %}{{ latest_reviewed_animals.0.introduction }}
-                                {% else %}點擊下方列表查看介紹{% endif %}
-                            </p></div>
-                        </div>
+                        <div class="photo-area" id="latestPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div>
+                        <div class="intro-area" id="latestIntroArea"><div class="intro-top"><p id="latestIntroductionContent">載入中...</p></div></div>
                     </section>
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                         <div class="body-wrapper"> {# Padding handled by CSS #}
                             <table class="body-table" id="latestReviewTable">
                                 <tbody>
-                                {% for animal_obj in latest_reviewed_animals %}
-                                    {% include 'partials/_animal_table_rows.html' with animal=animal_obj user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
-                                {% empty %}
-                                    <tr class="empty-table-message"><td colspan="5">還沒有任何心得</td></tr>
-                                {% endfor %}
+                                    {# Content will be loaded via AJAX #}
+                                    <tr class="loading-message"><td colspan="5">載入中...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -492,19 +481,16 @@
                 </div>
                 <div class="modal-body" data-layout="table">
                     <section class="top-section">
-                        <div class="photo-area" id="myNotesPhotoArea">{% if my_notes and my_notes.0.animal.photo %}<img src="{{ my_notes.0.animal.photo.url }}" alt="{{ my_notes.0.animal.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
-                        <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">{% if my_notes and my_notes.0.animal.introduction %}{{ my_notes.0.animal.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
+                        <div class="photo-area" id="myNotesPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div>
+                        <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">載入中...</p></div></div>
                     </section>
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                         <div class="body-wrapper"> {# Padding handled by CSS #}
                             <table class="body-table" id="myNotesTable">
                                 <tbody>
-                                {% for note_item in my_notes %}
-                                    {% include 'partials/_animal_table_rows.html' with animal=note_item.animal user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
-                                {% empty %}
-                                    <tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>
-                                {% endfor %}
+                                     {# Content will be loaded via AJAX #}
+                                    <tr class="loading-message"><td colspan="5">載入中...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -544,7 +530,7 @@
             </div>
         </div>
 
-        <!-- 新增：每日推薦 Modal -->
+        <!-- 每日推薦 Modal -->
         <div id="dailyRecommendationModal" class="modal" role="dialog" aria-modal="true">
             <div class="modal-content">
                 <div class="modal-header">
@@ -554,19 +540,16 @@
                 </div>
                 <div class="modal-body" data-layout="table">
                     <section class="top-section">
-                        <div class="photo-area" id="recommendationPhotoArea">{% if recommended_animals and recommended_animals.0.photo %}<img src="{{ recommended_animals.0.photo.url }}" alt="{{ recommended_animals.0.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
-                        <div class="intro-area" id="recommendationIntroArea"><div class="intro-top"><p id="recommendationIntroductionContent">{% if recommended_animals and recommended_animals.0.introduction %}{{ recommended_animals.0.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
+                        <div class="photo-area" id="recommendationPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div>
+                        <div class="intro-area" id="recommendationIntroArea"><div class="intro-top"><p id="recommendationIntroductionContent">載入中...</p></div></div>
                     </section>
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                         <div class="body-wrapper"> {# Padding handled by CSS #}
                             <table class="body-table" id="recommendationTable">
                                 <tbody>
-                                {% for animal_obj in recommended_animals %} {# 使用 recommended_animals 變數 #}
-                                    {% include 'partials/_animal_table_rows.html' with animal=animal_obj user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
-                                {% empty %}
-                                    <tr class="empty-table-message"><td colspan="5">目前沒有推薦的美容師</td></tr>
-                                {% endfor %}
+                                    {# Content will be loaded via AJAX #}
+                                    <tr class="loading-message"><td colspan="5">載入中...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -574,7 +557,7 @@
                 </div>
             </div>
         </div>
-        <!-- End 新增：每日推薦 Modal -->
+        <!-- End 每日推薦 Modal -->
 
 
       <!-- Bottom slide-up menu & Overlay -->
@@ -663,7 +646,6 @@
             const btnAddWait = document.createElement('button'); const isPending = row.getAttribute('data-pending') === "true"; btnAddWait.textContent = isPending ? "移除待約" : "加入待約";
             btnAddWait.addEventListener('click', (e) => { togglePending(animalId, !isPending); closePlusDropdown(); e.stopPropagation(); }); dropdown.appendChild(btnAddWait);
             const btnAddNote = document.createElement('button'); const noteId = row.getAttribute('data-note-id');
-            // <<< Read note content from dataset for modal opening
             const noteContent = row.getAttribute('data-note-content') || '';
             btnAddNote.textContent = noteId ? "查看/修改筆記" : "加入筆記";
             btnAddNote.addEventListener('click', (e) => { openNoteModal(animalId, noteId, noteContent); closePlusDropdown(); e.stopPropagation(); }); dropdown.appendChild(btnAddNote);
@@ -685,64 +667,59 @@
           });
        }
 
-       // --- MODIFIED addRowIfNotExists (Inserts at the beginning) ---
+       // --- MODIFIED addRowIfNotExists (Now primarily used by togglePending) ---
+       // This function now correctly inserts at the beginning *only* for the pending list.
        function addRowIfNotExists(tbody, htmlString, animalId) {
           if (!tbody || !htmlString || !animalId) { console.error("addRowIfNotExists: Missing args"); return false; }
-          if (tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`)) { /* console.log(`Row exists for ${animalId}. Skipping add.`); */ return false; }
-          const emptyRow = tbody.querySelector('tr.empty-table-message'); if (emptyRow) emptyRow.remove();
+          // Check if the target tbody is the pendingTable
+          if (tbody.closest('#pendingTable')) {
+              if (tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`)) { return false; } // Don't add if exists
+              const emptyRow = tbody.querySelector('tr.empty-table-message'); if (emptyRow) emptyRow.remove();
 
-          const template = document.createElement('template');
-          template.innerHTML = htmlString.trim();
-          const newNodes = Array.from(template.content.childNodes);
-          let mainRowNode = null;
-          let noteRowNode = null;
+              const template = document.createElement('template');
+              template.innerHTML = htmlString.trim();
+              const newNodes = Array.from(template.content.childNodes);
+              let mainRowNode = null;
+              let noteRowNode = null;
 
-          // Find the main row and note row nodes first
-          newNodes.forEach(node => {
-              if (node.nodeType === Node.ELEMENT_NODE) {
-                  if (!node.classList.contains('note-row')) {
-                      mainRowNode = node;
-                  } else {
-                      noteRowNode = node;
+              newNodes.forEach(node => {
+                  if (node.nodeType === Node.ELEMENT_NODE) {
+                      if (!node.classList.contains('note-row')) { mainRowNode = node; }
+                      else { noteRowNode = node; }
+                  }
+              });
+
+              let addedMainRow = null;
+              let prependedNoteRow = null;
+
+              if (mainRowNode) {
+                  addedMainRow = tbody.insertBefore(mainRowNode.cloneNode(true), tbody.firstChild);
+                  processTimeSlotCellsInContainer(addedMainRow);
+              }
+              if (noteRowNode) {
+                  const targetNodeForNote = addedMainRow || tbody.firstChild;
+                  prependedNoteRow = tbody.insertBefore(noteRowNode.cloneNode(true), targetNodeForNote);
+                  const tableId = tbody.closest('.body-table')?.id;
+                  if (tableId) {
+                      const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
+                      if (checkbox) { prependedNoteRow.style.display = checkbox.checked ? '' : 'none'; }
                   }
               }
-          });
-
-          let addedMainRow = null;
-          let prependedNoteRow = null;
-
-          // Insert main row at the beginning
-          if (mainRowNode) {
-              addedMainRow = tbody.insertBefore(mainRowNode.cloneNode(true), tbody.firstChild);
-              processTimeSlotCellsInContainer(addedMainRow); // Process time slots for the newly inserted row
+              return !!addedMainRow;
+          } else {
+              // If called for a tbody other than pendingTable, do nothing (or log warning)
+              console.warn("addRowIfNotExists called for non-pending table. Ignoring.");
+              return false;
           }
-
-          // If there's a note row, insert it *before* the main row (so it appears below visually)
-          if (noteRowNode) {
-               const targetNodeForNote = addedMainRow || tbody.firstChild; // Insert before main row or at the very beginning
-               prependedNoteRow = tbody.insertBefore(noteRowNode.cloneNode(true), targetNodeForNote);
-               // Sync the visibility of the note row
-               const tableId = tbody.closest('.body-table')?.id;
-               if (tableId) {
-                   const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                   if (checkbox && !checkbox.checked) {
-                       prependedNoteRow.style.display = 'none';
-                   } else if (checkbox && checkbox.checked) {
-                        prependedNoteRow.style.display = ''; // Ensure it's visible if checkbox is checked
-                   }
-               }
-          }
-
-          return !!addedMainRow; // Return true if the main row was successfully added
       }
       // --- End MODIFIED addRowIfNotExists ---
 
 
-      // --- MODIFIED insertOrReplaceRow (Conditional Prepend/Update) ---
-      function insertOrReplaceRow(tbody, htmlString, animalId, tableId) { // <-- Added tableId parameter
+      // --- MODIFIED insertOrReplaceRow (Conditional Prepend/Update - Primarily for Notes) ---
+      // Now only prepends for myNotesTable, updates others in place.
+      function insertOrReplaceRow(tbody, htmlString, animalId, tableId) {
           if (!tbody || !htmlString || !animalId) { console.error("insertOrReplaceRow: Missing args"); return null; }
 
-          // Parse the new HTML string to get the new main row and note row nodes
           const template = document.createElement('template');
           template.innerHTML = htmlString.trim();
           const newNodes = Array.from(template.content.childNodes);
@@ -750,99 +727,69 @@
           let newNoteRowNode = null;
           newNodes.forEach(node => {
               if (node.nodeType === Node.ELEMENT_NODE) {
-                  if (!node.classList.contains('note-row')) {
-                      newMainRowNode = node;
-                  } else {
-                      newNoteRowNode = node;
-                  }
+                  if (!node.classList.contains('note-row')) { newMainRowNode = node; }
+                  else { newNoteRowNode = node; }
               }
           });
 
-          // --- Logic specifically for myNotesTable: Prepend ---
-          if (tableId === 'myNotesTable') {
+          if (tableId === 'myNotesTable') { // Prepend logic for My Notes
               const existingRows = tbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
-              existingRows.forEach(row => row.remove()); // Remove old rows first
+              existingRows.forEach(row => row.remove());
 
               let prependedMainRow = null;
               let prependedNoteRow = null;
 
-              // Insert the new main row at the beginning
               if (newMainRowNode) {
                    prependedMainRow = tbody.insertBefore(newMainRowNode.cloneNode(true), tbody.firstChild);
                    processTimeSlotCellsInContainer(prependedMainRow);
               }
-
-              // Insert the new note row *before* the main row (or at the very beginning)
               if (newNoteRowNode) {
                    const targetNodeForNote = prependedMainRow || tbody.firstChild;
                    prependedNoteRow = tbody.insertBefore(newNoteRowNode.cloneNode(true), targetNodeForNote);
-                   // Sync the note row's visibility
                    const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                   if (checkbox && !checkbox.checked) {
-                       prependedNoteRow.style.display = 'none';
-                   } else if (checkbox && checkbox.checked) {
-                       prependedNoteRow.style.display = '';
-                   }
+                   if (checkbox) { prependedNoteRow.style.display = checkbox.checked ? '' : 'none'; }
               }
-              // Check if the empty table message needs to be removed
               const emptyRow = tbody.querySelector('tr.empty-table-message');
-              if (emptyRow && tbody.querySelector('tr:not(.empty-table-message)')) {
-                   emptyRow.remove();
-              }
-              return prependedMainRow; // Return the newly prepended main row
+              if (emptyRow && tbody.querySelector('tr:not(.empty-table-message)')) { emptyRow.remove(); }
+              return prependedMainRow;
 
-          } else {
-              // --- Logic for OTHER tables: Update existing row in place (if found) ---
+          } else { // Update in place logic for other tables
               const existingMainRow = tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`);
               const existingNoteRow = tbody.querySelector(`tr.note-row[data-animal-id="${animalId}"]`);
 
               if (existingMainRow) {
-                  console.log(`Updating existing row for animal ${animalId} in table ${tableId}`);
-                  // Update data attributes from the new main row node if it exists
+                  console.log(`Updating existing row's note info for animal ${animalId} in table ${tableId}`);
+                  // Only update note-related data attributes
                   if (newMainRowNode) {
                       const noteId = newMainRowNode.getAttribute('data-note-id');
                       const noteContent = newMainRowNode.getAttribute('data-note-content');
-                      if (noteId) {
-                          existingMainRow.setAttribute('data-note-id', noteId);
-                      } else {
-                          existingMainRow.removeAttribute('data-note-id');
-                      }
-                      if (noteContent) {
-                           existingMainRow.setAttribute('data-note-content', noteContent);
-                      } else {
-                           existingMainRow.removeAttribute('data-note-content');
-                      }
-                      // Optionally update other data-* attributes if they might change
+                      if (noteId) { existingMainRow.setAttribute('data-note-id', noteId); }
+                      else { existingMainRow.removeAttribute('data-note-id'); }
+                      if (noteContent) { existingMainRow.setAttribute('data-note-content', noteContent); }
+                      else { existingMainRow.removeAttribute('data-note-content'); }
                   } else {
-                      // If for some reason the new HTML didn't contain a main row
                       existingMainRow.removeAttribute('data-note-id');
                       existingMainRow.removeAttribute('data-note-content');
                   }
 
-                  // Handle the note row
-                  if (newNoteRowNode) { // A new/updated note row exists
-                      if (existingNoteRow) { // Update existing note row
-                          existingNoteRow.innerHTML = newNoteRowNode.innerHTML; // Replace content
-                          // Sync visibility
-                          const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                          existingNoteRow.style.display = checkbox?.checked ? '' : 'none';
-                      } else { // Add the new note row after the main row
-                          const addedNoteRow = existingMainRow.parentNode.insertBefore(newNoteRowNode.cloneNode(true), existingMainRow.nextSibling);
-                           // Sync visibility
-                          const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                          addedNoteRow.style.display = checkbox?.checked ? '' : 'none';
-                      }
-                  } else { // No note row should exist (e.g., note deleted)
+                  // Handle the note row itself
+                  if (newNoteRowNode) {
                       if (existingNoteRow) {
-                          existingNoteRow.remove(); // Remove the old note row
+                          existingNoteRow.innerHTML = newNoteRowNode.innerHTML;
+                          const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
+                          if(checkbox) existingNoteRow.style.display = checkbox.checked ? '' : 'none';
+                      } else {
+                          const addedNoteRow = existingMainRow.parentNode.insertBefore(newNoteRowNode.cloneNode(true), existingMainRow.nextSibling);
+                          const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
+                          if(checkbox) addedNoteRow.style.display = checkbox.checked ? '' : 'none';
                       }
+                  } else {
+                      if (existingNoteRow) { existingNoteRow.remove(); }
                   }
-                  return existingMainRow; // Return the updated existing row
-
+                  return existingMainRow;
               } else {
-                  // Row doesn't exist in this table, do nothing for non-myNotes tables
-                  console.log(`Row for animal ${animalId} not found in table ${tableId}, skipping update/insertion.`);
-                  return null; // Indicate no row was modified/added
+                  console.log(`Row for animal ${animalId} not found in table ${tableId}, skipping note update.`);
+                  return null;
               }
           }
       }
@@ -858,36 +805,18 @@
         .then(data => {
             // console.log("Toggle Pending Response:", data);
             if (data.success) {
-                const pendingTbody = document.getElementById('pendingTable')?.querySelector('tbody');
-                if (shouldAdd) {
-                    if (pendingTbody && data.rendered_row_html) {
-                        // Use the modified function to add at the beginning
-                        const added = addRowIfNotExists(pendingTbody, data.rendered_row_html, animalId);
-                         if(added && pendingTbody.querySelectorAll('tr:not(.note-row)').length === 1) {
-                             const firstRow = pendingTbody.querySelector('tr[data-animal-id]:not(.note-row)');
-                             if (firstRow) { updateTopSectionFromRow(document.getElementById('pendingPhotoArea'), document.getElementById('pendingIntroArea'), firstRow); }
-                         }
-                    } else { console.warn("Add pending: Target tbody or rendered HTML missing."); }
-                } else {
-                    if (pendingTbody) {
-                        const rowsToRemove = pendingTbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
-                        const isFirstRow = rowsToRemove.length > 0 && rowsToRemove[0] === pendingTbody.querySelector('tr[data-animal-id]:not(.note-row)');
-                        rowsToRemove.forEach(row => row.remove());
-                        if (pendingTbody.querySelectorAll('tr:not(.note-row)').length === 0) {
-                           if (!pendingTbody.querySelector('.empty-table-message')) {
-                               pendingTbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">待約清單是空的</td></tr>';
-                               updatePhotoArea(document.getElementById('pendingPhotoArea'), null, '');
-                               updateIntroArea(document.getElementById('pendingIntroArea'), '待約清單是空的');
-                           }
-                        } else if (isFirstRow) {
-                             const newFirstRow = pendingTbody.querySelector('tr[data-animal-id]:not(.note-row)');
-                             if (newFirstRow) { updateTopSectionFromRow(document.getElementById('pendingPhotoArea'), document.getElementById('pendingIntroArea'), newFirstRow); }
-                        }
-                    } else { console.warn("Remove pending: Target tbody missing."); }
-                }
                 updateRowsByAnimalId(animalId, (r) => { r.setAttribute('data-pending', shouldAdd ? "true" : "false"); });
                 if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
-                if (pendingTbody) syncCheckboxWithNoteRows('pendingTable');
+
+                // --- MODIFIED: Refresh pending list if it's currently open ---
+                const pendingModal = document.getElementById('pendingListModal');
+                if (pendingModal && pendingModal.style.display === 'block') {
+                    console.log("Pending list modal is open, reloading content...");
+                    loadModalContent('pendingListModal'); // Reload its content
+                }
+                // --- End MODIFIED ---
+                // Removed addRowIfNotExists call here as it's handled by reload or initial load
+                // Also removed direct removal logic, reload handles disappearance
             } else { alert(data.error || '操作失敗'); }
         })
         .catch(error => { console.error("Toggle Pending Error:", error); alert(`操作待約時發生錯誤: ${error.message}`); });
@@ -915,24 +844,19 @@
             console.error("Note modal elements missing"); return;
         }
 
-        // console.log(`Opening note modal for animal ID: ${animalId}, Note ID: ${noteId}`);
         animalIdInput.value = animalId;
         deleteBtn.setAttribute('data-animal-id', animalId);
-        form.reset(); // Reset form first
-
-        // <<< NORMALIZE note content before setting values
+        form.reset();
         const normalizedNoteContent = normalizeNewlines(noteContent || '');
-
-        textarea.value = normalizedNoteContent; // Set normalized value for textarea
+        textarea.value = normalizedNoteContent;
 
         if (noteId) {
             title.textContent = "查看/修改筆記"; noteIdInput.value = noteId;
-            viewContent.textContent = normalizedNoteContent; // Set normalized text for view
+            viewContent.textContent = normalizedNoteContent;
             viewSection.style.display = 'block'; form.style.display = 'none';
             saveBtn.style.display = 'none'; viewButtons.style.display = 'block';
         } else {
             title.textContent = "加入筆記"; noteIdInput.value = '';
-            // textarea.value is already set to normalized (empty) string from reset + normalization
             viewSection.style.display = 'none'; form.style.display = 'block';
             saveBtn.style.display = 'inline-block'; viewButtons.style.display = 'none';
             textarea.focus();
@@ -948,33 +872,15 @@
         const newContent = formData.get('content'); if (!newContent || newContent.trim() === '') { alert('筆記內容不能為空'); return; }
         const url = noteId ? "{% url 'update_note' %}" : "{% url 'add_note' %}";
 
-        // console.log(`Submitting note form. URL: ${url}, Animal ID: ${animalId}, Note ID: ${noteId || '(New)'}`);
         fetch(url, { method: "POST", headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'}, body: formData })
         .then(res => { if (!res.ok) { return res.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${res.status}`); }); } return res.json(); })
         .then(data => {
-            // console.log("Save/Update Note Response:", data);
             if (data.success) {
                 const currentAnimalId = data.animal_id || animalId;
-                // --- MODIFIED: Pass tableId to insertOrReplaceRow ---
-                const tablesToUpdate = ['myNotesTable', 'pendingTable', 'latestReviewTable', 'dailyAnimalTable', 'recommendationTable'];
-                let firstAddedRowInMyNotes = null;
-                tablesToUpdate.forEach(tableId => { // <-- tableId is available here
-                    const tbody = document.getElementById(tableId)?.querySelector('tbody');
-                    if (tbody && data.rendered_row_html) {
-                        // Pass tableId as the 4th argument
-                        const insertedRow = insertOrReplaceRow(tbody, data.rendered_row_html, currentAnimalId, tableId); // <-- Pass tableId
-                        // Check if it's the My Notes table and the *very first* row was inserted/replaced
-                        if (tableId === 'myNotesTable' && insertedRow && insertedRow === tbody.querySelector('tr[data-animal-id]:not(.note-row)')) {
-                             firstAddedRowInMyNotes = insertedRow;
-                        }
-                    } else if (tbody) { console.warn(`Table body found for ${tableId} but no rendered_row_html in response.`); }
-                });
-                // --- End MODIFIED ---
-
-                 updateRowsByAnimalId(currentAnimalId, (r) => {
+                // --- MODIFIED: Only update data-* attributes, reload open modal ---
+                updateRowsByAnimalId(currentAnimalId, (r) => {
                     if (!r.classList.contains('note-row')) {
                          r.setAttribute('data-note-id', data.note_id);
-                         // <<< Store the potentially normalized content back to the dataset
                          r.setAttribute('data-note-content', normalizeNewlines(data.note_content || ''));
                          const dropdown = document.getElementById('plusDropdown');
                          if (dropdown?.classList.contains('open')) {
@@ -985,83 +891,57 @@
                               }
                          }
                     }
-                 });
-                 // Update top section if the inserted row is the new first row in My Notes
-                 if(firstAddedRowInMyNotes) {
-                     const myNotesTbody = document.getElementById('myNotesTable')?.querySelector('tbody');
-                     // Check if this was the *only* row added/replaced (or the first one overall)
-                     if (myNotesTbody && firstAddedRowInMyNotes === myNotesTbody.querySelector('tr[data-animal-id]:not(.note-row)')) {
-                          updateTopSectionFromRow(document.getElementById('myNotesPhotoArea'), document.getElementById('myNotesIntroArea'), firstAddedRowInMyNotes);
-                     }
-                 }
-                tablesToUpdate.forEach(tableId => syncCheckboxWithNoteRows(tableId));
+                });
+                // Check if My Notes modal is open and reload it
+                const myNotesModal = document.getElementById('myNotesModal');
+                if (myNotesModal && myNotesModal.style.display === 'block') {
+                     console.log("My Notes modal is open, reloading content after save...");
+                     loadModalContent('myNotesModal');
+                }
+                // --- End MODIFIED ---
                 if(modal) modal.style.display = 'none'; alert(data.message || '筆記已儲存');
             } else { alert(data.error || '儲存失敗'); }
         })
         .catch(err => { console.error("Save/Update Note Error:", err); alert(`儲存筆記時發生錯誤: ${err.message}`); });
       });
-      // --- End noteForm submit ---
+
 
       document.getElementById('deleteNoteBtn')?.addEventListener('click', function() {
         if (!isLoggedIn) return;
         const modal = document.getElementById('noteModal'); const noteId = document.getElementById('currentNoteId').value;
         const animalId = this.getAttribute('data-animal-id'); if (!animalId) { console.error("Delete Note: Animal ID missing"); return; }
         if (noteId && confirm("確定要刪除這條筆記嗎？")) {
-          // console.log(`Deleting note ID: ${noteId} for animal ID: ${animalId}`);
           const formData = new FormData(); formData.append('note_id', noteId);
           fetch("{% url 'delete_note' %}", { method: "POST", headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'}, body: formData })
           .then(res => { if (!res.ok) { return res.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${res.status}`); }); } return res.json(); })
           .then(data => {
-              // console.log("Delete Note Response:", data);
               if (data.success) {
                   const targetAnimalId = data.animal_id || animalId;
-                  // --- MODIFIED: Add recommendationTable to the list ---
-                  const tablesToUpdate = ['myNotesTable', 'pendingTable', 'latestReviewTable', 'dailyAnimalTable', 'recommendationTable'];
-                  // --- End MODIFIED ---
-                  let myNotesTableBecameEmpty = false; let myNotesFirstRowChanged = false;
-                  tablesToUpdate.forEach(tableId => {
-                       const tbody = document.getElementById(tableId)?.querySelector('tbody');
-                       if(tbody) {
-                           const noteRowToRemove = tbody.querySelector(`tr.note-row[data-animal-id="${targetAnimalId}"]`);
-                           if (noteRowToRemove) noteRowToRemove.remove(); // Remove note row first
-
-                           if (tableId === 'myNotesTable') {
-                                const mainRow = tbody.querySelector(`tr[data-animal-id="${targetAnimalId}"]:not(.note-row)`);
-                                if (mainRow && mainRow.getAttribute('data-pending') !== 'true') {
-                                    const wasFirstRow = mainRow === tbody.querySelector('tr[data-animal-id]:not(.note-row)');
-                                    mainRow.remove(); // Remove main row only if it's not pending
-                                    if (wasFirstRow) myNotesFirstRowChanged = true;
-                                }
-                                // Check if table is empty *after* potential removal
-                                if (tbody.querySelectorAll('tr:not(.note-row)').length === 0 && !tbody.querySelector('.empty-table-message')) {
-                                    tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">尚無筆記</td></tr>';
-                                    myNotesTableBecameEmpty = true;
-                                }
-                           }
-                       }
-                   });
-                   if (myNotesTableBecameEmpty) {
-                        updatePhotoArea(document.getElementById('myNotesPhotoArea'), null, '');
-                        updateIntroArea(document.getElementById('myNotesIntroArea'), '尚無筆記');
-                   } else if (myNotesFirstRowChanged) {
-                       const myNotesTbody = document.getElementById('myNotesTable')?.querySelector('tbody');
-                       const newFirstRow = myNotesTbody?.querySelector('tr[data-animal-id]:not(.note-row)');
-                       if (newFirstRow) updateTopSectionFromRow(document.getElementById('myNotesPhotoArea'), document.getElementById('myNotesIntroArea'), newFirstRow);
-                   }
-                   updateRowsByAnimalId(targetAnimalId, (r) => {
+                  // --- MODIFIED: Only update data-* attributes, remove note row, reload open modal ---
+                  updateRowsByAnimalId(targetAnimalId, (r) => {
                       if (!r.classList.contains('note-row')) {
-                           r.removeAttribute('data-note-id'); r.removeAttribute('data-note-content');
-                            const dropdown = document.getElementById('plusDropdown');
-                             if (dropdown?.classList.contains('open')) {
-                                 const plusBtn = document.querySelector(`.plus-menu-btn[data-animal-id="${targetAnimalId}"]`);
-                                 if(plusBtn && plusBtn.closest('tr') === r) {
-                                     const noteBtn = dropdown.querySelector('button:last-child');
-                                     if (noteBtn) noteBtn.textContent = "加入筆記";
-                                 }
-                             }
+                           r.removeAttribute('data-note-id');
+                           r.removeAttribute('data-note-content');
+                           const dropdown = document.getElementById('plusDropdown');
+                           if (dropdown?.classList.contains('open')) {
+                               const plusBtn = document.querySelector(`.plus-menu-btn[data-animal-id="${targetAnimalId}"]`);
+                               if(plusBtn && plusBtn.closest('tr') === r) {
+                                   const noteBtn = dropdown.querySelector('button:last-child');
+                                   if (noteBtn) noteBtn.textContent = "加入筆記";
+                               }
+                           }
                       }
-                   });
-                  tablesToUpdate.forEach(tableId => syncCheckboxWithNoteRows(tableId));
+                  });
+                  // Remove the note row from all potentially visible tables
+                  document.querySelectorAll(`.note-row[data-animal-id="${targetAnimalId}"]`).forEach(row => row.remove());
+
+                  // Check if My Notes modal is open and reload it
+                  const myNotesModal = document.getElementById('myNotesModal');
+                  if (myNotesModal && myNotesModal.style.display === 'block') {
+                      console.log("My Notes modal is open, reloading content after delete...");
+                      loadModalContent('myNotesModal');
+                  }
+                  // --- End MODIFIED ---
                   if(modal) modal.style.display = 'none'; alert(data.message || '筆記已刪除');
               } else { alert(data.error || '刪除失敗'); }
           })
@@ -1074,7 +954,6 @@
         const title = document.getElementById('noteModalTitle'); const textarea = document.getElementById('noteContent');
         const saveBtn = document.getElementById('saveNoteBtn'); const viewButtons = document.getElementById('viewNoteButtons');
         if(form && viewSection && title && textarea && saveBtn && viewButtons){
-            // console.log("Switching note modal to edit mode.");
             viewSection.style.display = 'none'; form.style.display = 'block';
             title.textContent = "修改筆記";
             saveBtn.style.display = 'inline-block'; viewButtons.style.display = 'none';
@@ -1083,24 +962,22 @@
       });
 
       function updatePhotoArea(areaElement, photoUrl, altText) {
-          if (!areaElement) { /* console.warn("updatePhotoArea: areaElement is null"); */ return; }
+          if (!areaElement) { return; }
           areaElement.innerHTML = '';
           if (photoUrl && photoUrl !== 'None' && photoUrl !== '') {
               const img = document.createElement('img'); img.src = photoUrl; img.alt = altText || '照片'; img.style.opacity = 0;
               img.onload = () => { img.style.opacity = 1; };
-              img.onerror = () => { /* console.warn(`Failed to load image: ${photoUrl}`); */ areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">照片載入失敗</p>'; };
+              img.onerror = () => { areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">照片載入失敗</p>'; };
               areaElement.appendChild(img);
           } else { areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">無照片</p>'; }
       }
       function updateIntroArea(introElement, introText) {
-          if (!introElement) { /* console.warn("updateIntroArea: introElement is null"); */ return; }
+          if (!introElement) { return; }
           const pElement = introElement.querySelector('.intro-top p');
-          // <<< Use normalized text when updating intro area
           const normalizedIntroText = normalizeNewlines(introText || '無介紹');
           if (pElement) {
               pElement.textContent = normalizedIntroText;
           } else {
-              // Also use normalized text when creating element
               introElement.innerHTML = `<div class="intro-top"><p>${normalizedIntroText}</p></div>`;
           }
           const scrollContainer = introElement.querySelector('.intro-top');
@@ -1111,17 +988,21 @@
       function updateTopSectionFromRow(photoArea, introArea, row) {
           if (!photoArea || !introArea || !row) return;
           const photoUrl = row.dataset.photoUrl || '';
-          // <<< Read introduction from dataset for update
           const introText = row.dataset.introduction || '無介紹';
           const nameElement = row.querySelector('.name');
           const animalName = nameElement ? nameElement.textContent.trim() : '美容師';
           updatePhotoArea(photoArea, photoUrl, animalName);
-          // <<< updateIntroArea now handles normalization
           updateIntroArea(introArea, introText);
       }
 
+      function updateTopSectionFromData(photoArea, introArea, animalData) {
+           if (!photoArea || !introArea || !animalData) return;
+           updatePhotoArea(photoArea, animalData.photo_url || '', animalData.name || '美容師');
+           updateIntroArea(introArea, animalData.introduction || '無介紹');
+      }
 
-      function loadReviews(animalId) {
+
+      function loadReviews(animalId) { // Keep this as is, it loads into a specific div
           const reviewList = document.getElementById('reviewList');
           if (!reviewList) { console.error("Element with ID 'reviewList' not found."); return; }
           reviewList.innerHTML = '<p>載入心得中...</p>';
@@ -1135,7 +1016,6 @@
           .then(data => {
               reviewList.innerHTML = "";
               if (data?.reviews?.length > 0) {
-                  // console.log(`Received ${data.reviews.length} reviews.`);
                   data.reviews.forEach(review => {
                       const card = document.createElement('div'); card.className = 'review-card';
                       const createReviewLine = (label, value) => {
@@ -1149,10 +1029,9 @@
                                displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim(); if (!displayValue) return '';
                           }
                           const valueSpan = document.createElement('span'); valueSpan.className = 'review-value';
-                           // <<< Normalize content before displaying, especially '心得'
                           const normalizedDisplayValue = normalizeNewlines(displayValue);
                           if (label === '心得' && typeof normalizedDisplayValue === 'string') {
-                              valueSpan.innerHTML = normalizedDisplayValue.replace(/\n/g, '<br>'); // Render normalized newlines
+                              valueSpan.innerHTML = normalizedDisplayValue.replace(/\n/g, '<br>');
                           } else {
                               valueSpan.textContent = normalizedDisplayValue;
                           }
@@ -1160,10 +1039,7 @@
                       };
                       card.innerHTML = `
                           <div class="review-header">
-                              <div class="review-user-info">
-                                  <span class="review-user">${review.user || '匿名用戶'}</span>
-                                  ${review.totalCount ? `<span class="review-total">總心得: ${review.totalCount}</span>` : ''}
-                              </div>
+                              <div class="review-user-info"><span class="review-user">${review.user || '匿名用戶'}</span>${review.totalCount ? `<span class="review-total">總心得: ${review.totalCount}</span>` : ''}</div>
                               <span class="review-date">${review.created_at || '未知日期'}</span>
                           </div>
                           <div class="review-body">
@@ -1176,7 +1052,7 @@
                           </div>`;
                       reviewList.appendChild(card);
                   });
-              } else { /* console.log("No reviews found or invalid data structure:", data); */ reviewList.innerHTML = '<p>目前沒有相關評論。</p>'; }
+              } else { reviewList.innerHTML = '<p>目前沒有相關評論。</p>'; }
           })
           .catch(error => { console.error("Load Reviews Error:", error); reviewList.innerHTML = `<p>載入心得時發生錯誤: ${error.message}</p>`; });
       }
@@ -1191,20 +1067,26 @@
           fetch("{% url 'add_review' %}", { method: "POST", body: formData, headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'} })
           .then(res => { if (!res.ok) { return res.json().then(err => { let errorMsg = err.error || `伺服器錯誤 ${res.status}`; if (err.errors) { errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', '); } throw new Error(errorMsg); }).catch(() => { throw new Error(`伺服器錯誤 ${res.status}`); }); } return res.json(); })
           .then(data => {
-                // console.log("Submit Review Response:", data);
                 if(data.success) {
                     alert(data.message || '評論已提交，待審核');
                     if(modal) modal.style.display = 'none';
+                    // --- MODIFIED: Reload latest reviews if open ---
+                    const latestModal = document.getElementById('latestReviewModal');
+                    if (latestModal && latestModal.style.display === 'block') {
+                        loadModalContent('latestReviewModal');
+                    }
+                    // --- End MODIFIED ---
                 } else { alert(data.error || '提交失敗'); }
            })
           .catch(err => { console.error("Submit Review Error:", err); alert(`提交心得時發生錯誤: ${err.message}`); });
       });
 
-      // --- Process initial time slots in static modals ---
-      document.querySelectorAll('#pendingTable tbody, #latestReviewTable tbody, #myNotesTable tbody, #recommendationTable tbody').forEach(tbody => {
+      // --- MODIFIED: Process initial time slots only for visible pre-rendered content (if any) ---
+      // We remove pre-rendered content from AJAX modals later, so less need to process them all initially.
+      document.querySelectorAll('#dailyAnimalTable tbody').forEach(tbody => {
           if(tbody) processTimeSlotCellsInContainer(tbody);
       });
-      // --- End Process initial time slots ---
+      // --- End MODIFIED ---
 
       document.querySelectorAll('#dailyHallMenu a').forEach(link => {
           link.addEventListener('click', e => {
@@ -1216,21 +1098,21 @@
             const introArea = modalBody.querySelector('#dailyIntroArea');
             if (!tbody || !photoArea || !introArea) { console.error("Daily schedule elements missing within modal body"); return; }
 
-            tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">載入中...</td></tr>';
-            updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...');
+            tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>'; // Show loading
+            updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...'); // Update top section
 
             fetch("{% url 'home' %}?hall_id=" + hallId + "&ajax=1", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
               .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct?.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
               .then(data => {
-                // console.log("Daily Schedule AJAX Response:", data);
                 if (data.table_html !== undefined) {
-                  tbody.innerHTML = data.table_html;
-                  if (!tbody.querySelector('tr:not(.empty-table-message)')) {
-                       tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">此館別目前無班表</td></tr>';
-                  } else { processTimeSlotCellsInContainer(tbody); }
-                  if (data.first_animal?.name !== undefined) {
-                       updateTopSectionFromRow(photoArea, introArea, { dataset: { photoUrl: data.first_animal.photo_url, introduction: data.first_animal.introduction }, querySelector: () => ({ textContent: data.first_animal.name }) });
-                  } else { updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '此館別目前無介紹'); }
+                  tbody.innerHTML = data.table_html || '<tr class="empty-table-message"><td colspan="5">此館別目前無班表</td></tr>'; // Use response or empty message
+                  processTimeSlotCellsInContainer(tbody); // Process new content
+                  if (data.first_animal && Object.keys(data.first_animal).length > 0) {
+                      updateTopSectionFromData(photoArea, introArea, data.first_animal); // Use data object
+                  } else {
+                      updatePhotoArea(photoArea, null, '');
+                      updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '此館別目前無班表' : '此館別目前無介紹');
+                  }
                   syncCheckboxWithNoteRows('dailyAnimalTable');
                   const checkbox = document.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]');
                   if (checkbox){
@@ -1257,7 +1139,11 @@
             if (checkbox && tbody) {
                 const anyNoteRowsExist = tbody.querySelector('tr.note-row');
                 checkbox.disabled = !anyNoteRowsExist;
-            } else { /* console.warn(`syncCheckboxWithNoteRows: Could not find checkbox or tbody for ${tableId}`); */ }
+                // Ensure checkbox state reflects reality even if no notes exist initially
+                if (!anyNoteRowsExist && checkbox.checked) {
+                    // checkbox.checked = false; // Optionally uncheck if no notes
+                }
+            }
         }
 
       function limitCheckboxSelection(groupId, maxCount) {
@@ -1279,114 +1165,187 @@
           checkLimit();
       }
 
+      // --- NEW: Function to load modal content via AJAX ---
+      function loadModalContent(modalId) {
+          const modal = document.getElementById(modalId);
+          if (!modal) { console.error(`Modal not found for AJAX load: #${modalId}`); return; }
+
+          const modalBody = modal.querySelector('.modal-body[data-layout="table"]');
+          if (!modalBody) { console.warn(`Modal ${modalId} does not have table layout for AJAX loading.`); return; }
+
+          const tableBody = modalBody.querySelector('.body-table tbody');
+          const photoArea = modalBody.querySelector('.photo-area');
+          const introArea = modalBody.querySelector('.intro-area');
+          const introContentP = introArea?.querySelector('.intro-top p');
+          const tableId = tableBody?.id; // Get table ID for checkbox sync
+
+          if (!tableBody || !photoArea || !introArea || !introContentP) {
+              console.error(`Required elements (tbody, photoArea, introArea, introContentP) not found in modal ${modalId}`);
+              return;
+          }
+
+          // Determine AJAX URL based on modalId
+          let ajaxUrl = null;
+          if (modalId === 'pendingListModal') ajaxUrl = "{% url 'ajax_get_pending_list' %}";
+          else if (modalId === 'myNotesModal') ajaxUrl = "{% url 'ajax_get_my_notes' %}";
+          else if (modalId === 'latestReviewModal') ajaxUrl = "{% url 'ajax_get_latest_reviews' %}";
+          else if (modalId === 'dailyRecommendationModal') ajaxUrl = "{% url 'ajax_get_recommendations' %}";
+          // Add other modals here if needed
+
+          if (!ajaxUrl) {
+              console.warn(`No AJAX URL configured for modal: ${modalId}`);
+              return; // Don't proceed if no URL is mapped
+          }
+
+          // Show loading state
+          tableBody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
+          updatePhotoArea(photoArea, null, '');
+          updateIntroArea(introArea, '載入中...');
+
+          fetch(ajaxUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+              .then(response => {
+                  if (!response.ok) { throw new Error(`HTTP error ${response.status}`); }
+                  const ct = response.headers.get('content-type');
+                  if (!ct?.includes('application/json')) { throw new TypeError('伺服器未返回 JSON'); }
+                  return response.json();
+              })
+              .then(data => {
+                   if (data.table_html !== undefined) {
+                       tableBody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">列表是空的</td></tr>`; // Default empty message
+                       processTimeSlotCellsInContainer(tableBody); // Process time slots in new content
+                       if (tableId) { syncCheckboxWithNoteRows(tableId); } // Sync notes checkbox
+                       // Update top section based on first animal data
+                       if (data.first_animal && Object.keys(data.first_animal).length > 0) {
+                            updateTopSectionFromData(photoArea, introArea, data.first_animal);
+                       } else {
+                           // Handle empty state message based on modal ID
+                           updatePhotoArea(photoArea, null, '');
+                           let emptyMsg = "列表是空的";
+                           if (modalId === 'pendingListModal') emptyMsg = '待約清單是空的';
+                           else if (modalId === 'latestReviewModal') emptyMsg = '還沒有任何心得';
+                           else if (modalId === 'myNotesModal') emptyMsg = '尚無筆記';
+                           else if (modalId === 'dailyRecommendationModal') emptyMsg = '目前沒有推薦的美容師';
+                           updateIntroArea(introArea, emptyMsg);
+                       }
+                   } else {
+                       throw new Error(data.error || '從伺服器返回的資料格式錯誤');
+                   }
+              })
+              .catch(error => {
+                  console.error(`Error loading content for ${modalId}:`, error);
+                  tableBody.innerHTML = `<tr class="empty-table-message"><td colspan="5">載入失敗: ${error.message}</td></tr>`;
+                  updatePhotoArea(photoArea, null, '');
+                  updateIntroArea(introArea, '載入失敗');
+                  if (tableId) { syncCheckboxWithNoteRows(tableId); } // Sync checkbox even on error
+              });
+      }
+      // --- End NEW AJAX Load Function ---
+
+
+      // --- MODIFIED openModal to trigger AJAX load ---
       const openModal = (modalId) => {
           const modal = document.getElementById(modalId);
           if (modal) {
-              // console.log(`Opening modal: #${modalId}`);
               modal.style.display = 'block';
               document.body.style.overflow = 'hidden';
-              const modalBody = modal.querySelector('.modal-body');
-              let tableBody = null;
-              let photoArea = null;
-              let introArea = null;
 
-              if (modalBody?.dataset.layout === 'table') {
-                   tableBody = modalBody.querySelector('.body-table tbody');
-                   photoArea = modalBody.querySelector('.photo-area');
-                   introArea = modalBody.querySelector('.intro-area');
+              const modalBody = modal.querySelector('.modal-body');
+              const isTableLayout = modalBody?.dataset.layout === 'table';
+              const needsAjaxLoad = ['pendingListModal', 'myNotesModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId);
+
+              // Clear previous content and load new data via AJAX if applicable
+              if (isTableLayout && needsAjaxLoad) {
+                   loadModalContent(modalId); // Call the AJAX loading function
+              }
+              // Handle non-AJAX modals or initial setup for modals that might load content later
+              else if (modalId === 'reviewModal' && isLoggedIn) {
+                  // The loadReviews function is triggered separately by button click
+                  // Ensure review list is cleared initially or shows loading
+                  const reviewList = document.getElementById('reviewList');
+                  if (reviewList) reviewList.innerHTML = '<p>請點擊列表中的心得按鈕查看。</p>'; // Or keep initial 'Loading...'
+              } else if (modalId === 'dailyScheduleModal') {
+                   // Daily schedule AJAX is triggered by hall menu clicks,
+                   // but ensure initial state is correct
+                   const tbodyDaily = modal.querySelector('#dailyAnimalTable tbody');
+                   const initialLink = modal.querySelector('#dailyHallMenu a[data-hall-id="all"]');
+                   const isEmptyPlaceholder = tbodyDaily?.querySelector('.empty-table-message td')?.textContent.includes('請點擊上方館別');
+                   const noDataRows = !tbodyDaily?.querySelector('tr[data-animal-id]:not(.note-row)');
+
+                   if (tbodyDaily && initialLink && isEmptyPlaceholder && noDataRows) {
+                      // Trigger initial load only if content is the placeholder and no data exists
+                      setTimeout(() => {
+                           const currentIsEmpty = tbodyDaily?.querySelector('.empty-table-message td')?.textContent.includes('請點擊上方館別');
+                           const currentNoData = !tbodyDaily?.querySelector('tr[data-animal-id]:not(.note-row)');
+                           if(currentIsEmpty && currentNoData) initialLink.click();
+                      }, 50);
+                   } else if (tbodyDaily && !noDataRows) {
+                       // If data exists (pre-rendered or from previous AJAX), update top section
+                       const firstRow = tbodyDaily.querySelector('tr[data-animal-id]:not(.note-row)');
+                       const photoArea = modal.querySelector('#dailyPhotoArea');
+                       const introArea = modal.querySelector('#dailyIntroArea');
+                       if(firstRow && photoArea && introArea) {
+                           updateTopSectionFromRow(photoArea, introArea, firstRow);
+                       }
+                   }
+              } else if (isTableLayout && !needsAjaxLoad) {
+                   // For modals with static pre-rendered content (if any in future)
+                   const tableBody = modalBody.querySelector('.body-table tbody');
+                   const photoArea = modalBody.querySelector('.photo-area');
+                   const introArea = modalBody.querySelector('.intro-area');
                    if (tableBody && photoArea && introArea) {
                        const firstDataRow = tableBody.querySelector('tr[data-animal-id]:not(.note-row)');
                        if (firstDataRow) {
                            updateTopSectionFromRow(photoArea, introArea, firstDataRow);
-                       } else {
-                           // Handle empty state for different modals
-                           updatePhotoArea(photoArea, null, '');
-                           let emptyMsg = '請點擊下方列表項目'; // Default
-                           const emptyTableRow = tableBody.querySelector('.empty-table-message td');
-                           if(emptyTableRow) {
-                               emptyMsg = emptyTableRow.textContent.trim();
-                           } else if (modalId === 'pendingListModal') {
-                               emptyMsg = '待約清單是空的';
-                           } else if (modalId === 'latestReviewModal') {
-                               emptyMsg = '還沒有任何心得';
-                           } else if (modalId === 'myNotesModal') {
-                               emptyMsg = '尚無筆記';
-                           } else if (modalId === 'dailyRecommendationModal') { // <-- Add case for recommendation
-                               emptyMsg = '目前沒有推薦的美容師';
-                           } else if (modalId !== 'dailyScheduleModal') { // Keep daily schedule default
-                                // Default already set
-                           }
-                           updateIntroArea(introArea, emptyMsg);
                        }
-                   } else { /* console.warn(`Could not find necessary elements in modal ${modalId} for table layout.`); */ }
-              } else if (modalId === 'reviewModal') {
-                  tableBody = modal.querySelector('#reviewList'); // Container for reviews
+                   }
               }
-
-
-              if (modalBody?.dataset.layout === 'table' || modalId === 'myNotesModal') {
+              // Ensure notes checkbox is synced after potential content changes or initial load
+              if (isTableLayout || modalId === 'myNotesModal') { // Includes myNotesModal specifically
                    const checkbox = modal.querySelector('.toggle-notes-checkbox');
                    const tableId = checkbox?.dataset.tableId;
-                   if (checkbox && tableId && tableBody && tableBody.tagName === 'TBODY') { // Ensure it's a real tbody
-                       syncCheckboxWithNoteRows(tableId);
+                   const targetTableBody = modalBody.querySelector(`#${tableId} tbody`);
+                   if (checkbox && tableId && targetTableBody && targetTableBody.tagName === 'TBODY') {
+                       syncCheckboxWithNoteRows(tableId); // Sync based on actual content
                        const shouldShow = checkbox.checked;
-                       tableBody.querySelectorAll('tr.note-row').forEach(nr => { nr.style.display = shouldShow ? '' : 'none'; });
+                       targetTableBody.querySelectorAll('tr.note-row').forEach(nr => { nr.style.display = shouldShow ? '' : 'none'; });
                    }
-               } else if (modalId === 'reviewSubmitModal') {
+               }
+              // Scroll review submit modal body to top
+               else if (modalId === 'reviewSubmitModal') {
                    modal.querySelector('.modal-body').scrollTop = 0;
                }
 
-              if (modalId === 'dailyScheduleModal') {
-                  const dailyModal = modal;
-                  const tbodyDaily = tableBody; // Re-use tableBody var if available
-                  const initialLink = dailyModal?.querySelector('#dailyHallMenu a[data-hall-id="all"]');
-                  // Check specifically if the placeholder text is present
-                  const isEmptyPlaceholder = tbodyDaily?.querySelector('.empty-table-message td')?.textContent.includes('請點擊上方館別');
-                  // Also ensure the table body is actually empty of data rows
-                  const noDataRows = !tbodyDaily?.querySelector('tr[data-animal-id]:not(.note-row)');
 
-                  if (tbodyDaily && initialLink && isEmptyPlaceholder && noDataRows) {
-                    // console.log('Triggering initial AJAX load for Daily Schedule Modal');
-                    setTimeout(() => {
-                         // Double check before clicking, in case something loaded very fast
-                         const currentIsEmpty = tbodyDaily?.querySelector('.empty-table-message td')?.textContent.includes('請點擊上方館別');
-                         const currentNoData = !tbodyDaily?.querySelector('tr[data-animal-id]:not(.note-row)');
-                         if(currentIsEmpty && currentNoData) initialLink.click();
-                    }, 50);
-                  }
-              }
               return true;
           }
           console.error(`Modal not found: #${modalId}`); return false;
       };
+      // --- End MODIFIED openModal ---
 
       const closeModal = (modalElement) => {
           if (modalElement) {
-               // console.log(`Closing modal: #${modalElement.id}`);
                modalElement.style.display = 'none';
                const anyModalOpen = document.querySelector('.modal[style*="display: block"]');
-               if (!anyModalOpen) {
-                   // console.log("No other modals open, restoring body scroll.");
-                   document.body.style.overflow = '';
-                } else { /* console.log("Other modals still open."); */ }
+               if (!anyModalOpen) { document.body.style.overflow = ''; }
           }
       };
 
       // --- Event Listener Setup (Add new button) ---
       document.addEventListener('click', function(e) {
           const target = e.target; const targetClosest = (selector) => target.closest(selector);
-          // Existing button listeners...
+          // Modal Opening Buttons
           if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
           if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
+          if (targetClosest('#btnDailyRecommendationHeader')) { openModal('dailyRecommendationModal'); return; }
           if (targetClosest('#pendingListBtnHeader')) { openModal('pendingListModal'); return; }
           if (targetClosest('#myNotesBtnHeader')) { openModal('myNotesModal'); return; }
           if (targetClosest('#loginBtnHeader')) { openModal('loginModal'); return; }
-          // --- Add listener for new button ---
-          if (targetClosest('#btnDailyRecommendationHeader')) { openModal('dailyRecommendationModal'); return; }
-          // --- End listener for new button ---
 
+          // Row Action Buttons
           const plusBtn = targetClosest('.plus-menu-btn'); if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; }
           const reviewBtn = targetClosest('.review-count-btn'); if (reviewBtn) { e.stopPropagation(); const animalId = reviewBtn.dataset.animalId; if (animalId) { loadReviews(animalId); openModal('reviewModal'); } return; }
+
+          // Row Click for Top Section Update
           const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
             if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn, a, button, input, select, textarea')) {
                 const modal = tableRow.closest('.modal');
@@ -1394,12 +1353,13 @@
                     const photoArea = modal.querySelector('.photo-area');
                     const introArea = modal.querySelector('.intro-area');
                     if (photoArea && introArea) {
-                        // console.log(`Row clicked in ${modal.id}. Updating photo/intro.`);
                         updateTopSectionFromRow(photoArea, introArea, tableRow);
-                    } else { /* console.warn(`Row clicked, but photoArea or introArea not found within modal ${modal.id}'s top section.`); */ }
+                    }
                 }
                 return;
             }
+
+          // Close Modal Actions
           const closeBtn = targetClosest('.close-modal'); if (closeBtn) { closeModal(targetClosest('.modal')); return; }
           if (target.classList.contains('modal')) { closeModal(target); if (document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); } return; }
           if (target === bottomOverlay && document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); return; }
@@ -1414,14 +1374,13 @@
                   const firstOptionValue = el.options[0]?.value;
                   const placeholder = firstOptionValue === "";
                   el.choicesInstance = new Choices(el, { searchEnabled: false, itemSelectText: '', allowHTML: false, shouldSort: false, placeholder: placeholder, placeholderValue: placeholder ? el.options[0].text : null });
-                  // console.log(`Choices.js initialized for #${id}`);
               } catch (e) { console.error(`Choices.js init error for #${id}:`, e); }
           }
       });
 
       function togglePriceInput(selectId, priceInputId) {
           const sel = document.getElementById(selectId); const inp = document.getElementById(priceInputId);
-          if (!sel || !inp) { /* console.error(`togglePriceInput: Could not find elements for ${selectId} or ${priceInputId}`); */ return; }
+          if (!sel || !inp) { return; }
           const toggle = () => {
               const selectValue = sel.value;
               inp.style.display = (selectValue === '可加值') ? 'block' : 'none';
@@ -1434,17 +1393,16 @@
       togglePriceInput('sports', 'sports_price');
 
       const loginErrorMsg = document.getElementById('login-error-message');
-      if (loginErrorMsg) { /* console.log("Login error found, scheduling fade out."); */ setTimeout(() => { loginErrorMsg.style.transition = 'opacity 0.5s ease'; loginErrorMsg.style.opacity = '0'; setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500); }, 4000); }
+      if (loginErrorMsg) { setTimeout(() => { loginErrorMsg.style.transition = 'opacity 0.5s ease'; loginErrorMsg.style.opacity = '0'; setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500); }, 4000); }
 
       function handleNoteCheckboxChange() {
           if (this.disabled) return;
           const tableId = this.dataset.tableId;
-          const modalBody = this.closest('.modal-body') || document; // Find within the current modal or document
-          const tbody = modalBody.querySelector(`#${tableId} tbody`); // Find the tbody within that scope
+          const modalBody = this.closest('.modal-body') || document;
+          const tbody = modalBody.querySelector(`#${tableId} tbody`);
           if (!tbody) { console.error(`Notes Checkbox Change: Could not find tbody for table ID: ${tableId} within its modal.`); return; }
           const noteRows = tbody.querySelectorAll('tr.note-row');
           const shouldShow = this.checked;
-          // console.log(`Notes Checkbox Changed for table ${tableId}. Show: ${shouldShow}. Found ${noteRows.length} note rows.`);
           noteRows.forEach(noteRow => { noteRow.style.display = shouldShow ? '' : 'none'; });
       }
       document.querySelectorAll('.toggle-notes-checkbox').forEach(checkbox => {
@@ -1453,17 +1411,17 @@
       });
 
        setTimeout(() => {
-            // console.log("Running initial sync for all note checkboxes...");
             document.querySelectorAll('.toggle-notes-checkbox').forEach(checkbox => {
                  if(checkbox.dataset.tableId){
                      const tableId = checkbox.dataset.tableId;
                      syncCheckboxWithNoteRows(tableId);
-                     const modalBody = checkbox.closest('.modal-body') || document;
-                     const tbody = modalBody.querySelector(`#${tableId} tbody`);
-                     if (tbody) {
-                          const shouldShow = checkbox.checked;
-                          tbody.querySelectorAll('tr.note-row').forEach(nr => { nr.style.display = shouldShow ? '' : 'none'; });
-                     }
+                     // Don't force note visibility on load, let syncCheckbox manage state
+                     // const modalBody = checkbox.closest('.modal-body') || document;
+                     // const tbody = modalBody.querySelector(`#${tableId} tbody`);
+                     // if (tbody) {
+                     //      const shouldShow = checkbox.checked;
+                     //      tbody.querySelectorAll('tr.note-row').forEach(nr => { nr.style.display = shouldShow ? '' : 'none'; });
+                     // }
                  }
             });
        }, 100);

@@ -1,4 +1,4 @@
-# urls.py (No changes needed for this request)
+# urls.py
 from django.urls import path
 from . import views
 
@@ -13,6 +13,15 @@ urlpatterns = [
     path('add_note/', views.add_note, name='add_note'),
     path('delete_note/', views.delete_note, name='delete_note'),
     path('update_note/', views.update_note, name='update_note'),
+
+    # --- NEW AJAX URLs ---
+    # (These URLs will be called by JavaScript when opening the corresponding modals)
+    path('ajax/pending/', views.ajax_get_pending_list, name='ajax_get_pending_list'),
+    path('ajax/notes/', views.ajax_get_my_notes, name='ajax_get_my_notes'),
+    path('ajax/latest-reviews/', views.ajax_get_latest_reviews, name='ajax_get_latest_reviews'),
+    path('ajax/recommendations/', views.ajax_get_recommendations, name='ajax_get_recommendations'),
+    # --- End NEW AJAX URLs ---
+
     # path('my_notes/', views.my_notes, name='my_notes'), # Can likely be removed if modal is sufficient
-    # path('my_notes_json/', views.my_notes_json, name='my_notes_json'), # Keep if modal uses it
+    # path('my_notes_json/', views.my_notes_json, name='my_notes_json'), # Keep if modal uses it (Seems unused now)
 ]
