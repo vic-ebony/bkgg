@@ -234,6 +234,31 @@
      /* Style adjustments in View Note section */
      #viewNoteSection .note-box { border: none !important; background: transparent !important; padding: 0 !important; margin: 0 0 1rem 0 !important; font-style: normal !important; color: #333 !important; box-shadow: none !important; border-radius: 0 !important; }
 
+    /* --- MODIFIED: Media Query for Larger Screens --- */
+    @media (min-width: 601px) { /* Apply these styles when screen width is 601px or wider */
+      .modal-content {
+        /* Set a fixed height, e.g., 85% of viewport height, but not exceeding the max-height */
+        height: 85vh;
+        /* Keep max-height as a safeguard */
+        max-height: 90vh;
+        /* min-height can also be used if you prefer it to grow slightly with more content */
+        /* min-height: 500px; */ /* Example: Minimum height of 500px */
+
+        /* The existing flex properties will handle content distribution */
+      }
+
+      /* Optional: Ensure body wrapper inside table modals can scroll if needed */
+      /* This might already be handled correctly by existing flex rules, but good to double check */
+      .modal-body[data-layout="table"] .body-wrapper {
+          /* flex: 1; /* Already exists */
+          /* min-height: 0; /* Already exists */
+          /* overflow-y: auto; /* Already exists */
+          /* Ensure it doesn't shrink if content is small, allowing the modal-content height to dominate */
+          /* flex-shrink: 0;  <-- Maybe not needed if modal-content has fixed height */
+      }
+    }
+    /* --- End MODIFIED --- */
+
   </style>
 </head>
 <body>
@@ -246,6 +271,9 @@
             <div class="header-actions">
                 <button id="btnDailyScheduleHeader">每日班表</button>
                 <button id="latestReviewBtnHeader">最新心得</button>
+                <!-- 新增按鈕 -->
+                <button id="btnDailyRecommendationHeader">每日推薦</button>
+                <!-- End 新增按鈕 -->
                 <button id="pendingListBtnHeader">
                     待約清單 (<span id="pendingCountHeader">{{ pending_appointments|length|default:0 }}</span>)
                 </button>
@@ -516,6 +544,39 @@
             </div>
         </div>
 
+        <!-- 新增：每日推薦 Modal -->
+        <div id="dailyRecommendationModal" class="modal" role="dialog" aria-modal="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>每日推薦</h2>
+                    <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="recommendationTable"> 顯示筆記</label></div>
+                    <button class="close-modal" aria-label="關閉">×</button>
+                </div>
+                <div class="modal-body" data-layout="table">
+                    <section class="top-section">
+                        <div class="photo-area" id="recommendationPhotoArea">{% if recommended_animals and recommended_animals.0.photo %}<img src="{{ recommended_animals.0.photo.url }}" alt="{{ recommended_animals.0.name }}">{% else %}<p style="color:#888;font-size:0.9rem;">請點擊下方列表項目</p>{% endif %}</div>
+                        <div class="intro-area" id="recommendationIntroArea"><div class="intro-top"><p id="recommendationIntroductionContent">{% if recommended_animals and recommended_animals.0.introduction %}{{ recommended_animals.0.introduction }}{% else %}點擊下方列表查看介紹{% endif %}</p></div></div>
+                    </section>
+                    <div class="table-wrapper">
+                        <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
+                        <div class="body-wrapper"> {# Padding handled by CSS #}
+                            <table class="body-table" id="recommendationTable">
+                                <tbody>
+                                {% for animal_obj in recommended_animals %} {# 使用 recommended_animals 變數 #}
+                                    {% include 'partials/_animal_table_rows.html' with animal=animal_obj user=user pending_ids=pending_ids notes_by_animal=notes_by_animal %}
+                                {% empty %}
+                                    <tr class="empty-table-message"><td colspan="5">目前沒有推薦的美容師</td></tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End 新增：每日推薦 Modal -->
+
+
       <!-- Bottom slide-up menu & Overlay -->
       <div id="plusDropdown" class="dropdown-menu"></div>
       <div id="bottomOverlay"></div>
@@ -677,61 +738,113 @@
       // --- End MODIFIED addRowIfNotExists ---
 
 
-      // --- MODIFIED insertOrReplaceRow (Inserts at the beginning) ---
-      function insertOrReplaceRow(tbody, htmlString, animalId) {
-          if (!tbody || !htmlString || !animalId) { console.error("insertOrReplaceRow: Missing args"); return null; } // Return null on error
-          const existingRows = tbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
-          existingRows.forEach(row => row.remove()); // Remove old rows first
+      // --- MODIFIED insertOrReplaceRow (Conditional Prepend/Update) ---
+      function insertOrReplaceRow(tbody, htmlString, animalId, tableId) { // <-- Added tableId parameter
+          if (!tbody || !htmlString || !animalId) { console.error("insertOrReplaceRow: Missing args"); return null; }
 
+          // Parse the new HTML string to get the new main row and note row nodes
           const template = document.createElement('template');
           template.innerHTML = htmlString.trim();
           const newNodes = Array.from(template.content.childNodes);
-          let mainRowNode = null;
-          let noteRowNode = null;
-
-          // Find the main row and note row nodes
+          let newMainRowNode = null;
+          let newNoteRowNode = null;
           newNodes.forEach(node => {
               if (node.nodeType === Node.ELEMENT_NODE) {
                   if (!node.classList.contains('note-row')) {
-                      mainRowNode = node;
+                      newMainRowNode = node;
                   } else {
-                      noteRowNode = node;
+                      newNoteRowNode = node;
                   }
               }
           });
 
-          let prependedMainRow = null;
-          let prependedNoteRow = null;
+          // --- Logic specifically for myNotesTable: Prepend ---
+          if (tableId === 'myNotesTable') {
+              const existingRows = tbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
+              existingRows.forEach(row => row.remove()); // Remove old rows first
 
-          // Insert the new main row at the beginning
-          if (mainRowNode) {
-               prependedMainRow = tbody.insertBefore(mainRowNode.cloneNode(true), tbody.firstChild);
-               processTimeSlotCellsInContainer(prependedMainRow); // Process its time slots
-          }
+              let prependedMainRow = null;
+              let prependedNoteRow = null;
 
-          // Insert the new note row *before* the main row (or at the very beginning)
-          if (noteRowNode) {
-               const targetNodeForNote = prependedMainRow || tbody.firstChild;
-               prependedNoteRow = tbody.insertBefore(noteRowNode.cloneNode(true), targetNodeForNote);
-               // Sync the note row's visibility
-               const tableId = tbody.closest('.body-table')?.id;
-               if (tableId) {
+              // Insert the new main row at the beginning
+              if (newMainRowNode) {
+                   prependedMainRow = tbody.insertBefore(newMainRowNode.cloneNode(true), tbody.firstChild);
+                   processTimeSlotCellsInContainer(prependedMainRow);
+              }
+
+              // Insert the new note row *before* the main row (or at the very beginning)
+              if (newNoteRowNode) {
+                   const targetNodeForNote = prependedMainRow || tbody.firstChild;
+                   prependedNoteRow = tbody.insertBefore(newNoteRowNode.cloneNode(true), targetNodeForNote);
+                   // Sync the note row's visibility
                    const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
                    if (checkbox && !checkbox.checked) {
                        prependedNoteRow.style.display = 'none';
                    } else if (checkbox && checkbox.checked) {
                        prependedNoteRow.style.display = '';
                    }
-               }
-          }
+              }
+              // Check if the empty table message needs to be removed
+              const emptyRow = tbody.querySelector('tr.empty-table-message');
+              if (emptyRow && tbody.querySelector('tr:not(.empty-table-message)')) {
+                   emptyRow.remove();
+              }
+              return prependedMainRow; // Return the newly prepended main row
 
-          // Check if the empty table message needs to be removed
-          const emptyRow = tbody.querySelector('tr.empty-table-message');
-          if (emptyRow && tbody.querySelector('tr:not(.empty-table-message)')) {
-               emptyRow.remove();
-          }
+          } else {
+              // --- Logic for OTHER tables: Update existing row in place (if found) ---
+              const existingMainRow = tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`);
+              const existingNoteRow = tbody.querySelector(`tr.note-row[data-animal-id="${animalId}"]`);
 
-          return prependedMainRow; // Return the newly inserted main row element
+              if (existingMainRow) {
+                  console.log(`Updating existing row for animal ${animalId} in table ${tableId}`);
+                  // Update data attributes from the new main row node if it exists
+                  if (newMainRowNode) {
+                      const noteId = newMainRowNode.getAttribute('data-note-id');
+                      const noteContent = newMainRowNode.getAttribute('data-note-content');
+                      if (noteId) {
+                          existingMainRow.setAttribute('data-note-id', noteId);
+                      } else {
+                          existingMainRow.removeAttribute('data-note-id');
+                      }
+                      if (noteContent) {
+                           existingMainRow.setAttribute('data-note-content', noteContent);
+                      } else {
+                           existingMainRow.removeAttribute('data-note-content');
+                      }
+                      // Optionally update other data-* attributes if they might change
+                  } else {
+                      // If for some reason the new HTML didn't contain a main row
+                      existingMainRow.removeAttribute('data-note-id');
+                      existingMainRow.removeAttribute('data-note-content');
+                  }
+
+                  // Handle the note row
+                  if (newNoteRowNode) { // A new/updated note row exists
+                      if (existingNoteRow) { // Update existing note row
+                          existingNoteRow.innerHTML = newNoteRowNode.innerHTML; // Replace content
+                          // Sync visibility
+                          const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
+                          existingNoteRow.style.display = checkbox?.checked ? '' : 'none';
+                      } else { // Add the new note row after the main row
+                          const addedNoteRow = existingMainRow.parentNode.insertBefore(newNoteRowNode.cloneNode(true), existingMainRow.nextSibling);
+                           // Sync visibility
+                          const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
+                          addedNoteRow.style.display = checkbox?.checked ? '' : 'none';
+                      }
+                  } else { // No note row should exist (e.g., note deleted)
+                      if (existingNoteRow) {
+                          existingNoteRow.remove(); // Remove the old note row
+                      }
+                  }
+                  return existingMainRow; // Return the updated existing row
+
+              } else {
+                  // Row doesn't exist in this table, do nothing for non-myNotes tables
+                  console.log(`Row for animal ${animalId} not found in table ${tableId}, skipping update/insertion.`);
+                  return null; // Indicate no row was modified/added
+              }
+          }
       }
       // --- End MODIFIED insertOrReplaceRow ---
 
@@ -842,16 +955,22 @@
             // console.log("Save/Update Note Response:", data);
             if (data.success) {
                 const currentAnimalId = data.animal_id || animalId;
-                const tablesToUpdate = ['myNotesTable', 'pendingTable', 'latestReviewTable', 'dailyAnimalTable'];
+                // --- MODIFIED: Pass tableId to insertOrReplaceRow ---
+                const tablesToUpdate = ['myNotesTable', 'pendingTable', 'latestReviewTable', 'dailyAnimalTable', 'recommendationTable'];
                 let firstAddedRowInMyNotes = null;
-                tablesToUpdate.forEach(tableId => {
+                tablesToUpdate.forEach(tableId => { // <-- tableId is available here
                     const tbody = document.getElementById(tableId)?.querySelector('tbody');
                     if (tbody && data.rendered_row_html) {
-                        // Use the modified function to insert/replace at the beginning
-                        const firstNewRow = insertOrReplaceRow(tbody, data.rendered_row_html, currentAnimalId);
-                        if (tableId === 'myNotesTable' && firstNewRow) firstAddedRowInMyNotes = firstNewRow;
+                        // Pass tableId as the 4th argument
+                        const insertedRow = insertOrReplaceRow(tbody, data.rendered_row_html, currentAnimalId, tableId); // <-- Pass tableId
+                        // Check if it's the My Notes table and the *very first* row was inserted/replaced
+                        if (tableId === 'myNotesTable' && insertedRow && insertedRow === tbody.querySelector('tr[data-animal-id]:not(.note-row)')) {
+                             firstAddedRowInMyNotes = insertedRow;
+                        }
                     } else if (tbody) { console.warn(`Table body found for ${tableId} but no rendered_row_html in response.`); }
                 });
+                // --- End MODIFIED ---
+
                  updateRowsByAnimalId(currentAnimalId, (r) => {
                     if (!r.classList.contains('note-row')) {
                          r.setAttribute('data-note-id', data.note_id);
@@ -881,6 +1000,7 @@
         })
         .catch(err => { console.error("Save/Update Note Error:", err); alert(`儲存筆記時發生錯誤: ${err.message}`); });
       });
+      // --- End noteForm submit ---
 
       document.getElementById('deleteNoteBtn')?.addEventListener('click', function() {
         if (!isLoggedIn) return;
@@ -895,7 +1015,9 @@
               // console.log("Delete Note Response:", data);
               if (data.success) {
                   const targetAnimalId = data.animal_id || animalId;
-                  const tablesToUpdate = ['myNotesTable', 'pendingTable', 'latestReviewTable', 'dailyAnimalTable'];
+                  // --- MODIFIED: Add recommendationTable to the list ---
+                  const tablesToUpdate = ['myNotesTable', 'pendingTable', 'latestReviewTable', 'dailyAnimalTable', 'recommendationTable'];
+                  // --- End MODIFIED ---
                   let myNotesTableBecameEmpty = false; let myNotesFirstRowChanged = false;
                   tablesToUpdate.forEach(tableId => {
                        const tbody = document.getElementById(tableId)?.querySelector('tbody');
@@ -1078,9 +1200,11 @@
           .catch(err => { console.error("Submit Review Error:", err); alert(`提交心得時發生錯誤: ${err.message}`); });
       });
 
-      // console.log("Processing initial time slots for static modals...");
-      document.querySelectorAll('#pendingTable tbody, #latestReviewTable tbody, #myNotesTable tbody').forEach(tbody => { if(tbody) processTimeSlotCellsInContainer(tbody); });
-      // console.log("Initial time slot processing finished.");
+      // --- Process initial time slots in static modals ---
+      document.querySelectorAll('#pendingTable tbody, #latestReviewTable tbody, #myNotesTable tbody, #recommendationTable tbody').forEach(tbody => {
+          if(tbody) processTimeSlotCellsInContainer(tbody);
+      });
+      // --- End Process initial time slots ---
 
       document.querySelectorAll('#dailyHallMenu a').forEach(link => {
           link.addEventListener('click', e => {
@@ -1175,16 +1299,24 @@
                        if (firstDataRow) {
                            updateTopSectionFromRow(photoArea, introArea, firstDataRow);
                        } else {
-                           if (modalId !== 'dailyScheduleModal') {
-                                updatePhotoArea(photoArea, null, '');
-                                let emptyMsg = '請點擊下方列表項目';
-                                const emptyTableRow = tableBody.querySelector('.empty-table-message td');
-                                if(emptyTableRow) emptyMsg = emptyTableRow.textContent.trim();
-                                else if (modalId === 'pendingListModal') emptyMsg = '待約清單是空的';
-                                else if (modalId === 'latestReviewModal') emptyMsg = '還沒有任何心得';
-                                else if (modalId === 'myNotesModal') emptyMsg = '尚無筆記';
-                                updateIntroArea(introArea, emptyMsg);
+                           // Handle empty state for different modals
+                           updatePhotoArea(photoArea, null, '');
+                           let emptyMsg = '請點擊下方列表項目'; // Default
+                           const emptyTableRow = tableBody.querySelector('.empty-table-message td');
+                           if(emptyTableRow) {
+                               emptyMsg = emptyTableRow.textContent.trim();
+                           } else if (modalId === 'pendingListModal') {
+                               emptyMsg = '待約清單是空的';
+                           } else if (modalId === 'latestReviewModal') {
+                               emptyMsg = '還沒有任何心得';
+                           } else if (modalId === 'myNotesModal') {
+                               emptyMsg = '尚無筆記';
+                           } else if (modalId === 'dailyRecommendationModal') { // <-- Add case for recommendation
+                               emptyMsg = '目前沒有推薦的美容師';
+                           } else if (modalId !== 'dailyScheduleModal') { // Keep daily schedule default
+                                // Default already set
                            }
+                           updateIntroArea(introArea, emptyMsg);
                        }
                    } else { /* console.warn(`Could not find necessary elements in modal ${modalId} for table layout.`); */ }
               } else if (modalId === 'reviewModal') {
@@ -1206,14 +1338,20 @@
 
               if (modalId === 'dailyScheduleModal') {
                   const dailyModal = modal;
-                  const tbodyDaily = tableBody;
+                  const tbodyDaily = tableBody; // Re-use tableBody var if available
                   const initialLink = dailyModal?.querySelector('#dailyHallMenu a[data-hall-id="all"]');
+                  // Check specifically if the placeholder text is present
                   const isEmptyPlaceholder = tbodyDaily?.querySelector('.empty-table-message td')?.textContent.includes('請點擊上方館別');
-                  if (tbodyDaily && initialLink && isEmptyPlaceholder) {
+                  // Also ensure the table body is actually empty of data rows
+                  const noDataRows = !tbodyDaily?.querySelector('tr[data-animal-id]:not(.note-row)');
+
+                  if (tbodyDaily && initialLink && isEmptyPlaceholder && noDataRows) {
                     // console.log('Triggering initial AJAX load for Daily Schedule Modal');
                     setTimeout(() => {
+                         // Double check before clicking, in case something loaded very fast
                          const currentIsEmpty = tbodyDaily?.querySelector('.empty-table-message td')?.textContent.includes('請點擊上方館別');
-                         if(currentIsEmpty) initialLink.click();
+                         const currentNoData = !tbodyDaily?.querySelector('tr[data-animal-id]:not(.note-row)');
+                         if(currentIsEmpty && currentNoData) initialLink.click();
                     }, 50);
                   }
               }
@@ -1234,13 +1372,19 @@
           }
       };
 
+      // --- Event Listener Setup (Add new button) ---
       document.addEventListener('click', function(e) {
           const target = e.target; const targetClosest = (selector) => target.closest(selector);
+          // Existing button listeners...
           if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
           if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
           if (targetClosest('#pendingListBtnHeader')) { openModal('pendingListModal'); return; }
           if (targetClosest('#myNotesBtnHeader')) { openModal('myNotesModal'); return; }
           if (targetClosest('#loginBtnHeader')) { openModal('loginModal'); return; }
+          // --- Add listener for new button ---
+          if (targetClosest('#btnDailyRecommendationHeader')) { openModal('dailyRecommendationModal'); return; }
+          // --- End listener for new button ---
+
           const plusBtn = targetClosest('.plus-menu-btn'); if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; }
           const reviewBtn = targetClosest('.review-count-btn'); if (reviewBtn) { e.stopPropagation(); const animalId = reviewBtn.dataset.animalId; if (animalId) { loadReviews(animalId); openModal('reviewModal'); } return; }
           const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
@@ -1260,6 +1404,8 @@
           if (target.classList.contains('modal')) { closeModal(target); if (document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); } return; }
           if (target === bottomOverlay && document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); return; }
       });
+
+      // --- End Event Listener Setup ---
 
       ['looks', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
           const el = document.getElementById(id); if (!el) return;
@@ -1293,9 +1439,9 @@
       function handleNoteCheckboxChange() {
           if (this.disabled) return;
           const tableId = this.dataset.tableId;
-          const modalBody = this.closest('.modal-body') || document;
-          const tbody = modalBody.querySelector(`#${tableId} tbody`);
-          if (!tbody) { console.error(`Notes Checkbox Change: Could not find tbody for table ID: ${tableId}`); return; }
+          const modalBody = this.closest('.modal-body') || document; // Find within the current modal or document
+          const tbody = modalBody.querySelector(`#${tableId} tbody`); // Find the tbody within that scope
+          if (!tbody) { console.error(`Notes Checkbox Change: Could not find tbody for table ID: ${tableId} within its modal.`); return; }
           const noteRows = tbody.querySelectorAll('tr.note-row');
           const shouldShow = this.checked;
           // console.log(`Notes Checkbox Changed for table ${tableId}. Show: ${shouldShow}. Found ${noteRows.length} note rows.`);

@@ -10,9 +10,9 @@ class HallAdmin(admin.ModelAdmin):
 @admin.register(Animal)
 class AnimalAdmin(admin.ModelAdmin):
     # --- 修改 list_display ---
-    list_display = ('name', 'hall', 'size_display', 'fee', 'is_active', 'is_exclusive', 'is_hot', 'is_newcomer', 'is_hidden_edition', 'order') # 加入 is_hidden_edition
+    list_display = ('name', 'hall', 'size_display', 'fee', 'is_active', 'is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer', 'order') # 加入 is_recommended
     # --- 修改 list_filter ---
-    list_filter = ('hall', 'is_active', 'is_exclusive', 'is_hot', 'is_newcomer', 'is_hidden_edition') # 加入 is_hidden_edition
+    list_filter = ('hall', 'is_active', 'is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer') # 加入 is_recommended
     search_fields = ('name', 'introduction')
     list_editable = ('is_active', 'order') # Allow editing status and order
     # --- 修改 fieldsets ---
@@ -25,8 +25,8 @@ class AnimalAdmin(admin.ModelAdmin):
             'classes': ('collapse',) # Collapsible section
         }),
         ('標籤', {
-            # 在 '標籤' 這個區塊加入 is_hidden_edition
-            'fields': ('is_exclusive', 'is_hot', 'is_newcomer', 'is_hidden_edition'),
+            # 在 '標籤' 這個區塊加入 is_recommended
+            'fields': ('is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer'),
         }),
         ('介紹', {
             'fields': ('introduction',),

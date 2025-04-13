@@ -30,8 +30,9 @@ class Animal(models.Model):
     is_newcomer = models.BooleanField("新人", default=False)
     is_hot = models.BooleanField("熱門", default=False)
     is_exclusive = models.BooleanField("獨家", default=False)
+    is_hidden_edition = models.BooleanField("隱藏版", default=False)
     # --- 新增欄位 ---
-    is_hidden_edition = models.BooleanField("隱藏版", default=False) # Add hidden edition flag
+    is_recommended = models.BooleanField("推薦", default=False) # Add recommended flag
     # --- End 新增欄位 ---
     is_active = models.BooleanField("啟用中", default=True) # Add active flag
     order = models.PositiveIntegerField("排序", default=0) # Add order field
