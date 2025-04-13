@@ -516,7 +516,7 @@
                         <div class="intro-area" id="dailyIntroArea"><div class="intro-top"><p id="dailyIntroductionContent">點擊下方館別載入介紹</p></div></div>
                     </section>
                     <nav class="hall-menu" id="dailyHallMenu">
-                        {# ***** HTML MODIFICATION: REMOVED "ALL" BUTTON ***** #}
+                        {# ***** HTML MODIFICATION: REMOVED "ALL" BUTTON (Ensure this is intended) ***** #}
                         {# <a href="#" data-hall-id="all" class="active">全部</a> #}
                         {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %}
                     </nav>
@@ -672,156 +672,60 @@
           });
        }
 
-       // --- MODIFIED addRowIfNotExists (Now primarily used by togglePending) ---
-       // This function now correctly inserts at the beginning *only* for the pending list.
-       function addRowIfNotExists(tbody, htmlString, animalId) {
-          if (!tbody || !htmlString || !animalId) { console.error("addRowIfNotExists: Missing args"); return false; }
-          // Check if the target tbody is the pendingTable
-          if (tbody.closest('#pendingTable')) {
-              if (tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`)) { return false; } // Don't add if exists
-              const emptyRow = tbody.querySelector('tr.empty-table-message'); if (emptyRow) emptyRow.remove();
+       // --- Note Row Handling Functions (Simplified for Clarity) ---
 
-              const template = document.createElement('template');
-              template.innerHTML = htmlString.trim();
-              const newNodes = Array.from(template.content.childNodes);
-              let mainRowNode = null;
-              let noteRowNode = null;
+       // Applies the checkbox state to note rows within a specific tbody
+       function applyNoteVisibility(tbody, shouldShow) {
+           if (!tbody) return;
+           tbody.querySelectorAll('tr.note-row').forEach(noteRow => {
+               noteRow.style.display = shouldShow ? '' : 'none';
+           });
+       }
 
-              newNodes.forEach(node => {
-                  if (node.nodeType === Node.ELEMENT_NODE) {
-                      if (!node.classList.contains('note-row')) { mainRowNode = node; }
-                      else { noteRowNode = node; }
-                  }
-              });
+       // Updates the checkbox disabled state and label style based on note row existence
+       function syncCheckboxState(checkbox, tbody) {
+           if (!checkbox || !tbody) return;
+           const anyNoteRowsExist = tbody.querySelector('tr.note-row');
+           checkbox.disabled = !anyNoteRowsExist;
+           const label = checkbox.closest('label');
+           const labelSpan = checkbox.nextElementSibling; // Assumes span follows input
+           if (label) {
+               label.style.cursor = checkbox.disabled ? 'not-allowed' : 'pointer';
+               if (labelSpan && labelSpan.tagName === 'SPAN') {
+                   labelSpan.style.opacity = checkbox.disabled ? 0.6 : 1;
+               }
+           }
+       }
 
-              let addedMainRow = null;
-              let prependedNoteRow = null;
-
-              if (mainRowNode) {
-                  addedMainRow = tbody.insertBefore(mainRowNode.cloneNode(true), tbody.firstChild);
-                  processTimeSlotCellsInContainer(addedMainRow);
-              }
-              if (noteRowNode) {
-                  const targetNodeForNote = addedMainRow || tbody.firstChild;
-                  prependedNoteRow = tbody.insertBefore(noteRowNode.cloneNode(true), targetNodeForNote);
-                  const tableId = tbody.closest('.body-table')?.id;
-                  if (tableId) {
-                      const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                      if (checkbox) { prependedNoteRow.style.display = checkbox.checked ? '' : 'none'; }
-                  }
-              }
-              return !!addedMainRow;
-          } else {
-              // If called for a tbody other than pendingTable, do nothing (or log warning)
-              console.warn("addRowIfNotExists called for non-pending table. Ignoring.");
-              return false;
-          }
-      }
-      // --- End MODIFIED addRowIfNotExists ---
+       // --- End Note Row Handling Functions ---
 
 
-      // --- MODIFIED insertOrReplaceRow (Conditional Prepend/Update - Primarily for Notes) ---
-      // Now only prepends for myNotesTable, updates others in place.
-      function insertOrReplaceRow(tbody, htmlString, animalId, tableId) {
-          if (!tbody || !htmlString || !animalId) { console.error("insertOrReplaceRow: Missing args"); return null; }
-
-          const template = document.createElement('template');
-          template.innerHTML = htmlString.trim();
-          const newNodes = Array.from(template.content.childNodes);
-          let newMainRowNode = null;
-          let newNoteRowNode = null;
-          newNodes.forEach(node => {
-              if (node.nodeType === Node.ELEMENT_NODE) {
-                  if (!node.classList.contains('note-row')) { newMainRowNode = node; }
-                  else { newNoteRowNode = node; }
-              }
-          });
-
-          if (tableId === 'myNotesTable') { // Prepend logic for My Notes
-              const existingRows = tbody.querySelectorAll(`tr[data-animal-id="${animalId}"]`);
-              existingRows.forEach(row => row.remove());
-
-              let prependedMainRow = null;
-              let prependedNoteRow = null;
-
-              if (newMainRowNode) {
-                   prependedMainRow = tbody.insertBefore(newMainRowNode.cloneNode(true), tbody.firstChild);
-                   processTimeSlotCellsInContainer(prependedMainRow);
-              }
-              if (newNoteRowNode) {
-                   const targetNodeForNote = prependedMainRow || tbody.firstChild;
-                   prependedNoteRow = tbody.insertBefore(newNoteRowNode.cloneNode(true), targetNodeForNote);
-                   const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                   if (checkbox) { prependedNoteRow.style.display = checkbox.checked ? '' : 'none'; }
-              }
-              const emptyRow = tbody.querySelector('tr.empty-table-message');
-              if (emptyRow && tbody.querySelector('tr:not(.empty-table-message)')) { emptyRow.remove(); }
-              return prependedMainRow;
-
-          } else { // Update in place logic for other tables
-              const existingMainRow = tbody.querySelector(`tr[data-animal-id="${animalId}"]:not(.note-row)`);
-              const existingNoteRow = tbody.querySelector(`tr.note-row[data-animal-id="${animalId}"]`);
-
-              if (existingMainRow) {
-                  console.log(`Updating existing row's note info for animal ${animalId} in table ${tableId}`);
-                  // Only update note-related data attributes
-                  if (newMainRowNode) {
-                      const noteId = newMainRowNode.getAttribute('data-note-id');
-                      const noteContent = newMainRowNode.getAttribute('data-note-content');
-                      if (noteId) { existingMainRow.setAttribute('data-note-id', noteId); }
-                      else { existingMainRow.removeAttribute('data-note-id'); }
-                      if (noteContent) { existingMainRow.setAttribute('data-note-content', noteContent); }
-                      else { existingMainRow.removeAttribute('data-note-content'); }
-                  } else {
-                      existingMainRow.removeAttribute('data-note-id');
-                      existingMainRow.removeAttribute('data-note-content');
-                  }
-
-                  // Handle the note row itself
-                  if (newNoteRowNode) {
-                      if (existingNoteRow) {
-                          existingNoteRow.innerHTML = newNoteRowNode.innerHTML;
-                          const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                          if(checkbox) existingNoteRow.style.display = checkbox.checked ? '' : 'none';
-                      } else {
-                          const addedNoteRow = existingMainRow.parentNode.insertBefore(newNoteRowNode.cloneNode(true), existingMainRow.nextSibling);
-                          const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                          if(checkbox) addedNoteRow.style.display = checkbox.checked ? '' : 'none';
-                      }
-                  } else {
-                      if (existingNoteRow) { existingNoteRow.remove(); }
-                  }
-                  return existingMainRow;
-              } else {
-                  console.log(`Row for animal ${animalId} not found in table ${tableId}, skipping note update.`);
-                  return null;
-              }
-          }
-      }
-      // --- End MODIFIED insertOrReplaceRow ---
-
-
+      // --- togglePending (No changes needed here, assuming AJAX response includes rows) ---
       function togglePending(animalId, shouldAdd) {
         if (!isLoggedIn) { alert('請先登入'); return; }
         const url = shouldAdd ? "{% url 'add_pending' %}" : "{% url 'remove_pending' %}";
-        // console.log(`Toggling pending for ${animalId}. Action: ${shouldAdd ? 'Add' : 'Remove'}`);
         fetch(url, { method: "POST", headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}, body: new URLSearchParams({ 'animal_id': animalId }) })
         .then(response => { if (!response.ok) { return response.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${response.status}`); }); } return response.json(); })
         .then(data => {
-            // console.log("Toggle Pending Response:", data);
             if (data.success) {
                 updateRowsByAnimalId(animalId, (r) => { r.setAttribute('data-pending', shouldAdd ? "true" : "false"); });
                 if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
 
-                // --- MODIFIED: Refresh pending list if it's currently open ---
                 const pendingModal = document.getElementById('pendingListModal');
                 if (pendingModal && pendingModal.style.display === 'block') {
                     console.log("Pending list modal is open, reloading content...");
-                    loadModalContent('pendingListModal'); // Reload its content
+                    loadModalContent('pendingListModal'); // Reload its content to reflect changes
                 }
-                // --- End MODIFIED ---
-                // Removed addRowIfNotExists call here as it's handled by reload or initial load
-                // Also removed direct removal logic, reload handles disappearance
+                // Also update note state on relevant rows across other potentially open modals
+                updateRowsByAnimalId(animalId, (r) => {
+                     // If adding, ensure note data from potential AJAX response is applied
+                     if (shouldAdd && data.rendered_row_html) {
+                         // Extract note data from rendered_row_html if needed or rely on backend to always provide it
+                         // This part is tricky without knowing the exact structure of rendered_row_html
+                         // Assuming updateRowsByAnimalId targets main rows which might need note data updated
+                     }
+                 });
+
             } else { alert(data.error || '操作失敗'); }
         })
         .catch(error => { console.error("Toggle Pending Error:", error); alert(`操作待約時發生錯誤: ${error.message}`); });
@@ -831,6 +735,7 @@
         const pendingCountSpan = document.getElementById('pendingCountHeader'); if (pendingCountSpan) pendingCountSpan.textContent = String(count);
       }
 
+      // --- Note Modal Functions (open, save, delete, edit) - No significant changes needed ---
       function openNoteModal(animalId, noteId, noteContent) {
         if (!isLoggedIn) { alert('請先登入'); return; }
         const modal = document.getElementById('noteModal');
@@ -869,7 +774,6 @@
         modal.style.display = 'block';
       }
 
-
       document.getElementById('noteForm')?.addEventListener('submit', function(e) {
         e.preventDefault(); if (!isLoggedIn) return;
         const modal = document.getElementById('noteModal'); const formData = new FormData(this);
@@ -882,11 +786,12 @@
         .then(data => {
             if (data.success) {
                 const currentAnimalId = data.animal_id || animalId;
-                // --- MODIFIED: Only update data-* attributes, reload open modal ---
+                // Update data attributes on existing main rows
                 updateRowsByAnimalId(currentAnimalId, (r) => {
                     if (!r.classList.contains('note-row')) {
                          r.setAttribute('data-note-id', data.note_id);
                          r.setAttribute('data-note-content', normalizeNewlines(data.note_content || ''));
+                         // Update dropdown text if open
                          const dropdown = document.getElementById('plusDropdown');
                          if (dropdown?.classList.contains('open')) {
                               const plusBtn = document.querySelector(`.plus-menu-btn[data-animal-id="${currentAnimalId}"]`);
@@ -897,19 +802,33 @@
                          }
                     }
                 });
-                // Check if My Notes modal is open and reload it
-                const myNotesModal = document.getElementById('myNotesModal');
-                if (myNotesModal && myNotesModal.style.display === 'block') {
-                     console.log("My Notes modal is open, reloading content after save...");
-                     loadModalContent('myNotesModal');
-                }
-                // --- End MODIFIED ---
-                if(modal) modal.style.display = 'none'; alert(data.message || '筆記已儲存');
+
+                // Reload content of any open modal that might display this note
+                ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal'].forEach(modalId => {
+                     const openModalElement = document.getElementById(modalId);
+                     if (openModalElement && openModalElement.style.display === 'block') {
+                         // For AJAX modals, reload fully
+                         if (['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId)) {
+                             console.log(`${modalId} is open, reloading content after note save...`);
+                             loadModalContent(modalId);
+                         }
+                         // For Daily Schedule, we might need a more nuanced update or reload the current hall
+                         else if (modalId === 'dailyScheduleModal') {
+                             console.log("Daily schedule open, attempting refresh after note save...");
+                             const activeHallLink = openModalElement.querySelector('#dailyHallMenu a.active');
+                             if (activeHallLink) {
+                                 activeHallLink.click(); // Re-trigger load for current hall
+                             }
+                         }
+                     }
+                 });
+
+                if(modal) modal.style.display = 'none';
+                alert(data.message || '筆記已儲存');
             } else { alert(data.error || '儲存失敗'); }
         })
         .catch(err => { console.error("Save/Update Note Error:", err); alert(`儲存筆記時發生錯誤: ${err.message}`); });
       });
-
 
       document.getElementById('deleteNoteBtn')?.addEventListener('click', function() {
         if (!isLoggedIn) return;
@@ -922,11 +841,12 @@
           .then(data => {
               if (data.success) {
                   const targetAnimalId = data.animal_id || animalId;
-                  // --- MODIFIED: Only update data-* attributes, remove note row, reload open modal ---
+                  // Remove note data attributes from main rows
                   updateRowsByAnimalId(targetAnimalId, (r) => {
                       if (!r.classList.contains('note-row')) {
                            r.removeAttribute('data-note-id');
                            r.removeAttribute('data-note-content');
+                           // Update dropdown text if open
                            const dropdown = document.getElementById('plusDropdown');
                            if (dropdown?.classList.contains('open')) {
                                const plusBtn = document.querySelector(`.plus-menu-btn[data-animal-id="${targetAnimalId}"]`);
@@ -937,17 +857,35 @@
                            }
                       }
                   });
-                  // Remove the note row from all potentially visible tables
+                  // Remove the actual note row visually
                   document.querySelectorAll(`.note-row[data-animal-id="${targetAnimalId}"]`).forEach(row => row.remove());
 
-                  // Check if My Notes modal is open and reload it
-                  const myNotesModal = document.getElementById('myNotesModal');
-                  if (myNotesModal && myNotesModal.style.display === 'block') {
-                      console.log("My Notes modal is open, reloading content after delete...");
-                      loadModalContent('myNotesModal');
-                  }
-                  // --- End MODIFIED ---
-                  if(modal) modal.style.display = 'none'; alert(data.message || '筆記已刪除');
+                 // Reload content of any open modal that might display this note
+                ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal'].forEach(modalId => {
+                     const openModalElement = document.getElementById(modalId);
+                     if (openModalElement && openModalElement.style.display === 'block') {
+                         // For AJAX modals, reload fully
+                         if (['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId)) {
+                             console.log(`${modalId} is open, reloading content after note delete...`);
+                             loadModalContent(modalId);
+                         }
+                         // For Daily Schedule, re-trigger load for current hall
+                         else if (modalId === 'dailyScheduleModal') {
+                              console.log("Daily schedule open, attempting refresh after note delete...");
+                             const activeHallLink = openModalElement.querySelector('#dailyHallMenu a.active');
+                             if (activeHallLink) {
+                                 activeHallLink.click();
+                             }
+                         }
+                         // Sync checkbox state after potential removal
+                         const checkbox = openModalElement.querySelector(`.toggle-notes-checkbox[data-table-id="${openModalElement.querySelector('.body-table')?.id}"]`);
+                         const tbody = openModalElement.querySelector('.body-table tbody');
+                         if(checkbox && tbody) syncCheckboxState(checkbox, tbody);
+                     }
+                 });
+
+                  if(modal) modal.style.display = 'none';
+                  alert(data.message || '筆記已刪除');
               } else { alert(data.error || '刪除失敗'); }
           })
           .catch(err => { console.error("Delete Note Error:", err); alert(`刪除筆記時發生錯誤: ${err.message}`); });
@@ -966,6 +904,7 @@
         }
       });
 
+      // --- Top Section Update Functions (No changes needed) ---
       function updatePhotoArea(areaElement, photoUrl, altText) {
           if (!areaElement) { return; }
           areaElement.innerHTML = '';
@@ -989,7 +928,6 @@
           if (scrollContainer) { scrollContainer.scrollTop = 0; }
           else { introElement.scrollTop = 0; }
       }
-
       function updateTopSectionFromRow(photoArea, introArea, row) {
           if (!photoArea || !introArea || !row) return;
           const photoUrl = row.dataset.photoUrl || '';
@@ -999,14 +937,13 @@
           updatePhotoArea(photoArea, photoUrl, animalName);
           updateIntroArea(introArea, introText);
       }
-
       function updateTopSectionFromData(photoArea, introArea, animalData) {
            if (!photoArea || !introArea || !animalData) return;
            updatePhotoArea(photoArea, animalData.photo_url || '', animalData.name || '美容師');
            updateIntroArea(introArea, animalData.introduction || '無介紹');
       }
 
-
+      // --- Review Functions (load, submit) - No changes needed ---
       function loadReviews(animalId) { // Keep this as is, it loads into a specific div
           const reviewList = document.getElementById('reviewList');
           if (!reviewList) { console.error("Element with ID 'reviewList' not found."); return; }
@@ -1075,36 +1012,33 @@
                 if(data.success) {
                     alert(data.message || '評論已提交，待審核');
                     if(modal) modal.style.display = 'none';
-                    // --- MODIFIED: Reload latest reviews if open ---
+                    // Reload latest reviews if open
                     const latestModal = document.getElementById('latestReviewModal');
                     if (latestModal && latestModal.style.display === 'block') {
                         loadModalContent('latestReviewModal');
                     }
-                    // --- End MODIFIED ---
                 } else { alert(data.error || '提交失敗'); }
            })
           .catch(err => { console.error("Submit Review Error:", err); alert(`提交心得時發生錯誤: ${err.message}`); });
       });
 
-      // --- MODIFIED: Process initial time slots only for visible pre-rendered content (if any) ---
-      // We remove pre-rendered content from AJAX modals later, so less need to process them all initially.
-      document.querySelectorAll('#dailyAnimalTable tbody').forEach(tbody => {
-          if(tbody) processTimeSlotCellsInContainer(tbody);
-      });
-      // --- End MODIFIED ---
-
+      // --- Daily Schedule Hall Click Handler (AJAX for content) ---
       document.querySelectorAll('#dailyHallMenu a').forEach(link => {
           link.addEventListener('click', e => {
             e.preventDefault(); document.querySelectorAll('#dailyHallMenu a').forEach(item => item.classList.remove('active')); link.classList.add('active');
             const hallId = link.dataset.hallId;
             const modalBody = link.closest('.modal-body[data-layout="table"]'); if (!modalBody) return;
+            const modal = link.closest('.modal'); // Get the parent modal
             const tbody = modalBody.querySelector('#dailyAnimalTable tbody');
             const photoArea = modalBody.querySelector('#dailyPhotoArea');
             const introArea = modalBody.querySelector('#dailyIntroArea');
+            const checkbox = modal?.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]'); // Find checkbox within this modal
+
             if (!tbody || !photoArea || !introArea) { console.error("Daily schedule elements missing within modal body"); return; }
 
             tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>'; // Show loading
             updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...'); // Update top section
+            if (checkbox) checkbox.disabled = true; // Disable during load
 
             fetch("{% url 'home' %}?hall_id=" + hallId + "&ajax=1", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
               .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct?.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
@@ -1112,85 +1046,38 @@
                 if (data.table_html !== undefined) {
                   tbody.innerHTML = data.table_html || '<tr class="empty-table-message"><td colspan="5">此館別目前無班表</td></tr>'; // Use response or empty message
                   processTimeSlotCellsInContainer(tbody); // Process new content
+
+                  // Update top section based on first animal data
                   if (data.first_animal && Object.keys(data.first_animal).length > 0) {
                       updateTopSectionFromData(photoArea, introArea, data.first_animal); // Use data object
                   } else {
                       updatePhotoArea(photoArea, null, '');
                       updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '此館別目前無班表' : '此館別目前無介紹');
                   }
-                  const tableId = 'dailyAnimalTable'; // Explicitly define for clarity
-                  syncCheckboxWithNoteRows(tableId);
 
-                  // ***** START FIX *****
-                  // Apply checkbox state to newly loaded rows
-                  const checkbox = modalBody.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                  if (checkbox){ // Check if checkbox exists
-                       const shouldShow = checkbox.checked;
-                       tbody.querySelectorAll('tr.note-row').forEach(nr => {
-                           nr.style.display = shouldShow ? '' : 'none';
-                       });
+                  // ***** Sync checkbox state AND Apply visibility AFTER content load *****
+                  if (checkbox) {
+                      syncCheckboxState(checkbox, tbody); // Update enabled/disabled state
+                      const shouldShow = checkbox.checked; // Read current state
+                      applyNoteVisibility(tbody, shouldShow); // Apply visibility to new rows
                   }
-                  // ***** END FIX *****
+                  // ***** END *****
 
                 } else {
                    tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入班表時發生錯誤'}</td></tr>`;
                    updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入介紹時發生錯誤');
-                   syncCheckboxWithNoteRows('dailyAnimalTable');
+                   if (checkbox) syncCheckboxState(checkbox, tbody); // Sync even on error
                 }
               }).catch(error => {
                     console.error("Daily Schedule Fetch Error:", error);
                     tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">無法連接伺服器載入班表</td></tr>`;
                     updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '無法連接伺服器載入介紹');
-                    syncCheckboxWithNoteRows('dailyAnimalTable');
+                    if (checkbox) syncCheckboxState(checkbox, tbody); // Sync even on error
                 });
           });
       });
 
-      function syncCheckboxWithNoteRows(tableId) {
-            const checkbox = document.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-            // Find the table body within the currently VISIBLE modal or document
-            const modal = document.querySelector(`#${tableId}`)?.closest('.modal[style*="display: block"]') || document;
-            const tbody = modal.querySelector(`#${tableId} tbody`);
-
-            if (checkbox && tbody) {
-                const anyNoteRowsExist = tbody.querySelector('tr.note-row');
-                checkbox.disabled = !anyNoteRowsExist;
-                const labelSpan = checkbox.nextElementSibling; // Find the <span> next to the checkbox
-                if (labelSpan && labelSpan.tagName === 'SPAN') {
-                   checkbox.closest('label').style.cursor = checkbox.disabled ? 'not-allowed' : 'pointer';
-                   labelSpan.style.opacity = checkbox.disabled ? 0.6 : 1;
-                }
-            } else if (checkbox) {
-                // If tbody not found (e.g., modal not open yet), potentially disable
-                checkbox.disabled = true;
-                const labelSpan = checkbox.nextElementSibling;
-                if (labelSpan && labelSpan.tagName === 'SPAN') {
-                   checkbox.closest('label').style.cursor = 'not-allowed';
-                   labelSpan.style.opacity = 0.6;
-                }
-            }
-        }
-
-      function limitCheckboxSelection(groupId, maxCount) {
-          const group = document.getElementById(groupId);
-          if (!group) { console.error(`Checkbox group with ID '${groupId}' not found.`); return; }
-          const checkboxes = group.querySelectorAll('input[type="checkbox"]');
-          const checkLimit = () => {
-              const checkedCount = group.querySelectorAll('input[type="checkbox"]:checked').length;
-              const limitReached = checkedCount >= maxCount;
-              checkboxes.forEach(cb => {
-                  const label = cb.closest('label');
-                  cb.disabled = !cb.checked && limitReached;
-                  if (label) label.classList.toggle('label-disabled', cb.disabled);
-              });
-          };
-          checkboxes.forEach(checkbox => {
-              checkbox.removeEventListener('change', checkLimit); checkbox.addEventListener('change', checkLimit);
-          });
-          checkLimit();
-      }
-
-      // --- NEW: Function to load modal content via AJAX ---
+      // --- Function to load modal content via AJAX (for Pending, MyNotes, Latest, Recommend) ---
       function loadModalContent(modalId) {
           const modal = document.getElementById(modalId);
           if (!modal) { console.error(`Modal not found for AJAX load: #${modalId}`); return; }
@@ -1201,31 +1088,30 @@
           const tableBody = modalBody.querySelector('.body-table tbody');
           const photoArea = modalBody.querySelector('.photo-area');
           const introArea = modalBody.querySelector('.intro-area');
-          const introContentP = introArea?.querySelector('.intro-top p');
-          const tableId = tableBody?.closest('.body-table')?.id; // Get table ID for checkbox sync
+          const checkbox = modal.querySelector('.toggle-notes-checkbox'); // Find checkbox within this modal
+          const tableId = checkbox?.dataset.tableId;
 
-          if (!tableBody || !photoArea || !introArea || !introContentP || !tableId) { // Added tableId check
-              console.error(`Required elements (tbody, photoArea, introArea, introContentP, tableId) not found in modal ${modalId}`);
+          if (!tableBody || !photoArea || !introArea || !tableId) {
+              console.error(`Required elements (tbody, photoArea, introArea, tableId) not found in modal ${modalId}`);
               return;
           }
 
-          // Determine AJAX URL based on modalId
           let ajaxUrl = null;
           if (modalId === 'pendingListModal') ajaxUrl = "{% url 'ajax_get_pending_list' %}";
           else if (modalId === 'myNotesModal') ajaxUrl = "{% url 'ajax_get_my_notes' %}";
           else if (modalId === 'latestReviewModal') ajaxUrl = "{% url 'ajax_get_latest_reviews' %}";
           else if (modalId === 'dailyRecommendationModal') ajaxUrl = "{% url 'ajax_get_recommendations' %}";
-          // Add other modals here if needed
 
           if (!ajaxUrl) {
               console.warn(`No AJAX URL configured for modal: ${modalId}`);
-              return; // Don't proceed if no URL is mapped
+              return;
           }
 
           // Show loading state
           tableBody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
           updatePhotoArea(photoArea, null, '');
           updateIntroArea(introArea, '載入中...');
+          if (checkbox) checkbox.disabled = true; // Disable checkbox while loading
 
           fetch(ajaxUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
               .then(response => {
@@ -1236,26 +1122,13 @@
               })
               .then(data => {
                    if (data.table_html !== undefined) {
-                       tableBody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">列表是空的</td></tr>`; // Default empty message
-                       processTimeSlotCellsInContainer(tableBody); // Process time slots in new content
-                       syncCheckboxWithNoteRows(tableId); // Sync notes checkbox FIRST
-
-                       // ***** START FIX *****
-                       // Apply checkbox state to newly loaded rows
-                       const checkbox = modal.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                       if (checkbox) { // Check if checkbox exists
-                           const shouldShow = checkbox.checked;
-                           tableBody.querySelectorAll('tr.note-row').forEach(nr => {
-                               nr.style.display = shouldShow ? '' : 'none';
-                           });
-                       }
-                       // ***** END FIX *****
+                       tableBody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">列表是空的</td></tr>`;
+                       processTimeSlotCellsInContainer(tableBody);
 
                        // Update top section based on first animal data
                        if (data.first_animal && Object.keys(data.first_animal).length > 0) {
                             updateTopSectionFromData(photoArea, introArea, data.first_animal);
                        } else {
-                           // Handle empty state message based on modal ID
                            updatePhotoArea(photoArea, null, '');
                            let emptyMsg = "列表是空的";
                            if (modalId === 'pendingListModal') emptyMsg = '待約清單是空的';
@@ -1264,6 +1137,15 @@
                            else if (modalId === 'dailyRecommendationModal') emptyMsg = '目前沒有推薦的美容師';
                            updateIntroArea(introArea, emptyMsg);
                        }
+
+                       // ***** Sync checkbox state AND Apply visibility AFTER content load *****
+                       if (checkbox) {
+                           syncCheckboxState(checkbox, tableBody); // Update enabled/disabled
+                           const shouldShow = checkbox.checked; // Read current state
+                           applyNoteVisibility(tableBody, shouldShow); // Apply visibility
+                       }
+                       // ***** END *****
+
                    } else {
                        throw new Error(data.error || '從伺服器返回的資料格式錯誤');
                    }
@@ -1273,13 +1155,13 @@
                   tableBody.innerHTML = `<tr class="empty-table-message"><td colspan="5">載入失敗: ${error.message}</td></tr>`;
                   updatePhotoArea(photoArea, null, '');
                   updateIntroArea(introArea, '載入失敗');
-                  if (tableId) { syncCheckboxWithNoteRows(tableId); } // Sync checkbox even on error
+                  if (checkbox) syncCheckboxState(checkbox, tableBody); // Sync even on error
               });
       }
-      // --- End NEW AJAX Load Function ---
+      // --- End AJAX Load Function ---
 
 
-      // --- MODIFIED openModal to trigger AJAX load and APPLY NOTE STATE ---
+      // --- REVISED openModal ---
       const openModal = (modalId) => {
           const modal = document.getElementById(modalId);
           if (modal) {
@@ -1290,83 +1172,64 @@
               const isTableLayout = modalBody?.dataset.layout === 'table';
               const needsAjaxLoad = ['pendingListModal', 'myNotesModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId);
 
-              // Clear previous content and load new data via AJAX if applicable
+              // 1. Load content if needed
               if (isTableLayout && needsAjaxLoad) {
-                   loadModalContent(modalId); // Call the AJAX loading function
+                   loadModalContent(modalId); // AJAX load handles note visibility internally
               }
-              // Handle non-AJAX modals or initial setup for modals that might load content later
-              else if (modalId === 'reviewModal' && isLoggedIn) {
-                  // Ensure review list is cleared initially or shows placeholder
-                  const reviewList = document.getElementById('reviewList');
-                  if (reviewList) reviewList.innerHTML = '<p>請點擊列表中的心得按鈕查看。</p>';
-              }
-              // ***** START JAVASCRIPT MODIFICATION for dailyScheduleModal (No "All" button) *****
+              // --- START REVISED Daily Schedule Logic ---
               else if (modalId === 'dailyScheduleModal') {
-                   // Find the FIRST specific hall link in the menu
-                   // Assumes the "All" button is removed from HTML
-                   const firstHallLink = modal.querySelector('#dailyHallMenu a:first-of-type'); // Selects the first <a> inside the menu
+                  const firstHallLink = modal.querySelector('#dailyHallMenu a:first-of-type');
+                  const tbody = modal.querySelector('#dailyAnimalTable tbody');
+                  const photoArea = modal.querySelector('#dailyPhotoArea');
+                  const introArea = modal.querySelector('#dailyIntroArea');
+                  const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]');
 
-                   const tbodyDaily = modal.querySelector('#dailyAnimalTable tbody'); // Still useful for error message
+                  if (tbody && photoArea && introArea) {
+                      // ALWAYS Reset to initial/loading state *before* triggering the load
+                      tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請點擊上方館別載入班表</td></tr>';
+                      updatePhotoArea(photoArea, null, ''); // Clear photo
+                      updateIntroArea(introArea, '點擊下方館別載入介紹'); // Reset intro
+                      if (checkbox) {
+                          // Sync checkbox state immediately after resetting content
+                           syncCheckboxState(checkbox, tbody);
+                      }
 
-                   // Use setTimeout to ensure modal is displayed before potentially clicking
-                   setTimeout(() => {
-                        if (firstHallLink) {
-                            console.log(`Triggering load for first available hall: ${firstHallLink.dataset.hallId}`);
-                            firstHallLink.click(); // Simulate click on the FIRST hall link
-                        } else {
-                            console.warn("No hall links found in the daily schedule menu.");
-                            // If no halls exist at all, display a message
-                            if (tbodyDaily) {
-                                tbodyDaily.innerHTML = '<tr class="empty-table-message"><td colspan="5">目前沒有任何館別可顯示</td></tr>';
-                                // Also clear photo/intro areas
-                                const photoArea = modal.querySelector('#dailyPhotoArea');
-                                const introArea = modal.querySelector('#dailyIntroArea');
-                                 if(photoArea) updatePhotoArea(photoArea, null, '');
-                                 if(introArea) updateIntroArea(introArea, '目前沒有任何館別可顯示');
-                            }
-                            // Also ensure notes checkbox is disabled if no content
-                            const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]');
-                            if(checkbox) syncCheckboxWithNoteRows('dailyAnimalTable');
-                        }
-                   }, 50); // Small delay
+                      // Now, attempt to load the first hall *every time*
+                      if (firstHallLink) {
+                           // Use setTimeout to ensure modal is displayed before clicking
+                           setTimeout(() => {
+                               console.log(`Modal opened/reopened, triggering load for first hall: ${firstHallLink.dataset.hallId}`);
+                               firstHallLink.click(); // AJAX handler will apply note state after load
+                           }, 50);
+                      } else {
+                           // Handle case where there are no hall links *at all*
+                           tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">目前沒有任何館別可顯示</td></tr>';
+                           updatePhotoArea(photoArea, null, '無館別');
+                           updateIntroArea(introArea, '目前沒有任何館別可顯示');
+                           if (checkbox) syncCheckboxState(checkbox, tbody); // Ensure checkbox is synced (disabled)
+                      }
+                  } else {
+                      console.error("Could not find essential elements (tbody, photo, intro) in dailyScheduleModal on open.");
+                  }
               }
-              // ***** END JAVASCRIPT MODIFICATION for dailyScheduleModal (No "All" button) *****
-              else if (isTableLayout && !needsAjaxLoad) {
-                   // This block remains for potential future static table modals
-                   const tableBody = modalBody.querySelector('.body-table tbody');
-                   const photoArea = modalBody.querySelector('.photo-area');
-                   const introArea = modalBody.querySelector('.intro-area');
-                   if (tableBody && photoArea && introArea) {
-                       const firstDataRow = tableBody.querySelector('tr[data-animal-id]:not(.note-row)');
-                       if (firstDataRow) {
-                           updateTopSectionFromRow(photoArea, introArea, firstDataRow);
-                       }
-                       // Apply note state here too if applicable
-                       const tableId = tableBody.closest('.body-table')?.id;
-                       const checkbox = modal.querySelector(`.toggle-notes-checkbox[data-table-id="${tableId}"]`);
-                       if(checkbox && tableId){
-                           syncCheckboxWithNoteRows(tableId); // Sync first
-                           const shouldShow = checkbox.checked;
-                           tableBody.querySelectorAll('tr.note-row').forEach(nr => {
-                               nr.style.display = shouldShow ? '' : 'none';
-                           });
-                       }
-                   }
+              // --- END REVISED Daily Schedule Logic ---
+              else if (modalId === 'reviewModal') {
+                   // Handle review modal specific setup if needed
+                   const reviewList = document.getElementById('reviewList');
+                   if (reviewList) reviewList.innerHTML = '<p>請點擊列表中的心得按鈕查看。</p>';
               }
 
-              // General Check: Ensure notes checkbox state is synced AND APPLIED on modal open for table layouts
-              if (isTableLayout) {
+              // 2. General Note State Application (for non-AJAX modals or fallback)
+              if (isTableLayout && !needsAjaxLoad && modalId !== 'dailyScheduleModal') {
                    const checkbox = modal.querySelector('.toggle-notes-checkbox');
                    const tableId = checkbox?.dataset.tableId;
                    const targetTableBody = modalBody.querySelector(`#${tableId} tbody`);
                    if (checkbox && tableId && targetTableBody) {
-                       syncCheckboxWithNoteRows(tableId);
+                       syncCheckboxState(checkbox, targetTableBody);
                        const shouldShow = checkbox.checked;
-                       targetTableBody.querySelectorAll('tr.note-row').forEach(nr => {
-                           nr.style.display = shouldShow ? '' : 'none';
-                       });
+                       applyNoteVisibility(targetTableBody, shouldShow);
                    }
-               }
+              }
 
               // Scroll review submit modal body to top
               if (modalId === 'reviewSubmitModal') {
@@ -1379,12 +1242,12 @@
           console.error(`Modal not found: #${modalId}`);
           return false; // Indicate failure
       };
-      // --- End MODIFIED openModal ---
+      // --- End REVISED openModal ---
+
 
       const closeModal = (modalElement) => {
           if (modalElement) {
                modalElement.style.display = 'none';
-               // Check if any *other* modals are still open before resetting body overflow
                const anyModalOpen = document.querySelector('.modal[style*="display: block"]');
                if (!anyModalOpen) {
                    document.body.style.overflow = ''; // Restore scroll only if all modals closed
@@ -1392,9 +1255,11 @@
           }
       };
 
-      // --- Event Listener Setup (Add new button) ---
+      // --- Event Listener Setup (Delegate clicks) ---
       document.addEventListener('click', function(e) {
-          const target = e.target; const targetClosest = (selector) => target.closest(selector);
+          const target = e.target;
+          const targetClosest = (selector) => target.closest(selector);
+
           // Modal Opening Buttons
           if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
           if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
@@ -1428,9 +1293,9 @@
           // Close plus dropdown by clicking overlay
           if (target === bottomOverlay && document.getElementById('plusDropdown').classList.contains('open')) { closePlusDropdown(); return; }
       });
-
       // --- End Event Listener Setup ---
 
+      // --- Initialization for Choices.js, Checkbox Limits, Price Inputs, Login Error --- (No changes needed) ---
       ['looks', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
           const el = document.getElementById(id); if (!el) return;
           if (!el.choicesInstance && !el.hasAttribute('data-choice') && !el.classList.contains('choices__input')) {
@@ -1459,42 +1324,65 @@
       const loginErrorMsg = document.getElementById('login-error-message');
       if (loginErrorMsg) { setTimeout(() => { loginErrorMsg.style.transition = 'opacity 0.5s ease'; loginErrorMsg.style.opacity = '0'; setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500); }, 4000); }
 
-      // --- Checkbox change handler (No changes needed here) ---
+      function limitCheckboxSelection(groupId, maxCount) {
+          const group = document.getElementById(groupId);
+          if (!group) { console.error(`Checkbox group with ID '${groupId}' not found.`); return; }
+          const checkboxes = group.querySelectorAll('input[type="checkbox"]');
+          const checkLimit = () => {
+              const checkedCount = group.querySelectorAll('input[type="checkbox"]:checked').length;
+              const limitReached = checkedCount >= maxCount;
+              checkboxes.forEach(cb => {
+                  const label = cb.closest('label');
+                  cb.disabled = !cb.checked && limitReached;
+                  if (label) label.classList.toggle('label-disabled', cb.disabled);
+              });
+          };
+          checkboxes.forEach(checkbox => {
+              checkbox.removeEventListener('change', checkLimit); checkbox.addEventListener('change', checkLimit);
+          });
+          checkLimit();
+      }
+      limitCheckboxSelection('faceCheckboxes', 3);
+      limitCheckboxSelection('temperamentCheckboxes', 3);
+      // --- End Initializations ---
+
+      // --- Notes Checkbox Change Handler ---
       function handleNoteCheckboxChange() {
           if (this.disabled) return;
           const tableId = this.dataset.tableId;
-          // Find the table body within the modal this checkbox belongs to
-          const modal = this.closest('.modal');
-          if (!modal) { console.error(`Notes Checkbox Change: Could not find parent modal for checkbox.`); return; }
-          const tbody = modal.querySelector(`#${tableId} tbody`); // Search within the modal
-
+          const modal = this.closest('.modal'); // Find the specific modal the checkbox is in
+          if (!modal) { console.error(`Notes Checkbox Change: Could not find parent modal.`); return; }
+          const tbody = modal.querySelector(`#${tableId} tbody`); // Find the table body within that modal
           if (!tbody) { console.error(`Notes Checkbox Change: Could not find tbody for table ID: ${tableId} within its modal.`); return; }
 
-          const noteRows = tbody.querySelectorAll('tr.note-row');
           const shouldShow = this.checked;
-          noteRows.forEach(noteRow => {
-              noteRow.style.display = shouldShow ? '' : 'none';
-          });
+          applyNoteVisibility(tbody, shouldShow); // Apply the change visually
       }
-      // Attach the handler
+
+      // Attach the handler to all such checkboxes
       document.querySelectorAll('.toggle-notes-checkbox').forEach(checkbox => {
-          checkbox.removeEventListener('change', handleNoteCheckboxChange); // Prevent duplicate listeners
+          checkbox.removeEventListener('change', handleNoteCheckboxChange); // Prevent duplicates if script runs multiple times
           checkbox.addEventListener('change', handleNoteCheckboxChange);
       });
 
-       // Initial sync on page load (mainly for potentially pre-rendered content)
-       // The openModal function will handle syncing and applying state when modals are opened.
-       setTimeout(() => {
-            document.querySelectorAll('.toggle-notes-checkbox').forEach(checkbox => {
-                 if(checkbox.dataset.tableId){
-                     syncCheckboxWithNoteRows(checkbox.dataset.tableId);
-                     // No need to apply state here, openModal handles it
-                 }
-            });
-       }, 100); // Slight delay for elements to render
-
-      limitCheckboxSelection('faceCheckboxes', 3);
-      limitCheckboxSelection('temperamentCheckboxes', 3);
+      // Initial Sync on Page Load
+      setTimeout(() => {
+           document.querySelectorAll('.toggle-notes-checkbox').forEach(checkbox => {
+                const tableId = checkbox.dataset.tableId;
+                const modal = checkbox.closest('.modal'); // Find modal context
+                if (tableId && modal) {
+                    const tbody = modal.querySelector(`#${tableId} tbody`);
+                    if (tbody) {
+                        syncCheckboxState(checkbox, tbody);
+                    }
+                } else if (tableId) {
+                    const globalTbody = document.querySelector(`#${tableId} tbody`);
+                     if(globalTbody) {
+                        syncCheckboxState(checkbox, globalTbody);
+                     }
+                }
+           });
+      }, 100); // Delay slightly
 
     }); // End DOMContentLoaded
   </script>
