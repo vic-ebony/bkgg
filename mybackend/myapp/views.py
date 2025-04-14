@@ -109,6 +109,19 @@ def home(request):
         halls = Hall.objects.all().order_by('order', 'name')
         context = {'halls': halls, 'user': request.user}
 
+        # --- *** START FIX: Fetch initial pending count for the logged-in user *** ---
+        initial_pending_count = 0
+        if request.user.is_authenticated:
+            try:
+                initial_pending_count = PendingAppointment.objects.filter(user=request.user).count()
+                print(f"    User '{request.user.username}' authenticated. Initial pending count: {initial_pending_count}")
+            except Exception as e:
+                print(f"    !!! Error fetching initial pending count for user {request.user.username}: {e} !!!")
+        else:
+             print("    User not authenticated. Initial pending count: 0")
+        context['pending_count'] = initial_pending_count # Add the count to the context
+        # --- *** END FIX *** ---
+
         try: context['announcement'] = Announcement.objects.filter(is_active=True).order_by('-created_at').first()
         except Exception as e: print(f"Error fetching announcement: {e}"); context['announcement'] = None
         try:
@@ -118,11 +131,6 @@ def home(request):
         except Exception as e: print(f"Error fetching promo photo: {e}"); context['promo_photo_url'] = None; context['promo_animal_name'] = None
 
         # Removed preloading of pending/notes/latest/recommended here as they are now loaded via AJAX
-        # We still need pending_ids and notes_by_animal for the initial render if any tables might show them,
-        # but let's simplify and rely on AJAX to populate modals.
-        # If any part of the main page *needs* these, we can add them back selectively.
-        # For now, assume modals handle their own data loading via AJAX.
-
         context['pending_ids'] = set() # Initialize as empty, AJAX will populate if needed by other means
         context['notes_by_animal'] = {} # Initialize as empty
 
@@ -453,10 +461,9 @@ def add_pending_appointment(request):
     user = request.user
     try:
         obj, created = PendingAppointment.objects.get_or_create(user=user, animal=animal)
-        pending_count = PendingAppointment.objects.filter(user=user).count()
+        pending_count = PendingAppointment.objects.filter(user=user).count() # Recalculate count after operation
         message = f"{animal.name} 已加入待約清單" if created else f"{animal.name} 已在待約清單中"
         print(f"Pending action for animal {animal_id} by user {user.username}: {'Added' if created else 'Already Exists'}. Count: {pending_count}")
-        # No need to return rendered_row_html anymore for this simplified approach
         return JsonResponse({"success": True, "message": message, "pending_count": pending_count})
     except (ValueError, TypeError) as e:
         print(f"Error adding pending (invalid ID format?) for animal_id '{animal_id}': {e}")
@@ -474,27 +481,36 @@ def remove_pending(request):
         try: animal_id_int = int(animal_id)
         except (ValueError, TypeError): raise ValueError("無效的動物 ID 格式")
         deleted_count, _ = PendingAppointment.objects.filter(user=user, animal_id=animal_id_int).delete()
+        pending_count = PendingAppointment.objects.filter(user=user).count() # Recalculate count after operation
         if deleted_count == 0:
             if not Animal.objects.filter(id=animal_id_int).exists():
                 print(f"Remove pending failed: Animal {animal_id_int} not found (User: {user.username}).")
-                return JsonResponse({"success": False, "error": "找不到該動物"}, status=404)
+                # Still return the current count even if the delete technically failed because the item wasn't there
+                return JsonResponse({"success": False, "error": "找不到該動物", "pending_count": pending_count}, status=404)
             else:
                 print(f"Remove pending failed: Animal {animal_id_int} was not pending for user {user.username}.")
-                return JsonResponse({"success": False, "error": "該待約項目不存在"})
-        pending_count = PendingAppointment.objects.filter(user=user).count()
+                # Still return the current count
+                return JsonResponse({"success": False, "error": "該待約項目不存在", "pending_count": pending_count})
         animal_name = Animal.objects.filter(id=animal_id_int).values_list('name', flat=True).first() or "該美容師"
         print(f"Pending removed for animal {animal_id_int} by user {user.username}. Count: {pending_count}")
-        # Return animal_id so JS knows which row data to potentially update (like data-pending)
         return JsonResponse({
             "success": True, "message": f"{animal_name} 待約項目已移除",
             "pending_count": pending_count, "animal_id": animal_id_int
         })
     except ValueError as ve:
          print(f"Error removing pending: {ve} (Raw ID: '{animal_id}')")
-         return JsonResponse({"success": False, "error": str(ve)}, status=400)
+         # Try to return the current count even on error if possible
+         current_count = 0
+         if request.user.is_authenticated:
+             current_count = PendingAppointment.objects.filter(user=user).count()
+         return JsonResponse({"success": False, "error": str(ve), "pending_count": current_count}, status=400)
     except Exception as e:
         print(f"Error removing pending for animal_id '{animal_id}': {e}"); traceback.print_exc()
-        return JsonResponse({"success": False, "error": "移除待約時發生錯誤"}, status=500)
+        # Try to return the current count even on error if possible
+        current_count = 0
+        if request.user.is_authenticated:
+             current_count = PendingAppointment.objects.filter(user=user).count()
+        return JsonResponse({"success": False, "error": "移除待約時發生錯誤", "pending_count": current_count}, status=500)
 
 
 # --- Note Handling Views (Keep mostly as is, JS will handle refresh) ---

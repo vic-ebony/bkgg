@@ -301,7 +301,9 @@
                 <button id="latestReviewBtnHeader">最新心得</button>
                 <button id="btnDailyRecommendationHeader">每日推薦</button>
                 <button id="pendingListBtnHeader">
-                    待約清單 (<span id="pendingCountHeader">{{ pending_appointments|length|default:0 }}</span>)
+                    {# --- *** START FIX: Use context variable for initial count *** --- #}
+                    待約清單 (<span id="pendingCountHeader">{{ pending_count|default:0 }}</span>)
+                    {# --- *** END FIX *** --- #}
                 </button>
                 <button id="myNotesBtnHeader">我的筆記</button>
                 {% if user.is_authenticated %}
@@ -615,7 +617,7 @@
     function getCookie(name) { let cookieValue = null; if (document.cookie && document.cookie !== '') { const cookies = document.cookie.split(';'); for (let i = 0; i < cookies.length; i++) { const cookie = cookies[i].trim(); if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; } } } return cookieValue; }
   </script>
   <script>
-    // --- Main JavaScript Logic ---
+    // --- Main JavaScript Logic (保持不變) ---
     document.addEventListener('DOMContentLoaded', function() {
       const csrfToken = getCookie('csrftoken');
       const bottomOverlay = document.getElementById('bottomOverlay');
@@ -763,9 +765,18 @@
                     }
                  }
 
-            } else { alert(data.error || '操作失敗'); }
+            } else {
+                // Even if backend reports failure (e.g., item not found on remove), update count if provided
+                if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
+                alert(data.error || '操作失敗');
+            }
         })
-        .catch(error => { console.error("Toggle Pending Error:", error); alert(`操作待約時發生錯誤: ${error.message}`); });
+        .catch(error => {
+            console.error("Toggle Pending Error:", error);
+            alert(`操作待約時發生錯誤: ${error.message}`);
+            // Try to get the current count from the header as a fallback? Or make another request?
+            // For now, just alert the error. The count might become out of sync.
+        });
       }
 
       function updatePendingCount(count) {
