@@ -1,13 +1,14 @@
 # myapp/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from django.utils.dateformat import format as format_date # Import date formatting
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse, Http404 # Import Http404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Prefetch, Max
 from django.views.decorators.http import require_POST, require_GET # Import require_GET
 from django.template.loader import render_to_string
-from .models import Animal, Hall, Review, PendingAppointment, Note, Announcement
+from .models import Animal, Hall, Review, PendingAppointment, Note, Announcement, StoryReview # Import StoryReview
 import traceback
 
 # --- Helper function to render table rows ---
@@ -27,6 +28,17 @@ def render_animal_rows(request, animals_qs):
 
     rendered_rows_html_list = []
     for animal_instance in animals_qs:
+        # --- START FIX: Calculate review count within the loop if not annotated ---
+        # Check if the annotation exists, otherwise calculate it
+        if not hasattr(animal_instance, 'approved_review_count'):
+            # This is less efficient than annotating, but provides a fallback
+            try:
+                animal_instance.approved_review_count = Review.objects.filter(animal=animal_instance, approved=True).count()
+            except Exception as count_err:
+                print(f"    Warning: Error calculating review count for {animal_instance.id} in render_animal_rows: {count_err}")
+                animal_instance.approved_review_count = 0
+        # --- END FIX ---
+
         row_context = {
             'animal': animal_instance,
             'user': request.user,
@@ -140,6 +152,13 @@ def home(request):
         login_error = request.session.pop('login_error', None);
         if login_error: context['login_error'] = login_error
         context['selected_hall_id'] = 'all' # Default for daily schedule initial view (JS might override)
+
+        # --- START: Fetch Active Story Reviews for initial load ---
+        # No need to preload story data, it will be fetched via AJAX by JavaScript
+        # context['active_stories'] = StoryReview.objects.filter(
+        #     approved=True, expires_at__gt=timezone.now()
+        # ).select_related('animal', 'animal__hall').order_by('-approved_at')[:15] # Limit initial load?
+        # --- END: Fetch Active Story Reviews ---
 
         print("    Rendering full template: index.html")
         try:
@@ -284,7 +303,7 @@ def ajax_get_latest_reviews(request):
             .annotate(approved_review_count=Count('reviews', filter=Q(reviews__approved=True))) \
             .select_related('hall') \
             .order_by('-latest_review_time') \
-            [:20]
+            [:20] # Limit to 20
 
         table_html = render_animal_rows(request, latest_reviewed_animals_qs) # Pass the queryset directly
 
@@ -357,10 +376,80 @@ def user_logout(request):
     print(f"User '{user_display}' logged out.")
     return redirect('home')
 
+# --- START: New View for Adding Story Review ---
+@login_required
+@require_POST
+def add_story_review(request):
+    print(">>> Handling POST Request for Adding Story Review <<<")
+    animal_id = request.POST.get("animal_id")
+    animal = get_object_or_404(Animal, id=animal_id)
+
+    # Reuse validation logic and data extraction from add_review
+    face_list = request.POST.getlist("face")
+    temperament_list = request.POST.getlist("temperament")
+    scale_list = request.POST.getlist("scale")
+    content = request.POST.get("content", "").strip()
+    age_str = request.POST.get("age")
+    # Note: Cup size from review form is named 'cup_size', map it correctly
+    cup_size_value = request.POST.get("cup_size","") # Get the value from the <select>
+
+    errors = {}
+    if len(face_list) > 3: errors['face'] = "臉蛋最多選3個"
+    if len(temperament_list) > 3: errors['temperament'] = "氣質最多選3個"
+    # Scale has no limit in this form version
+    if not content: errors['content'] = "心得內容不能為空"
+    age = None
+    if age_str:
+        try:
+            age = int(age_str)
+            if age <= 0: errors['age'] = "年紀必須是正數"
+        except (ValueError, TypeError): errors['age'] = "年紀必須是有效的數字"
+
+    if errors:
+        print(f"Story Review submission failed validation for animal {animal_id}: {errors}")
+        # Return detailed errors if available
+        error_message = "輸入無效"
+        if errors:
+             error_message += ": " + "; ".join([f"{k}: {v}" for k, v in errors.items()])
+        return JsonResponse({"success": False, "error": error_message, "errors": errors}, status=400)
+
+    try:
+        new_story = StoryReview.objects.create(
+            animal=animal,
+            user=request.user,
+            age=age,
+            looks=request.POST.get("looks") or None,
+            face=','.join(face_list),
+            temperament=','.join(temperament_list),
+            physique=request.POST.get("physique") or None,
+            cup=request.POST.get("cup") or None,
+            cup_size=cup_size_value or None, # Use the value from the select
+            skin_texture=request.POST.get("skin_texture") or None,
+            skin_color=request.POST.get("skin_color") or None,
+            music=request.POST.get("music") or None,
+            music_price=request.POST.get("music_price") or None,
+            sports=request.POST.get("sports") or None,
+            sports_price=request.POST.get("sports_price") or None,
+            scale=','.join(scale_list),
+            content=content,
+            approved=False, # Default to False, admin needs to approve
+            approved_at=None, # Will be set by signal/admin
+            expires_at=None   # Will be set by signal/admin
+        )
+        print(f"Story Review {new_story.id} created for animal {animal_id} by user {request.user.username}. Needs approval.")
+        return JsonResponse({"success": True, "message": "限時動態心得已提交，待審核後將顯示"})
+    except Exception as e:
+        print(f"Error creating story review for animal {animal_id}: {e}")
+        traceback.print_exc()
+        return JsonResponse({"success": False, "error": "儲存限時動態心得時發生內部錯誤"}, status=500)
+# --- END: New View for Adding Story Review ---
+
+
 # --- Review Handling View (Keep as is, handles GET for review list and POST for submission) ---
 @login_required
 def add_review(request):
     if request.method == "POST":
+        print(">>> Handling POST Request for Adding Regular Review <<<")
         animal_id = request.POST.get("animal_id")
         animal = get_object_or_404(Animal, id=animal_id)
 
@@ -369,22 +458,27 @@ def add_review(request):
         scale_list = request.POST.getlist("scale")
         content = request.POST.get("content", "").strip()
         age_str = request.POST.get("age")
-        cup_size_str = request.POST.get("cup_size","").strip().upper()
+        # Note: Cup size from review form is named 'cup_size', map it correctly
+        cup_size_value = request.POST.get("cup_size","") # Get the value from the <select>
 
         errors = {}
         if len(face_list) > 3: errors['face'] = "臉蛋最多選3個"
         if len(temperament_list) > 3: errors['temperament'] = "氣質最多選3個"
+        # Scale has no limit in this form version
         if not content: errors['content'] = "心得內容不能為空"
         age = None
         if age_str:
-            try: age = int(age_str); assert age > 0
-            except (ValueError, AssertionError): errors['age'] = "年紀必須是正整數"
-        if cup_size_str and not cup_size_str.isalpha():
-            errors['cup_size'] = "罩杯大小請填寫英文字母"
+            try:
+                age = int(age_str)
+                if age <= 0: errors['age'] = "年紀必須是正數"
+            except (ValueError, TypeError): errors['age'] = "年紀必須是有效的數字"
 
         if errors:
             print(f"Review submission failed validation for animal {animal_id}: {errors}")
-            return JsonResponse({"success": False, "error": "輸入無效", "errors": errors}, status=400)
+            error_message = "輸入無效"
+            if errors:
+                 error_message += ": " + "; ".join([f"{k}: {v}" for k, v in errors.items()])
+            return JsonResponse({"success": False, "error": error_message, "errors": errors}, status=400)
 
         try:
             new_review = Review.objects.create(
@@ -394,7 +488,7 @@ def add_review(request):
                 temperament=','.join(temperament_list),
                 physique=request.POST.get("physique") or None,
                 cup=request.POST.get("cup") or None,
-                cup_size=cup_size_str or None,
+                cup_size=cup_size_value or None, # Use the value from the select
                 skin_texture=request.POST.get("skin_texture") or None,
                 skin_color=request.POST.get("skin_color") or None,
                 music=request.POST.get("music") or None,
@@ -621,3 +715,106 @@ def update_note(request):
     except Exception as e:
         print(f"Error updating note {note_id}: {e}"); traceback.print_exc()
         return JsonResponse({"success": False, "error": "更新筆記時發生錯誤"}, status=500)
+
+# --- START: New AJAX View for Active Stories ---
+@require_GET
+def ajax_get_active_stories(request):
+    print(">>> Handling AJAX Request for Active Story Reviews <<<")
+    try:
+        now = timezone.now()
+        active_stories = StoryReview.objects.filter(
+            approved=True,
+            expires_at__gt=now
+        ).select_related(
+            'animal', 'animal__hall', 'user' # Select related fields for efficiency
+        ).order_by('-approved_at') # Show newest approved first
+
+        stories_data = []
+        for story in active_stories:
+            animal = story.animal
+            user = story.user
+            stories_data.append({
+                'id': story.id,
+                'animal_id': animal.id,
+                'animal_name': animal.name,
+                'animal_photo_url': animal.photo.url if animal.photo else None,
+                'hall_name': animal.hall.name if animal.hall else '未知館別',
+                'user_name': user.first_name or user.username, # Or '匿名'?
+                'remaining_time': story.remaining_time_display,
+                # Include content if needed when clicking the story?
+                # 'content': story.content,
+            })
+
+        return JsonResponse({'stories': stories_data})
+    except Exception as e:
+        print(f"!!! Error in ajax_get_active_stories: {e} !!!"); traceback.print_exc()
+        return JsonResponse({'error': '無法載入限時動態'}, status=500)
+# --- END: New AJAX View for Active Stories ---
+
+
+# --- START: New AJAX View for Story Detail ---
+@require_GET
+def ajax_get_story_detail(request, story_id):
+    print(f">>> Handling AJAX Request for Story Detail (ID: {story_id}) <<<")
+    try:
+        story = get_object_or_404(
+            StoryReview.objects.select_related('animal', 'animal__hall', 'user'),
+            pk=story_id
+        )
+
+        # Double-check if it's still active (though the panel should only show active ones)
+        if not story.is_active:
+            print(f"    Story {story_id} is no longer active.")
+            return JsonResponse({'success': False, 'error': '此限時動態已過期或未審核'}, status=404)
+
+        animal = story.animal
+        user = story.user
+
+        # Format the approval date for display
+        approved_at_display = ""
+        if story.approved_at:
+            try:
+                # Format as needed, e.g., 'Y-m-d H:i' or just date 'Y-m-d'
+                approved_at_display = format_date(timezone.localtime(story.approved_at), 'Y-m-d H:i')
+            except Exception as date_err:
+                 print(f"    Warning: Error formatting approved_at for story {story_id}: {date_err}")
+
+
+        story_data = {
+            'id': story.id,
+            'animal_id': animal.id,
+            'animal_name': animal.name,
+            'animal_photo_url': animal.photo.url if animal.photo else None,
+            'hall_name': animal.hall.name if animal.hall else '未知館別',
+            'user_name': user.first_name or user.username, # Or '匿名'?
+            'remaining_time': story.remaining_time_display,
+            'approved_at_display': approved_at_display, # Add formatted date
+
+            # Include all the review content fields
+            'age': story.age,
+            'looks': story.looks,
+            'face': story.face,
+            'temperament': story.temperament,
+            'physique': story.physique,
+            'cup': story.cup,
+            'cup_size': story.cup_size,
+            'skin_texture': story.skin_texture,
+            'skin_color': story.skin_color,
+            'music': story.music,
+            'music_price': story.music_price,
+            'sports': story.sports,
+            'sports_price': story.sports_price,
+            'scale': story.scale,
+            'content': story.content,
+        }
+
+        print(f"    Returning details for story {story_id}.")
+        return JsonResponse({'success': True, 'story': story_data})
+
+    except Http404:
+         print(f"    Story {story_id} not found.")
+         return JsonResponse({'success': False, 'error': '找不到指定的限時動態'}, status=404)
+    except Exception as e:
+        print(f"!!! Error in ajax_get_story_detail for ID {story_id}: {e} !!!"); traceback.print_exc()
+        return JsonResponse({'success': False, 'error': '無法載入限時動態詳情'}, status=500)
+# --- END: New AJAX View for Story Detail ---

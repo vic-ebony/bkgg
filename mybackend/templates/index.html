@@ -9,7 +9,6 @@
   <title>動物園入口</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
   <style>
-    /* --- All CSS Rules (保持不變) --- */
     /* --- 全站基本設定 --- */
     html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; font-size: 16px; background: #ccc; display: flex; flex-direction: column; line-height: 1.5; }
     *, *::before, *::after { box-sizing: inherit; }
@@ -48,7 +47,7 @@
     /* --- Modal 樣式 --- */
     .modal { display: none; position: fixed; z-index: 2999; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0, 0, 0, 0.5); animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    #reviewModal, #reviewSubmitModal, #noteModal { z-index: 3999; }
+    #reviewModal, #reviewSubmitModal, #noteModal, #storyDetailModal { z-index: 3999; } /* Added storyDetailModal */
 
     .modal-content {
         background-color: #fff; margin: 20px auto; padding: 0; border-radius: 15px;
@@ -287,6 +286,156 @@
     }
     /* --- END: Custom Modification --- */
 
+    /* --- START: CSS for Story Review Panel --- */
+    .story-panel-container {
+        padding: 0.75rem 0; /* Add some vertical padding */
+        background-color: #f8f9fa; /* Match header */
+        border-bottom: 1px solid #dee2e6; /* Separator */
+        flex-shrink: 0; /* Prevent shrinking */
+        overflow: hidden; /* Hide scrollbar */
+    }
+    #storyReviewPanel {
+        display: flex;
+        overflow-x: auto; /* Enable horizontal scroll */
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        gap: 0.8rem; /* Space between stories */
+        padding: 0 0.75rem; /* Horizontal padding inside scroll area */
+        white-space: nowrap; /* Prevent items wrapping */
+    }
+    /* Hide scrollbar */
+    #storyReviewPanel::-webkit-scrollbar { display: none; }
+    #storyReviewPanel { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .story-item {
+        display: inline-flex; /* Use inline-flex for alignment */
+        flex-direction: column; /* Stack image and text */
+        align-items: center; /* Center items horizontally */
+        text-align: center;
+        cursor: pointer;
+        width: 75px; /* Fixed width for each item */
+        vertical-align: top; /* Align items at the top */
+    }
+    .story-item-photo {
+        width: 60px; /* Size of the circle */
+        height: 60px;
+        border-radius: 50%; /* Make it circular */
+        overflow: hidden; /* Clip the image */
+        border: 2px solid #007bff; /* Blue border */
+        padding: 2px; /* Space between border and image */
+        background-color: #fff; /* Background behind image */
+        flex-shrink: 0; /* Prevent image shrinking */
+        margin-bottom: 0.3rem; /* Space below image */
+        display: flex; /* Center image inside */
+        align-items: center;
+        justify-content: center;
+    }
+    .story-item-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Cover the circle area */
+        display: block;
+        border-radius: 50%; /* Ensure image inside is also round */
+    }
+    .story-item-photo .placeholder {
+        font-size: 2rem; /* Size of placeholder icon/text */
+        color: #ccc;
+    }
+    .story-item-name {
+        font-size: 0.8rem;
+        color: #333;
+        font-weight: 500;
+        line-height: 1.2;
+        width: 100%;
+        white-space: normal; /* Allow name to wrap */
+        overflow: hidden;
+        text-overflow: ellipsis; /* Add ellipsis if too long */
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* Limit to 2 lines */
+        -webkit-box-orient: vertical;
+        margin-bottom: 0.1rem; /* Space below name */
+    }
+    .story-item-hall,
+    .story-item-time {
+        font-size: 0.7rem;
+        color: #666;
+        line-height: 1.1;
+        width: 100%;
+        white-space: nowrap; /* Prevent wrapping */
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .story-item-time {
+        color: #dc3545; /* Red for time */
+        font-weight: bold;
+    }
+    .story-loading-message {
+        padding: 1rem;
+        font-style: italic;
+        color: #666;
+        text-align: center;
+        width: 100%;
+    }
+    /* --- END: CSS for Story Review Panel --- */
+
+    /* --- START: CSS for Story Detail Modal --- */
+    #storyDetailModal .modal-body {
+        overflow-y: auto;
+        /* Adjust padding similar to reviewModal */
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px);
+        padding-left: 0; /* Remove default body padding */
+        padding-right: 0;
+        padding-top: 0;
+    }
+    /* Reuse review card styling within the story detail */
+    #storyDetailContent .review-card {
+        border: none; /* Remove border */
+        box-shadow: none; /* Remove shadow */
+        padding: 0.5rem 1rem; /* Add horizontal padding for content */
+        margin-bottom: 0;
+    }
+    #storyDetailContent .review-header {
+         padding-bottom: 0.5rem;
+         margin-bottom: 0.75rem;
+    }
+    /* Optional: Add specific styling for the top info in story detail */
+    .story-detail-header-info {
+        padding: 0.75rem 1rem; /* Adjusted padding */
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .story-detail-header-info img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    .story-detail-header-info .text-info {
+        flex-grow: 1;
+    }
+    .story-detail-header-info .animal-name {
+        font-weight: bold;
+        font-size: 1.1rem;
+        display: block;
+        color: #333;
+    }
+    .story-detail-header-info .hall-name,
+    .story-detail-header-info .remaining-time {
+        font-size: 0.9rem;
+        color: #555;
+        display: inline-block; /* Or block if preferred */
+        margin-right: 0.5rem; /* Space between hall and time */
+    }
+     .story-detail-header-info .remaining-time {
+        color: #dc3545;
+        font-weight: bold;
+     }
+    /* --- END: CSS for Story Detail Modal --- */
+
   </style>
 </head>
 <body>
@@ -301,9 +450,7 @@
                 <button id="latestReviewBtnHeader">最新心得</button>
                 <button id="btnDailyRecommendationHeader">每日推薦</button>
                 <button id="pendingListBtnHeader">
-                    {# --- *** START FIX: Use context variable for initial count *** --- #}
                     待約清單 (<span id="pendingCountHeader">{{ pending_count|default:0 }}</span>)
-                    {# --- *** END FIX *** --- #}
                 </button>
                 <button id="myNotesBtnHeader">我的筆記</button>
                 {% if user.is_authenticated %}
@@ -322,6 +469,14 @@
             </div>
             {% endif %}
         </header>
+
+        <!-- Story Review Panel -->
+        <section class="story-panel-container">
+            <div id="storyReviewPanel">
+                <div class="story-loading-message">載入限時動態中...</div>
+                {# Story items will be loaded here by JavaScript #}
+            </div>
+        </section>
 
         <!-- Portal Content -->
         <main class="portal-content">
@@ -364,7 +519,7 @@
             </div>
         </div>
 
-        <!-- Review Modal -->
+        <!-- Review Modal (for listing regular reviews) -->
         <div id="reviewModal" class="modal" role="dialog" aria-modal="true">
             <div class="modal-content">
                 <div class="modal-header"><h2>心得評論</h2><button class="close-modal" aria-label="關閉">×</button></div>
@@ -374,15 +529,36 @@
             </div>
         </div>
 
-        <!-- Submit Review Modal -->
+        <!-- START: New Story Detail Modal -->
+        <div id="storyDetailModal" class="modal" role="dialog" aria-modal="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>限時動態心得</h2><button class="close-modal" aria-label="關閉">×</button>
+                </div>
+                <div class="modal-body"> {# Padding handled by CSS #}
+                    <div id="storyDetailHeader">
+                        {# Header info will be loaded here (Photo, Name, Hall, Time) #}
+                        <div class="story-loading-message">載入中...</div>
+                    </div>
+                    <div id="storyDetailContent">
+                        {# Story content (like a review card) will be loaded here #}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END: New Story Detail Modal -->
+
+        <!-- Submit Review Modal (Used for both regular and story reviews) -->
         <div id="reviewSubmitModal" class="modal" role="dialog" aria-modal="true">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>填寫心得</h2><button class="close-modal" aria-label="關閉">×</button>
+                    <h2 id="reviewSubmitModalTitle">填寫心得</h2><button class="close-modal" aria-label="關閉">×</button> {# Added ID for title #}
                 </div>
                 <div class="modal-body">
                     <form id="reviewForm">
                         {% csrf_token %}
+                        {# Add a hidden input to track submission type #}
+                        <input type="hidden" name="submission_type" id="submissionType" value="review"> {# Default to 'review' #}
                         <input type="hidden" name="animal_id" value="">
                         <div class="form-group"><label for="age">年紀</label><input type="number" id="age" name="age" placeholder="請輸入大約年紀數字, 不可有中文字"></div>
                         <div class="form-group"><label for="looks">顏值</label><select id="looks" name="looks"><option value="">請選擇</option><option value="S級 (一見難忘)">S級 (一見難忘)</option><option value="A級 (出眾)">A級 (出眾)</option><option value="B級 (優異)">B級 (優異)</option><option value="C級 (中上)">C級 (中上)</option><option value="D級 (大眾)">D級 (大眾)</option><option value="E級 (較平凡)">E級 (較平凡)</option></select></div>
@@ -408,7 +584,7 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" form="reviewForm">提交評論</button>
+                    <button type="submit" form="reviewForm">提交</button> {# Generic submit text #}
                 </div>
             </div>
         </div>
@@ -496,7 +672,7 @@
             </div>
         </div>
 
-        <!-- *** MODIFIED: My Notes Modal (Added Hall Menu) *** -->
+        <!-- My Notes Modal -->
         <div id="myNotesModal" class="modal" role="dialog" aria-modal="true">
             <div class="modal-content">
                 <div class="modal-header">
@@ -509,14 +685,12 @@
                         <div class="photo-area" id="myNotesPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div>
                         <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">載入中...</p></div></div>
                     </section>
-                    <!-- *** ADDED HALL MENU for My Notes *** -->
                     <nav class="hall-menu" id="myNotesHallMenu">
                          <a href="#" data-hall-id="all" class="active">全部</a> {# Default to 'All' #}
                          {% for hall in halls %}
                            <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a>
                          {% endfor %}
                     </nav>
-                    <!-- *** END ADDED HALL MENU *** -->
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                         <div class="body-wrapper"> {# Padding handled by CSS #}
@@ -531,7 +705,6 @@
                 </div>
             </div>
         </div>
-        <!-- *** END MODIFIED: My Notes Modal *** -->
 
         <!-- Daily Schedule Modal -->
         <div id="dailyScheduleModal" class="modal" role="dialog" aria-modal="true">
@@ -547,7 +720,6 @@
                         <div class="intro-area" id="dailyIntroArea"><div class="intro-top"><p id="dailyIntroductionContent">點擊下方館別載入介紹</p></div></div>
                     </section>
                     <nav class="hall-menu" id="dailyHallMenu">
-                        {# Removed "All" button here as per original code, add if needed #}
                         {# <a href="#" data-hall-id="all" class="active">全部</a> #}
                         {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %}
                     </nav>
@@ -593,19 +765,17 @@
                 </div>
             </div>
         </div>
-        <!-- End 每日推薦 Modal -->
 
 
       <!-- Bottom slide-up menu & Overlay -->
       <div id="plusDropdown" class="dropdown-menu"></div>
       <div id="bottomOverlay"></div>
 
-      <!-- ----- START: HTML for Image Lightbox ----- -->
+      <!-- Image Lightbox -->
       <div id="imageLightbox">
         <span id="closeLightbox" aria-label="關閉圖片檢視">×</span>
         <img id="lightboxImage" src="" alt="放大圖片">
       </div>
-      <!-- ----- END: HTML for Image Lightbox ----- -->
 
 
     </div> {# End .content #}
@@ -617,7 +787,7 @@
     function getCookie(name) { let cookieValue = null; if (document.cookie && document.cookie !== '') { const cookies = document.cookie.split(';'); for (let i = 0; i < cookies.length; i++) { const cookie = cookies[i].trim(); if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; } } } return cookieValue; }
   </script>
   <script>
-    // --- Main JavaScript Logic (保持不變) ---
+    // --- Main JavaScript Logic ---
     document.addEventListener('DOMContentLoaded', function() {
       const csrfToken = getCookie('csrftoken');
       const bottomOverlay = document.getElementById('bottomOverlay');
@@ -638,23 +808,36 @@
         rows.forEach(row => updateCallback(row));
       }
 
+      // --- START: Modified showPlusDropdown ---
       function showPlusDropdown(triggerBtn) {
         const dropdown = document.getElementById('plusDropdown'); if (!dropdown) return;
-        dropdown.innerHTML = "";
+        dropdown.innerHTML = ""; // Clear previous items
         const row = triggerBtn.closest('tr'); if (!row) return;
         const animalId = row.getAttribute('data-animal-id'); if (!animalId) return;
-        // console.log(`Showing plus dropdown for animal ID: ${animalId}`);
+        console.log(`Showing plus dropdown for animal ID: ${animalId}`);
 
         if (isLoggedIn) {
-            const btnReview = document.createElement('button'); btnReview.textContent = "填寫心得";
-            btnReview.addEventListener('click', (e) => {
+            // 1. 發布限時動態心得 Button
+            const btnStoryReview = document.createElement('button');
+            btnStoryReview.textContent = "發布限時動態心得";
+            btnStoryReview.addEventListener('click', (e) => {
                 const modal = document.getElementById('reviewSubmitModal');
-                if(modal){
-                    const hiddenInput = modal.querySelector('input[name="animal_id"]');
+                if (modal) {
+                    const hiddenAnimalInput = modal.querySelector('input[name="animal_id"]');
+                    const hiddenTypeInput = modal.querySelector('#submissionType');
                     const form = document.getElementById('reviewForm');
-                    if (hiddenInput) hiddenInput.value = animalId;
+                    const modalTitle = document.getElementById('reviewSubmitModalTitle');
+
+                    if (hiddenAnimalInput) hiddenAnimalInput.value = animalId;
                     else console.error("Hidden input for animal_id not found in review form");
-                    if(form) {
+
+                    if (hiddenTypeInput) hiddenTypeInput.value = "story"; // Set type to 'story'
+                    else console.error("Hidden input for submissionType not found in review form");
+
+                    if(modalTitle) modalTitle.textContent = "發布限時動態心得"; // Change modal title
+
+                    // Reset form fields (same as regular review reset)
+                    if (form) {
                         form.reset();
                         ['looks', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
                             const selectElement = document.getElementById(id);
@@ -662,7 +845,7 @@
                                 try { selectElement.choicesInstance.setChoiceByValue(''); } catch(err){}
                             } else if (selectElement) { selectElement.selectedIndex = 0; }
                         });
-                        ['faceCheckboxes', 'temperamentCheckboxes', 'scaleCheckboxes'].forEach(groupId => { // Added scaleCheckboxes here
+                        ['faceCheckboxes', 'temperamentCheckboxes', 'scaleCheckboxes'].forEach(groupId => {
                              const group = document.getElementById(groupId);
                              if (group) {
                                  group.querySelectorAll('input[type="checkbox"]').forEach(cb => {
@@ -674,7 +857,61 @@
                          });
                          limitCheckboxSelection('faceCheckboxes', 3);
                          limitCheckboxSelection('temperamentCheckboxes', 3);
-                         // No limit needed for scale, just reset
+                        const musicPriceInput = document.getElementById('music_price');
+                        if(musicPriceInput) { musicPriceInput.style.display = 'none'; musicPriceInput.value = ''; }
+                        const sportsPriceInput = document.getElementById('sports_price');
+                        if(sportsPriceInput) { sportsPriceInput.style.display = 'none'; sportsPriceInput.value = ''; }
+                        togglePriceInput('music', 'music_price');
+                        togglePriceInput('sports', 'sports_price');
+                     }
+                    modal.style.display = 'block'; // Show the modal
+                 }
+                closePlusDropdown();
+                e.stopPropagation();
+            });
+            dropdown.appendChild(btnStoryReview);
+
+
+            // 2. 填寫 (一般) 心得 Button
+            const btnReview = document.createElement('button');
+            btnReview.textContent = "填寫心得";
+            btnReview.addEventListener('click', (e) => {
+                const modal = document.getElementById('reviewSubmitModal');
+                 if(modal){
+                    const hiddenAnimalInput = modal.querySelector('input[name="animal_id"]');
+                    const hiddenTypeInput = modal.querySelector('#submissionType');
+                    const form = document.getElementById('reviewForm');
+                    const modalTitle = document.getElementById('reviewSubmitModalTitle');
+
+                    if (hiddenAnimalInput) hiddenAnimalInput.value = animalId;
+                    else console.error("Hidden input for animal_id not found in review form");
+
+                    if (hiddenTypeInput) hiddenTypeInput.value = "review"; // Set type to 'review'
+                    else console.error("Hidden input for submissionType not found in review form");
+
+                    if(modalTitle) modalTitle.textContent = "填寫心得"; // Set modal title
+
+                    // Reset form fields (same reset logic)
+                    if(form) {
+                        form.reset();
+                        ['looks', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
+                            const selectElement = document.getElementById(id);
+                            if (selectElement?.choicesInstance) {
+                                try { selectElement.choicesInstance.setChoiceByValue(''); } catch(err){}
+                            } else if (selectElement) { selectElement.selectedIndex = 0; }
+                        });
+                        ['faceCheckboxes', 'temperamentCheckboxes', 'scaleCheckboxes'].forEach(groupId => {
+                             const group = document.getElementById(groupId);
+                             if (group) {
+                                 group.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                                     cb.checked = false; cb.disabled = false;
+                                     const label = cb.closest('label');
+                                     if (label) label.classList.remove('label-disabled');
+                                 });
+                             }
+                         });
+                         limitCheckboxSelection('faceCheckboxes', 3);
+                         limitCheckboxSelection('temperamentCheckboxes', 3);
                         const musicPriceInput = document.getElementById('music_price');
                         if(musicPriceInput) { musicPriceInput.style.display = 'none'; musicPriceInput.value = ''; }
                         const sportsPriceInput = document.getElementById('sports_price');
@@ -684,19 +921,44 @@
                      }
                     modal.style.display = 'block';
                  }
-                closePlusDropdown(); e.stopPropagation();
+                closePlusDropdown();
+                e.stopPropagation();
             });
             dropdown.appendChild(btnReview);
 
-            const btnAddWait = document.createElement('button'); const isPending = row.getAttribute('data-pending') === "true"; btnAddWait.textContent = isPending ? "移除待約" : "加入待約";
-            btnAddWait.addEventListener('click', (e) => { togglePending(animalId, !isPending); closePlusDropdown(); e.stopPropagation(); }); dropdown.appendChild(btnAddWait);
-            const btnAddNote = document.createElement('button'); const noteId = row.getAttribute('data-note-id');
+            // 3. 加入/移除待約 Button
+            const btnAddWait = document.createElement('button');
+            const isPending = row.getAttribute('data-pending') === "true";
+            btnAddWait.textContent = isPending ? "移除待約" : "加入待約";
+            btnAddWait.addEventListener('click', (e) => {
+                togglePending(animalId, !isPending);
+                closePlusDropdown();
+                e.stopPropagation();
+            });
+            dropdown.appendChild(btnAddWait);
+
+            // 4. 加入/查看/修改筆記 Button
+            const btnAddNote = document.createElement('button');
+            const noteId = row.getAttribute('data-note-id');
             const noteContent = row.getAttribute('data-note-content') || '';
             btnAddNote.textContent = noteId ? "查看/修改筆記" : "加入筆記";
-            btnAddNote.addEventListener('click', (e) => { openNoteModal(animalId, noteId, noteContent); closePlusDropdown(); e.stopPropagation(); }); dropdown.appendChild(btnAddNote);
-        } else { const infoText = document.createElement('span'); infoText.textContent = "請先登入以使用功能"; dropdown.appendChild(infoText); }
-        dropdown.classList.add('open'); bottomOverlay.classList.add('open');
+            btnAddNote.addEventListener('click', (e) => {
+                openNoteModal(animalId, noteId, noteContent);
+                closePlusDropdown();
+                e.stopPropagation();
+            });
+            dropdown.appendChild(btnAddNote);
+
+        } else {
+            // User not logged in
+            const infoText = document.createElement('span');
+            infoText.textContent = "請先登入以使用功能";
+            dropdown.appendChild(infoText);
+        }
+        dropdown.classList.add('open');
+        bottomOverlay.classList.add('open');
       }
+      // --- END: Modified showPlusDropdown ---
 
       function closePlusDropdown() {
           const dropdown = document.getElementById('plusDropdown'); if(dropdown) dropdown.classList.remove('open'); if(bottomOverlay) bottomOverlay.classList.remove('open');
@@ -756,12 +1018,10 @@
                  // Optional: Update "+" menu text if it's currently open for this animal
                  const dropdown = document.getElementById('plusDropdown');
                  if (dropdown?.classList.contains('open')) {
-                    const firstBtn = dropdown.querySelector('button'); // Assume first button is always review
-                    const secondBtn = firstBtn?.nextElementSibling; // Get the next button (should be pending)
-                    // Check if the dropdown corresponds to the animal being updated
-                    // A robust way is harder without storing state, but we can check the current text
-                    if (secondBtn && secondBtn.textContent.includes('待約')) {
-                        secondBtn.textContent = shouldAdd ? "移除待約" : "加入待約";
+                    // Find the pending button specifically (might need better targeting if order changes)
+                    const pendingButton = Array.from(dropdown.querySelectorAll('button')).find(btn => btn.textContent.includes('待約'));
+                    if (pendingButton) {
+                        pendingButton.textContent = shouldAdd ? "移除待約" : "加入待約";
                     }
                  }
 
@@ -856,6 +1116,10 @@
                          } else if (['pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId)) {
                              loadModalContent(modalId); // Reload standard lists normally
                          }
+                         // After reload/update, re-sync the checkbox state
+                         const checkbox = openModalElement.querySelector(`.toggle-notes-checkbox`);
+                         const tbody = openModalElement.querySelector('.body-table tbody');
+                         if(checkbox && tbody) { syncCheckboxState(checkbox, tbody); } // Ensure checkbox state is correct
                      }
                  });
 
@@ -1038,17 +1302,32 @@
           .catch(error => { console.error("Load Reviews Error:", error); reviewList.innerHTML = `<p>載入心得時發生錯誤: ${error.message}</p>`; }); // Error state
       }
 
+      // --- START: Modified Review Form Submit Handler ---
       document.getElementById('reviewForm')?.addEventListener('submit', function(e) {
-          e.preventDefault(); if (!isLoggedIn) return; const modal = document.getElementById('reviewSubmitModal');
-          const animalIdInput = this.querySelector('input[name="animal_id"]'); const animalId = animalIdInput?.value; if (!animalId) { alert('無法獲取美容師 ID，請重試'); return; }
+          e.preventDefault();
+          if (!isLoggedIn) return;
+          const modal = document.getElementById('reviewSubmitModal');
+          const animalIdInput = this.querySelector('input[name="animal_id"]');
+          const animalId = animalIdInput?.value;
+          const submissionTypeInput = this.querySelector('#submissionType');
+          const submissionType = submissionTypeInput?.value || 'review'; // Default to 'review' if missing
+
+          if (!animalId) { alert('無法獲取美容師 ID，請重試'); return; }
+
           const formData = new FormData(this);
-          // Validation for checkbox limits
+
+          // Validation for checkbox limits (already present)
           if (document.querySelectorAll('#faceCheckboxes input:checked').length > 3) { alert('臉蛋最多只能選擇 3 個'); return; }
           if (document.querySelectorAll('#temperamentCheckboxes input:checked').length > 3) { alert('氣質最多只能選擇 3 個'); return; }
-          // Validation for required content
+          // Validation for required content (already present)
           const contentValue = formData.get('content'); if (!contentValue?.trim()) { alert('心得內容不能為空'); document.getElementById('content').focus(); return; }
+
+          // Determine the submission URL based on the type
+          const submitUrl = (submissionType === 'story') ? "{% url 'add_story_review' %}" : "{% url 'add_review' %}";
+          console.log(`Submitting review form. Type: ${submissionType}, URL: ${submitUrl}`);
+
           // Submit the form
-          fetch("{% url 'add_review' %}", { method: "POST", body: formData, headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'} })
+          fetch(submitUrl, { method: "POST", body: formData, headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'} })
           .then(res => { // More robust error handling from backend
                 if (!res.ok) { return res.json().then(err => { let errorMsg = err.error || `伺服器錯誤 ${res.status}`; if (err.errors) { // Check if backend provided specific field errors
                  errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', '); } throw new Error(errorMsg); }).catch(() => { throw new Error(`伺服器錯誤 ${res.status}`); }); // Fallback if error response isn't JSON
@@ -1056,34 +1335,41 @@
            })
           .then(data => {
                 if(data.success) {
-                    alert(data.message || '評論已提交，待審核');
+                    alert(data.message || '提交成功，待審核');
                     if(modal) modal.style.display = 'none';
-                    // Reload latest reviews if that modal is currently open
-                    const latestModal = document.getElementById('latestReviewModal');
-                    if (latestModal && latestModal.style.display === 'block') {
-                        loadModalContent('latestReviewModal');
-                    }
-                    // Reload recommendation modal if open
-                    const recoModal = document.getElementById('dailyRecommendationModal');
-                     if (recoModal && recoModal.style.display === 'block') {
-                         loadModalContent('dailyRecommendationModal');
-                     }
-                    // Reload daily schedule if open and the reviewed animal matches the current hall
-                    const scheduleModal = document.getElementById('dailyScheduleModal');
-                    if (scheduleModal && scheduleModal.style.display === 'block') {
-                         const activeHallLink = scheduleModal.querySelector('#dailyHallMenu a.active');
-                         if (activeHallLink) {
-                            // We might need the animal's hall ID to check if it matches the active hall
-                            // For simplicity, let's just reload the current hall view
-                            loadFilteredDailySchedule(activeHallLink.dataset.hallId);
+
+                    // Refresh relevant views IF the submission was a REGULAR review
+                    if (submissionType === 'review') {
+                         // Reload latest reviews if that modal is currently open
+                        const latestModal = document.getElementById('latestReviewModal');
+                        if (latestModal && latestModal.style.display === 'block') {
+                            loadModalContent('latestReviewModal');
+                        }
+                        // Reload recommendation modal if open
+                        const recoModal = document.getElementById('dailyRecommendationModal');
+                         if (recoModal && recoModal.style.display === 'block') {
+                             loadModalContent('dailyRecommendationModal');
                          }
+                        // Reload daily schedule if open and the reviewed animal matches the current hall
+                        const scheduleModal = document.getElementById('dailyScheduleModal');
+                        if (scheduleModal && scheduleModal.style.display === 'block') {
+                             const activeHallLink = scheduleModal.querySelector('#dailyHallMenu a.active');
+                             if (activeHallLink) {
+                                loadFilteredDailySchedule(activeHallLink.dataset.hallId);
+                             }
+                        }
                     }
+                    // If it was a story review, we don't need to immediately refresh the panel
+                    // as it requires admin approval first. Rely on periodic/manual refresh.
+
                 } else { alert(data.error || '提交失敗'); } // Show backend error message if available
            })
-          .catch(err => { console.error("Submit Review Error:", err); alert(`提交心得時發生錯誤: ${err.message}`); });
+          .catch(err => { console.error(`Submit ${submissionType} Error:`, err); alert(`提交時發生錯誤: ${err.message}`); });
       });
+      // --- END: Modified Review Form Submit Handler ---
 
-      // --- *** MODIFIED: Function to load Daily Schedule with Hall Filter *** ---
+
+      // --- START: Function to load Daily Schedule with Hall Filter ---
       function loadFilteredDailySchedule(hallId) {
           const modal = document.getElementById('dailyScheduleModal');
           if (!modal) return;
@@ -1130,8 +1416,9 @@
                   if (checkbox) syncCheckboxState(checkbox, tbody);
               });
       }
+      // --- END: Function to load Daily Schedule with Hall Filter ---
 
-      // --- *** NEW: Function to load My Notes with Hall Filter *** ---
+      // --- START: Function to load My Notes with Hall Filter ---
        function loadFilteredNotes(hallId) {
            const modal = document.getElementById('myNotesModal');
            if (!modal || !isLoggedIn) return; // Also check login status
@@ -1179,7 +1466,7 @@
                    if (checkbox) syncCheckboxState(checkbox, tbody);
                });
        }
-       // --- *** END NEW FUNCTION *** ---
+       // --- END: Function to load My Notes with Hall Filter ---
 
       // --- AJAX Modal Content Loader (For modals WITHOUT hall filters OR initial 'all' load) ---
       function loadModalContent(modalId) {
@@ -1187,10 +1474,8 @@
           if (!modal) { console.error(`Modal not found: #${modalId}`); return; }
 
           // Handle non-table modals or modals requiring specific loading separately
-          if (modalId === 'loginModal' || modalId === 'reviewModal' || modalId === 'reviewSubmitModal' || modalId === 'noteModal') {
+          if (modalId === 'loginModal' || modalId === 'reviewModal' || modalId === 'reviewSubmitModal' || modalId === 'noteModal' || modalId === 'storyDetailModal') {
               // These modals don't load table content via this function
-              // Review modal content is loaded via loadReviews() when button clicked
-              // Note modal content is loaded via openNoteModal()
               return;
           }
           // Special handling for modals with hall filters on initial load (default to 'all')
@@ -1278,6 +1563,18 @@
       const openModal = (modalId) => {
           const modal = document.getElementById(modalId);
           if (modal) {
+              // Reset modal content if necessary (e.g., for modals showing specific item details)
+              if (modalId === 'reviewModal') {
+                   const reviewList = document.getElementById('reviewList');
+                   if (reviewList) reviewList.innerHTML = '<p>請點擊列表中的心得按鈕查看。</p>'; // Initial placeholder
+              }
+              if (modalId === 'storyDetailModal') {
+                   const headerDiv = document.getElementById('storyDetailHeader');
+                   const contentDiv = document.getElementById('storyDetailContent');
+                   if(headerDiv) headerDiv.innerHTML = '<div class="story-loading-message">載入中...</div>';
+                   if(contentDiv) contentDiv.innerHTML = ''; // Clear content initially
+              }
+
               modal.style.display = 'block';
               document.body.style.overflow = 'hidden'; // Prevent background scroll
 
@@ -1330,16 +1627,17 @@
                   // Load all notes initially
                   loadFilteredNotes('all');
               }
-              // Reset review modal content on open
-              else if (modalId === 'reviewModal') {
-                   const reviewList = document.getElementById('reviewList');
-                   if (reviewList) reviewList.innerHTML = '<p>請點擊列表中的心得按鈕查看。</p>'; // Initial placeholder
-              }
 
               // Scroll review submit modal to top on open
               if (modalId === 'reviewSubmitModal') {
                   const reviewModalBody = modal.querySelector('.modal-body');
                   if (reviewModalBody) reviewModalBody.scrollTop = 0;
+                   // Reset title and hidden type to default (regular review) when opened directly
+                   // This ensures if opened NOT via plus menu, it defaults to regular review
+                   const modalTitle = document.getElementById('reviewSubmitModalTitle');
+                   const hiddenTypeInput = document.getElementById('submissionType');
+                   if(modalTitle) modalTitle.textContent = "填寫心得";
+                   if(hiddenTypeInput) hiddenTypeInput.value = "review";
               }
 
               return true; // Indicate success
@@ -1357,12 +1655,127 @@
                }
           }
       };
+      // --- End Modal Open/Close ---
+
+
+      // --- START: New Function to Show Story Detail ---
+      function showStoryDetail(storyId) {
+          const modal = document.getElementById('storyDetailModal');
+          const headerDiv = document.getElementById('storyDetailHeader');
+          const contentDiv = document.getElementById('storyDetailContent');
+
+          if (!modal || !headerDiv || !contentDiv) {
+              console.error("Story detail modal elements missing.");
+              return;
+          }
+
+          // Set loading state
+          headerDiv.innerHTML = '<div class="story-loading-message">載入動態標頭中...</div>';
+          contentDiv.innerHTML = '<div class="story-loading-message">載入動態內容中...</div>';
+          openModal('storyDetailModal'); // Open the modal first
+
+          fetch(`/ajax/story_detail/${storyId}/`, {
+              headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+          })
+          .then(response => {
+              if (!response.ok) {
+                  // Try to parse error json, fallback to status text
+                  return response.json().catch(() => null).then(errData => {
+                      throw new Error(errData?.error || `HTTP error ${response.status}`);
+                  });
+              }
+              const contentType = response.headers.get("content-type");
+              if (!contentType?.includes("application/json")) {
+                  throw new TypeError("伺服器未返回有效的 JSON");
+              }
+              return response.json();
+          })
+          .then(data => {
+              if (data.success && data.story) {
+                  const story = data.story;
+
+                  // --- Populate Header ---
+                  headerDiv.innerHTML = `
+                      <div class="story-detail-header-info">
+                          ${story.animal_photo_url ? `<img src="${story.animal_photo_url}" alt="${story.animal_name}">` : '<span class="placeholder" style="font-size: 2.5rem; color:#ccc;">👤</span>'}
+                          <div class="text-info">
+                              <span class="animal-name">${story.animal_name || '未知美容師'}</span>
+                              <div>
+                                  ${story.hall_name ? `<span class="hall-name">${story.hall_name}</span>` : ''}
+                                  ${story.remaining_time ? `<span class="remaining-time">${story.remaining_time}</span>` : ''}
+                              </div>
+                          </div>
+                      </div>
+                  `;
+
+                  // --- Populate Content (like a review card) ---
+                  // Helper function (similar to loadReviews, adapted for single story object)
+                  const createDetailLine = (label, value) => {
+                      if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) return '';
+                      let displayValue = value;
+                      if (['臉蛋', '氣質', '尺度'].includes(label) && typeof value === 'string') { displayValue = value.split(',').map(s => s.trim()).filter(s => s).join(', '); }
+                      if (label === '罩杯' && typeof value === 'object') { displayValue = `${value.cup || ''}${value.cup && value.cup_size ? ' - ' : ''}${value.cup_size || ''}`.trim(); if (!displayValue) return ''; }
+                      if ((label === '音樂' || label === '體育') && typeof value === 'object') { displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim(); if (!displayValue) return ''; }
+
+                      const valueSpan = document.createElement('span'); valueSpan.className = 'review-value';
+                      const normalizedDisplayValue = normalizeNewlines(displayValue);
+                      if (label === '心得' && typeof normalizedDisplayValue === 'string') { valueSpan.innerHTML = normalizedDisplayValue.replace(/\n/g, '<br>'); }
+                      else { valueSpan.textContent = normalizedDisplayValue; }
+                      return `<div class="review-line"><span class="review-label">${label}:</span>${valueSpan.outerHTML}</div>`;
+                  };
+
+                  contentDiv.innerHTML = `
+                      <div class="review-card">
+                          <div class="review-header">
+                               <div class="review-user-info">
+                                   <span class="review-user">${story.user_name || '匿名用戶'}</span>
+                                   {# Maybe add total story count for user later? #}
+                               </div>
+                               <span class="review-date">發布於 ${story.approved_at_display || '不久前'}</span>
+                          </div>
+                          <div class="review-body">
+                              ${createDetailLine('年紀', story.age)} ${createDetailLine('顏值', story.looks)} ${createDetailLine('臉蛋', story.face)}
+                              ${createDetailLine('氣質', story.temperament)} ${createDetailLine('體態', story.physique)}
+                              ${createDetailLine('罩杯', { cup: story.cup, cup_size: story.cup_size })} ${createDetailLine('膚質', story.skin_texture)}
+                              ${createDetailLine('膚色', story.skin_color)} ${createDetailLine('音樂', { type: story.music, price: story.music_price })}
+                              ${createDetailLine('體育', { type: story.sports, price: story.sports_price })} ${createDetailLine('尺度', story.scale)}
+                              ${createDetailLine('心得', story.content)}
+                          </div>
+                      </div>
+                  `;
+
+              } else {
+                  throw new Error(data.error || '無法獲取動態詳情');
+              }
+          })
+          .catch(error => {
+              console.error("Error loading story detail:", error);
+              headerDiv.innerHTML = `<div class="story-loading-message">錯誤</div>`; // Clear header on error
+              contentDiv.innerHTML = `<div class="story-loading-message">無法載入動態內容: ${error.message}</div>`;
+          });
+      }
+      // --- END: New Function to Show Story Detail ---
+
 
       // --- Event Listener Setup (using event delegation on document) ---
       document.addEventListener('click', function(e) {
           const target = e.target;
           // Helper to find closest ancestor matching selector
           const targetClosest = (selector) => target.closest(selector);
+
+          // --- START: Modified Story Item Click Handler ---
+          const storyItem = targetClosest('.story-item');
+          if (storyItem) {
+              const storyId = storyItem.dataset.storyId;
+              console.log(`Clicked story item: Story ID ${storyId}`);
+              if (storyId) {
+                  showStoryDetail(storyId); // Call the new function
+              } else {
+                  console.warn("Clicked story item missing story ID");
+              }
+              return; // Prevent other actions
+          }
+          // --- END: Modified Story Item Click Handler ---
 
           // Modal Opening Buttons (Header)
           if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
@@ -1374,93 +1787,103 @@
 
           // Row Action Buttons (+ Menu and Review Count)
           const plusBtn = targetClosest('.plus-menu-btn'); if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; }
+          // Make sure review count button still works for regular reviews
           const reviewBtn = targetClosest('.review-count-btn'); if (reviewBtn) { e.stopPropagation(); const animalId = reviewBtn.dataset.animalId; if (animalId) { loadReviews(animalId); openModal('reviewModal'); } return; }
 
-          // *** MODIFIED: Hall Menu Click Handlers ***
+          // Hall Menu Click Handlers
           const dailyHallLink = targetClosest('#dailyHallMenu a');
-          if (dailyHallLink) {
-              e.preventDefault();
-              const menu = dailyHallLink.closest('#dailyHallMenu');
-              menu.querySelectorAll('a').forEach(item => item.classList.remove('active'));
-              dailyHallLink.classList.add('active');
-              const hallId = dailyHallLink.dataset.hallId;
-              loadFilteredDailySchedule(hallId); // Use specific function
-              return;
-          }
+          if (dailyHallLink) { e.preventDefault(); const menu = dailyHallLink.closest('#dailyHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); dailyHallLink.classList.add('active'); const hallId = dailyHallLink.dataset.hallId; loadFilteredDailySchedule(hallId); return; }
           const notesHallLink = targetClosest('#myNotesHallMenu a');
-          if (notesHallLink) {
-              e.preventDefault();
-              const menu = notesHallLink.closest('#myNotesHallMenu');
-              menu.querySelectorAll('a').forEach(item => item.classList.remove('active'));
-              notesHallLink.classList.add('active');
-              const hallId = notesHallLink.dataset.hallId;
-              loadFilteredNotes(hallId); // Use specific function
-              return;
-          }
-          // *** END MODIFIED ***
+          if (notesHallLink) { e.preventDefault(); const menu = notesHallLink.closest('#myNotesHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); notesHallLink.classList.add('active'); const hallId = notesHallLink.dataset.hallId; loadFilteredNotes(hallId); return; }
 
           // Row Click for Top Section Update (in table modals)
           const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
-          if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn, a, button, input, select, textarea, .photo-area img')) { // Avoid trigger on specific elements including image click
-                const modal = tableRow.closest('.modal');
-                // Check if the modal actually has the top section structure
-                if(modal?.querySelector('.modal-body[data-layout="table"] .top-section')){
-                    const photoArea = modal.querySelector('.photo-area');
-                    const introArea = modal.querySelector('.intro-area');
-                    if (photoArea && introArea) { updateTopSectionFromRow(photoArea, introArea, tableRow); }
-                }
-                return; // Prevent other actions if row click is handled
-          }
+          if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn, a, button, input, select, textarea, .photo-area img')) { const modal = tableRow.closest('.modal'); if(modal?.querySelector('.modal-body[data-layout="table"] .top-section')){ const photoArea = modal.querySelector('.photo-area'); const introArea = modal.querySelector('.intro-area'); if (photoArea && introArea) { updateTopSectionFromRow(photoArea, introArea, tableRow); } } return; }
 
-          // ----- START: Lightbox Click Handling -----
+          // Lightbox Click Handling
           const photoAreaImage = targetClosest('.photo-area img');
-          if (photoAreaImage) {
-              const lightbox = document.getElementById('imageLightbox');
-              const lightboxImg = document.getElementById('lightboxImage');
-              if (lightbox && lightboxImg) {
-                  lightboxImg.src = photoAreaImage.src;
-                  lightboxImg.alt = photoAreaImage.alt || "放大圖片"; // Use original alt text
-                  lightbox.style.display = 'flex'; // Use flex for potential centering styles (align-items/justify-content)
-                  document.body.style.overflow = 'hidden'; // Prevent background scroll when lightbox is open
-              }
-              return; // Prevent other actions like row click update
-          }
-
-          // Close Lightbox
+          if (photoAreaImage) { const lightbox = document.getElementById('imageLightbox'); const lightboxImg = document.getElementById('lightboxImage'); if (lightbox && lightboxImg) { lightboxImg.src = photoAreaImage.src; lightboxImg.alt = photoAreaImage.alt || "放大圖片"; lightbox.style.display = 'flex'; document.body.style.overflow = 'hidden'; } return; }
           const lightbox = document.getElementById('imageLightbox');
-          if (lightbox && lightbox.style.display === 'flex') { // Check if lightbox is open
-              // Close if clicking the close button OR the background overlay itself
-              if (target.id === 'closeLightbox' || target.id === 'imageLightbox') {
-                  lightbox.style.display = 'none';
-                  const lightboxImg = document.getElementById('lightboxImage'); // Get image element again
-                  if (lightboxImg) lightboxImg.src = ''; // Clear src to free memory/stop loading
-                  // Check if any modals are open before restoring scroll
-                  const anyModalOpen = document.querySelector('.modal[style*="display: block"]');
-                  if (!anyModalOpen) {
-                        document.body.style.overflow = ''; // Restore scroll ONLY if no other modals are open
-                  }
-                  return; // Prevent other click actions
-              }
-              // Do nothing if clicking the image inside the lightbox
-              if (target.id === 'lightboxImage') {
-                  return;
-              }
-          }
-          // ----- END: Lightbox Click Handling -----
-
+          if (lightbox && lightbox.style.display === 'flex') { if (target.id === 'closeLightbox' || target.id === 'imageLightbox') { lightbox.style.display = 'none'; const lightboxImg = document.getElementById('lightboxImage'); if (lightboxImg) lightboxImg.src = ''; const anyModalOpen = document.querySelector('.modal[style*="display: block"]'); if (!anyModalOpen) { document.body.style.overflow = ''; } return; } if (target.id === 'lightboxImage') { return; } }
 
           // Close Modal Actions
           const closeBtn = targetClosest('.close-modal'); if (closeBtn) { closeModal(targetClosest('.modal')); return; }
-          // Close modal by clicking background overlay (the modal element itself)
-          if (target.classList.contains('modal') && target.id !== 'imageLightbox') { // Make sure not to close lightbox this way
-                closeModal(target);
-                if (document.getElementById('plusDropdown')?.classList.contains('open')) { closePlusDropdown(); }
-                return;
-           }
-          // Close plus dropdown by clicking bottom overlay
+          if (target.classList.contains('modal') && target.id !== 'imageLightbox') { closeModal(target); if (document.getElementById('plusDropdown')?.classList.contains('open')) { closePlusDropdown(); } return; }
           if (target === bottomOverlay && document.getElementById('plusDropdown')?.classList.contains('open')) { closePlusDropdown(); return; }
       });
       // --- End Event Listener Setup ---
+
+
+      // --- START: Function to Load and Display Active Stories ---
+      function loadActiveStories() {
+          const storyPanel = document.getElementById('storyReviewPanel');
+          if (!storyPanel) return;
+
+          // Show loading message initially or while fetching
+          // storyPanel.innerHTML = '<div class="story-loading-message">載入限時動態中...</div>'; // Can comment out if prefer empty panel during load
+
+          fetch("{% url 'ajax_get_active_stories' %}", {
+              headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+          })
+          .then(response => {
+              if (!response.ok) { throw new Error(`HTTP error ${response.status}`); }
+              const ct = response.headers.get('content-type');
+              if (!ct?.includes('application/json')) { throw new TypeError('伺服器未返回 JSON'); }
+              return response.json();
+          })
+          .then(data => {
+              storyPanel.innerHTML = ''; // Clear loading/previous content
+              if (data.stories && data.stories.length > 0) {
+                  data.stories.forEach(story => {
+                      const itemDiv = document.createElement('div');
+                      itemDiv.className = 'story-item';
+                      itemDiv.dataset.storyId = story.id; // Store story ID
+                      itemDiv.dataset.animalId = story.animal_id; // Store animal ID
+
+                      const photoDiv = document.createElement('div');
+                      photoDiv.className = 'story-item-photo';
+                      if (story.animal_photo_url) {
+                          const img = document.createElement('img');
+                          img.src = story.animal_photo_url;
+                          img.alt = story.animal_name;
+                          photoDiv.appendChild(img);
+                      } else {
+                          // Placeholder if no photo
+                          const placeholder = document.createElement('span');
+                          placeholder.className = 'placeholder';
+                          placeholder.textContent = '👤'; // Or some icon/initial
+                          photoDiv.appendChild(placeholder);
+                      }
+
+                      const nameSpan = document.createElement('span');
+                      nameSpan.className = 'story-item-name';
+                      nameSpan.textContent = story.animal_name;
+
+                      const hallSpan = document.createElement('span');
+                      hallSpan.className = 'story-item-hall';
+                      hallSpan.textContent = story.hall_name;
+
+                      const timeSpan = document.createElement('span');
+                      timeSpan.className = 'story-item-time';
+                      timeSpan.textContent = story.remaining_time;
+
+                      itemDiv.appendChild(photoDiv);
+                      itemDiv.appendChild(nameSpan);
+                      itemDiv.appendChild(hallSpan);
+                      itemDiv.appendChild(timeSpan);
+                      storyPanel.appendChild(itemDiv);
+                  });
+              } else {
+                  // No active stories
+                  storyPanel.innerHTML = '<div class="story-loading-message">目前沒有限時動態</div>';
+              }
+          })
+          .catch(error => {
+              console.error("Error loading active stories:", error);
+              storyPanel.innerHTML = `<div class="story-loading-message">無法載入限時動態: ${error.message}</div>`;
+          });
+      }
+      // --- END: Function to Load and Display Active Stories ---
 
       // --- Initializations ---
       // Initialize Choices.js for select elements in the review form
@@ -1523,7 +1946,6 @@
       // Apply limits to face and temperament checkbox groups
       limitCheckboxSelection('faceCheckboxes', 3);
       limitCheckboxSelection('temperamentCheckboxes', 3);
-      // --- End Initializations ---
 
       // --- Notes Checkbox Change Handler ---
       function handleNoteCheckboxChange() {
@@ -1554,6 +1976,12 @@
                 }
            });
       }, 100); // Short delay
+
+      // --- Load active stories on page load ---
+      loadActiveStories();
+      // Optional: Set an interval to refresh stories periodically (e.g., every minute)
+      setInterval(loadActiveStories, 60 * 1000); // 60000 ms = 1 minute
+      // --- End Initializations ---
 
     }); // End DOMContentLoaded
   </script>

@@ -2,6 +2,9 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone # Import timezone
+from django.db.models.signals import pre_save # Import pre_save signal
+from django.dispatch import receiver # Import receiver
+from datetime import timedelta # Import timedelta
 
 class Hall(models.Model):
     name = models.CharField("館別名稱", max_length=100)
@@ -132,3 +135,86 @@ class Announcement(models.Model):
 
     def __str__(self):
         return self.title or f"公告 #{self.id}"
+
+# --- START: New StoryReview Model ---
+class StoryReview(models.Model):
+    animal = models.ForeignKey(Animal, related_name="story_reviews", on_delete=models.CASCADE, verbose_name="動物")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='story_reviews', verbose_name="用戶")
+
+    # Fields copied from Review (adjust verbose_name slightly if needed)
+    age = models.PositiveIntegerField("年紀", null=True, blank=True)
+    looks = models.CharField("顏值", max_length=20, choices=Review.LOOKS_CHOICES, blank=True, null=True)
+    face = models.CharField("臉蛋", max_length=100, blank=True, null=True)
+    temperament = models.CharField("氣質", max_length=100, blank=True, null=True)
+    physique = models.CharField("體態", max_length=20, choices=Review.PHYSIQUE_CHOICES, blank=True, null=True)
+    cup = models.CharField("罩杯類型", max_length=20, choices=Review.CUP_CHOICES, blank=True, null=True)
+    cup_size = models.CharField("罩杯大小", max_length=5, blank=True, null=True)
+    skin_texture = models.CharField("膚質", max_length=20, choices=Review.SKIN_TEXTURE_CHOICES, blank=True, null=True)
+    skin_color = models.CharField("膚色", max_length=20, choices=Review.SKIN_COLOR_CHOICES, blank=True, null=True)
+    music = models.CharField("音樂", max_length=20, choices=Review.MUSIC_CHOICES, blank=True, null=True)
+    music_price = models.CharField("音樂價格", max_length=20, blank=True, null=True)
+    sports = models.CharField("體育", max_length=20, choices=Review.SPORTS_CHOICES, blank=True, null=True)
+    sports_price = models.CharField("體育價格", max_length=20, blank=True, null=True)
+    scale = models.CharField("尺度", max_length=100, blank=True, null=True)
+    content = models.TextField("心得內容", blank=True, null=True)
+
+    # Story-specific fields
+    created_at = models.DateTimeField("提交時間", default=timezone.now)
+    approved = models.BooleanField("已審核", default=False, db_index=True)
+    approved_at = models.DateTimeField("審核時間", null=True, blank=True, db_index=True)
+    expires_at = models.DateTimeField("過期時間", null=True, blank=True, db_index=True)
+
+    class Meta:
+        ordering = ['-approved_at', '-created_at'] # Show approved first, then newest submitted
+        verbose_name = "限時動態心得"
+        verbose_name_plural = "限時動態心得"
+
+    def __str__(self):
+        return f"Story Review for {self.animal.name} by {self.user.username} ({'Approved' if self.approved else 'Pending'})"
+
+    @property
+    def is_active(self):
+        """Checks if the story is approved and not expired."""
+        return self.approved and self.expires_at and timezone.now() < self.expires_at
+
+    @property
+    def remaining_time_display(self):
+        """Returns a user-friendly string of the remaining time."""
+        if not self.is_active:
+            return "已過期"
+
+        now = timezone.now()
+        remaining = self.expires_at - now
+
+        total_seconds = int(remaining.total_seconds())
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+
+        if hours > 0:
+            return f"{hours}小時"
+        elif minutes > 0:
+            return f"{minutes}分鐘"
+        else:
+            return "即將過期"
+
+# --- Signal to set approved_at and expires_at when approved is set to True ---
+@receiver(pre_save, sender=StoryReview)
+def set_story_approval_times(sender, instance, **kwargs):
+    try:
+        # Get the original instance from DB to check if 'approved' changed
+        original_instance = sender.objects.get(pk=instance.pk)
+        approved_changed = original_instance.approved != instance.approved
+    except sender.DoesNotExist:
+        # This is a new instance or pk is not set yet
+        approved_changed = instance.approved # If new and approved is True, it counts as changed
+
+    if instance.approved and approved_changed:
+        # If being approved (and wasn't approved before)
+        if not instance.approved_at: # Set times only if not already set
+            instance.approved_at = timezone.now()
+            instance.expires_at = instance.approved_at + timedelta(hours=24)
+    elif not instance.approved and approved_changed:
+        # If being un-approved (and was approved before)
+        instance.approved_at = None
+        instance.expires_at = None
+# --- END: New StoryReview Model ---

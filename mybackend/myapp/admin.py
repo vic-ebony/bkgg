@@ -1,6 +1,8 @@
 # admin.py
 from django.contrib import admin
-from .models import Animal, Hall, Review, PendingAppointment, Note, Announcement # Import Announcement
+from django.utils import timezone
+from datetime import timedelta
+from .models import Animal, Hall, Review, PendingAppointment, Note, Announcement, StoryReview # Import StoryReview
 
 @admin.register(Hall)
 class HallAdmin(admin.ModelAdmin):
@@ -79,3 +81,33 @@ class AnnouncementAdmin(admin.ModelAdmin):
         # Show a summary of the content in the list view
         return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
     content_summary.short_description = '內容摘要'
+
+# --- START: Register StoryReview Admin ---
+@admin.register(StoryReview)
+class StoryReviewAdmin(admin.ModelAdmin):
+    list_display = ('animal', 'user', 'created_at', 'approved', 'approved_at', 'expires_at', 'is_story_active_display')
+    list_filter = ('approved', 'animal__hall', 'animal', 'user')
+    search_fields = ('content', 'user__username', 'animal__name')
+    list_editable = ('approved',)
+    list_select_related = ('animal', 'user', 'animal__hall')
+    date_hierarchy = 'created_at'
+    # Make fields managed by signal read-only in admin detail view
+    readonly_fields = ('created_at', 'approved_at', 'expires_at')
+
+    # Define fields shown in the detail/edit view
+    fieldsets = (
+        (None, {'fields': ('animal', 'user', 'approved')}),
+        ('內容 (同心得)', {'fields': ('age', 'looks', 'face', 'temperament', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'music_price', 'sports', 'sports_price', 'scale', 'content')}),
+        ('時間戳', {'fields': ('created_at', 'approved_at', 'expires_at')}),
+    )
+
+    @admin.display(boolean=True, description='目前有效')
+    def is_story_active_display(self, obj):
+        return obj.is_active
+
+    # Note: The pre_save signal in models.py now handles setting
+    # approved_at and expires_at automatically when 'approved' is changed.
+    # The save_model override is generally not needed for this specific logic anymore
+    # unless you have more complex admin-specific actions during save.
+
+# --- END: Register StoryReview Admin ---

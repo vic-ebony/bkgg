@@ -14,14 +14,17 @@ urlpatterns = [
     path('delete_note/', views.delete_note, name='delete_note'),
     path('update_note/', views.update_note, name='update_note'),
 
-    # --- NEW AJAX URLs ---
-    # (These URLs will be called by JavaScript when opening the corresponding modals)
+    # --- Story Review URLs ---
+    path('add_story_review/', views.add_story_review, name='add_story_review'),
+    path('ajax/active_stories/', views.ajax_get_active_stories, name='ajax_get_active_stories'),
+    # --- START: New URL for Story Detail ---
+    path('ajax/story_detail/<int:story_id>/', views.ajax_get_story_detail, name='ajax_get_story_detail'),
+    # --- END: New URL for Story Detail ---
+
+    # --- AJAX URLs for Modals ---
     path('ajax/pending/', views.ajax_get_pending_list, name='ajax_get_pending_list'),
     path('ajax/notes/', views.ajax_get_my_notes, name='ajax_get_my_notes'),
     path('ajax/latest-reviews/', views.ajax_get_latest_reviews, name='ajax_get_latest_reviews'),
     path('ajax/recommendations/', views.ajax_get_recommendations, name='ajax_get_recommendations'),
-    # --- End NEW AJAX URLs ---
 
-    # path('my_notes/', views.my_notes, name='my_notes'), # Can likely be removed if modal is sufficient
-    # path('my_notes_json/', views.my_notes_json, name='my_notes_json'), # Keep if modal uses it (Seems unused now)
 ]
