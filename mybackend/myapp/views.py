@@ -18,7 +18,12 @@ def render_animal_rows(request, animals_qs):
     if request.user.is_authenticated:
         animal_ids_on_page = [a.id for a in animals_qs]
         pending_ids = set(str(pa.animal_id) for pa in PendingAppointment.objects.filter(user=request.user, animal_id__in=animal_ids_on_page))
-        notes_by_animal = {str(note.animal_id): note for note in Note.objects.filter(user=request.user, animal_id__in=animal_ids_on_page)}
+        # *** MODIFICATION: Fetch notes specifically for the animals being rendered ***
+        # We fetch notes based on user and the animals currently in the queryset.
+        # The logic deciding WHICH animals are in the queryset happens in the calling view (e.g., ajax_get_my_notes filters by hall).
+        notes_qs = Note.objects.filter(user=request.user, animal_id__in=animal_ids_on_page)
+        notes_by_animal = {str(note.animal_id): note for note in notes_qs}
+        # *** END MODIFICATION ***
 
     rendered_rows_html_list = []
     for animal_instance in animals_qs:
@@ -26,9 +31,12 @@ def render_animal_rows(request, animals_qs):
             'animal': animal_instance,
             'user': request.user,
             'pending_ids': pending_ids,
-            'notes_by_animal': notes_by_animal
+            'notes_by_animal': notes_by_animal # Pass the potentially filtered notes dictionary
         }
         try:
+            # *** Ensure the correct partial is used ***
+            # It seems _animal_table_rows.html expects a single animal context,
+            # so we render one row at a time within the loop.
             rendered_html_for_animal = render_to_string('partials/_animal_table_rows.html', row_context, request=request)
             rendered_rows_html_list.append(rendered_html_for_animal)
         except Exception as render_err:
@@ -37,6 +45,7 @@ def render_animal_rows(request, animals_qs):
             rendered_rows_html_list.append(f'<tr><td colspan="5">Error loading data for {animal_instance.name}</td></tr>')
 
     return "".join(rendered_rows_html_list)
+
 
 # --- Home View (Initial Page Load & Daily Schedule AJAX) ---
 def home(request):
@@ -50,8 +59,8 @@ def home(request):
         # --- AJAX Handling for Daily Schedule ---
         print(">>> Handling as Daily Schedule AJAX Request <<<")
         hall_id = request.GET.get('hall_id')
-        selected_hall_id = hall_id or 'all'
-        print(f"    Selected Hall ID: {selected_hall_id}")
+        selected_hall_id = hall_id or 'all' # Default to 'all' if not provided
+        print(f"    Selected Hall ID for Daily Schedule: {selected_hall_id}")
         try:
             animals_base_qs = Animal.objects.filter(is_active=True).select_related('hall')
             if selected_hall_id != "all":
@@ -59,10 +68,10 @@ def home(request):
                     hall_id_int = int(selected_hall_id)
                     animals_qs = animals_base_qs.filter(hall_id=hall_id_int)
                 except (ValueError, TypeError):
-                    print(f"    Warning: Invalid hall_id '{selected_hall_id}' received. Defaulting to all.")
-                    animals_qs = animals_base_qs.all()
+                    print(f"    Warning: Invalid hall_id '{selected_hall_id}' for Daily Schedule. Defaulting to all.")
+                    animals_qs = animals_base_qs.all() # Fallback to all if invalid ID
             else:
-                animals_qs = animals_base_qs.all()
+                animals_qs = animals_base_qs.all() # Explicitly handle 'all'
 
             # Apply sorting for daily schedule
             animals_for_ajax = animals_qs.annotate(
@@ -71,25 +80,27 @@ def home(request):
                 '-is_hidden_edition', '-is_exclusive', '-is_hot', '-is_newcomer', 'order', 'name'
             )
 
-            table_html = render_animal_rows(request, animals_for_ajax) # Use helper
-            print(f"    AJAX Partial HTML rendered successfully (total length: {len(table_html)}).")
+            # *** Pass the filtered animals queryset to the helper ***
+            table_html = render_animal_rows(request, animals_for_ajax)
+            print(f"    Daily Schedule AJAX Partial HTML rendered successfully (total length: {len(table_html)}).")
 
             first_animal_data = {}
             try:
-                if animals_for_ajax:
-                     first_animal = animals_for_ajax[0]
+                # *** Fetch first animal from the filtered+sorted list for the top section ***
+                if animals_for_ajax.exists(): # Use exists() for efficiency
+                     first_animal = animals_for_ajax.first()
                      first_animal_data = {
                          'photo_url': first_animal.photo.url if first_animal.photo else '',
                          'name': first_animal.name or '',
                          'introduction': first_animal.introduction or ''
                      }
             except Exception as e:
-                print(f"    Warning: Error getting first animal data for AJAX response: {e}")
+                print(f"    Warning: Error getting first animal data for Daily Schedule AJAX response: {e}")
 
-            print(f"    Returning JSON including table_html and first_animal data.")
+            print(f"    Returning JSON including table_html and first_animal data for Daily Schedule.")
             return JsonResponse({'table_html': table_html, 'first_animal': first_animal_data})
         except Exception as e:
-            print(f"    !!! Error during AJAX handling: {e} !!!")
+            print(f"    !!! Error during Daily Schedule AJAX handling: {e} !!!")
             traceback.print_exc()
             return JsonResponse({'error': f'伺服器處理班表請求時發生錯誤: {e}'}, status=500)
     else:
@@ -106,73 +117,21 @@ def home(request):
             context['promo_animal_name'] = first_animal_for_promo.name if first_animal_for_promo else None
         except Exception as e: print(f"Error fetching promo photo: {e}"); context['promo_photo_url'] = None; context['promo_animal_name'] = None
 
-        pending_ids = set()
-        notes_by_animal = {}
-        pending_appointments_list = []
-        my_notes_list = []
-        latest_reviewed_animals_qs = Animal.objects.none()
-        recommended_animals_list = []
+        # Removed preloading of pending/notes/latest/recommended here as they are now loaded via AJAX
+        # We still need pending_ids and notes_by_animal for the initial render if any tables might show them,
+        # but let's simplify and rely on AJAX to populate modals.
+        # If any part of the main page *needs* these, we can add them back selectively.
+        # For now, assume modals handle their own data loading via AJAX.
 
-        if request.user.is_authenticated:
-            try:
-                pending_appointments_qs = PendingAppointment.objects.filter(user=request.user).select_related('animal', 'animal__hall').order_by('-added_at')
-                notes_qs = Note.objects.filter(user=request.user).select_related('animal', 'animal__hall').order_by('-updated_at')
-                pending_appointments_list = list(pending_appointments_qs)
-                my_notes_list = list(notes_qs)
-                pending_ids = set(str(pa.animal_id) for pa in pending_appointments_list if pa.animal_id)
-                notes_by_animal = {str(note.animal_id): note for note in my_notes_list if note.animal_id}
-            except Exception as e: print(f"Error fetching pending/notes base data for user {request.user.username}: {e}"); traceback.print_exc()
+        context['pending_ids'] = set() # Initialize as empty, AJAX will populate if needed by other means
+        context['notes_by_animal'] = {} # Initialize as empty
 
-        try:
-            latest_reviewed_animals_qs = Animal.objects.filter(is_active=True) \
-                .annotate(latest_review_time=Max('reviews__created_at', filter=Q(reviews__approved=True))) \
-                .filter(latest_review_time__isnull=False) \
-                .annotate(approved_review_count=Count('reviews', filter=Q(reviews__approved=True))) \
-                .select_related('hall').order_by('-latest_review_time')[:20]
-        except Exception as e: print(f"Error fetching latest reviewed animals: {e}"); traceback.print_exc()
-
-        try:
-            recommended_animals_qs = Animal.objects.filter(is_active=True, is_recommended=True) \
-                .select_related('hall') \
-                .annotate(approved_review_count=Count('reviews', filter=Q(reviews__approved=True))) \
-                .order_by('hall__order', 'order', 'name')
-            recommended_animals_list = list(recommended_animals_qs)
-        except Exception as e: print(f"Error fetching recommended animals: {e}"); traceback.print_exc()
-
-        # --- Attach counts for pre-rendered modals ---
-        animal_ids_in_modals = set(pa.animal_id for pa in pending_appointments_list if pa.animal_id) | \
-                                 set(n.animal_id for n in my_notes_list if n.animal_id) | \
-                                 set(rec.id for rec in recommended_animals_list) | \
-                                 set(lr.id for lr in latest_reviewed_animals_qs) # Include latest reviewed as well
-
-        counts_dict_for_modals = {}
-        if animal_ids_in_modals:
-            try:
-                counts_query = Animal.objects.filter(id__in=animal_ids_in_modals).annotate(
-                    approved_review_count=Count('reviews', filter=Q(reviews__approved=True))
-                ).values('id', 'approved_review_count')
-                counts_dict_for_modals = {item['id']: item['approved_review_count'] for item in counts_query}
-            except Exception as e: print(f"Error fetching/attaching review counts for modals: {e}"); traceback.print_exc()
-
-        if request.user.is_authenticated:
-            for item_list in [pending_appointments_list, my_notes_list]:
-                for obj in item_list:
-                    if hasattr(obj, 'animal') and obj.animal and obj.animal_id:
-                        obj.animal.approved_review_count = counts_dict_for_modals.get(obj.animal_id, 0)
-        for animal_obj in recommended_animals_list:
-             animal_obj.approved_review_count = counts_dict_for_modals.get(animal_obj.id, 0)
-        # latest_reviewed_animals_qs already has the count via its own annotation
-
-        context['pending_ids'] = pending_ids
-        context['notes_by_animal'] = notes_by_animal
-        context['pending_appointments'] = pending_appointments_list
-        context['my_notes'] = my_notes_list
-        context['latest_reviewed_animals'] = latest_reviewed_animals_qs
-        context['recommended_animals'] = recommended_animals_list
+        # We pass 'halls' to the context so the hall menus in the modals can be rendered initially.
+        context['halls'] = halls
 
         login_error = request.session.pop('login_error', None);
         if login_error: context['login_error'] = login_error
-        context['selected_hall_id'] = 'all'
+        context['selected_hall_id'] = 'all' # Default for daily schedule initial view (JS might override)
 
         print("    Rendering full template: index.html")
         try:
@@ -181,34 +140,46 @@ def home(request):
             print(f"    !!! Error rendering index.html: {e} !!!"); traceback.print_exc()
             return render(request, 'error_page.html', {'error_message': '渲染頁面時發生內部錯誤'}, status=500)
 
-# --- NEW: AJAX View for Pending List ---
+
+# --- AJAX View for Pending List ---
 @login_required
 @require_GET # This view only handles GET requests
 def ajax_get_pending_list(request):
     print(">>> Handling AJAX Request for Pending List <<<")
     try:
-        # Fetch ordered data with necessary related fields and counts
+        # Fetch pending appointments for the user
         pending_appointments_qs = PendingAppointment.objects.filter(
             user=request.user
         ).select_related(
             'animal', 'animal__hall'
-        ).annotate( # Annotate count directly on the related animal
-            animal_approved_review_count=Count('animal__reviews', filter=Q(animal__reviews__approved=True))
         ).order_by('-added_at')
 
-        # Attach the annotated count to the animal object for the template
-        animals_list = []
+        # Extract the related Animal objects
+        # We need to annotate the review count onto the Animal objects themselves
+        animal_ids = list(pending_appointments_qs.values_list('animal_id', flat=True))
+        animals_qs = Animal.objects.filter(id__in=animal_ids).annotate(
+             approved_review_count=Count('reviews', filter=Q(reviews__approved=True))
+        )
+
+        # Create a dictionary for easy lookup
+        animals_dict = {a.id: a for a in animals_qs}
+
+        # Reconstruct the list of animals in the original pending order
+        # and attach the count
+        animals_list_ordered = []
         for pa in pending_appointments_qs:
-            pa.animal.approved_review_count = pa.animal_approved_review_count # Use the annotated value
-            animals_list.append(pa.animal) # Pass the Animal objects to the helper
+            animal = animals_dict.get(pa.animal_id)
+            if animal:
+                # The count is already annotated on the animal object from the animals_qs query
+                animals_list_ordered.append(animal)
 
-        # Render table rows using the helper
-        table_html = render_animal_rows(request, animals_list)
+        # Render table rows using the helper function
+        table_html = render_animal_rows(request, animals_list_ordered)
 
-        # Get data for the first animal for the top section
+        # Get data for the first animal in the list for the top section
         first_animal_data = {}
-        if animals_list:
-            first_animal = animals_list[0]
+        if animals_list_ordered:
+            first_animal = animals_list_ordered[0]
             first_animal_data = {
                 'photo_url': first_animal.photo.url if first_animal.photo else '',
                 'name': first_animal.name or '',
@@ -220,42 +191,81 @@ def ajax_get_pending_list(request):
         print(f"!!! Error in ajax_get_pending_list: {e} !!!"); traceback.print_exc()
         return JsonResponse({'error': '無法載入待約清單'}, status=500)
 
-# --- NEW: AJAX View for My Notes ---
+
+# --- *** MODIFIED: AJAX View for My Notes (Handles Hall Filtering) *** ---
 @login_required
 @require_GET
 def ajax_get_my_notes(request):
     print(">>> Handling AJAX Request for My Notes <<<")
+    hall_id = request.GET.get('hall_id') # Get hall_id from query parameter
+    selected_hall_id = hall_id or 'all' # Default to 'all' if not provided
+    print(f"    Selected Hall ID for My Notes: {selected_hall_id}")
+
     try:
-        notes_qs = Note.objects.filter(
+        # Base query for notes belonging to the logged-in user
+        notes_base_qs = Note.objects.filter(
             user=request.user
         ).select_related(
-            'animal', 'animal__hall'
-        ).annotate( # Annotate count directly on the related animal
-            animal_approved_review_count=Count('animal__reviews', filter=Q(animal__reviews__approved=True))
-        ).order_by('-updated_at') # Order by note update time
+            'animal', 'animal__hall' # Select related animal and its hall
+        )
 
-        animals_list = []
-        for note in notes_qs:
-            note.animal.approved_review_count = note.animal_approved_review_count
-            animals_list.append(note.animal) # Pass the Animal objects
+        # Apply hall filter if a specific hall ID is provided and valid
+        if selected_hall_id != "all":
+            try:
+                hall_id_int = int(selected_hall_id)
+                # Filter notes where the related animal belongs to the specified hall
+                notes_qs = notes_base_qs.filter(animal__hall_id=hall_id_int)
+            except (ValueError, TypeError):
+                print(f"    Warning: Invalid hall_id '{selected_hall_id}' for My Notes. Defaulting to all.")
+                # If hall_id is invalid, return all notes for the user (same as 'all')
+                notes_qs = notes_base_qs.all()
+        else:
+            # If 'all' is selected, use the base query without hall filtering
+            notes_qs = notes_base_qs.all()
 
-        table_html = render_animal_rows(request, animals_list)
+        # Order the filtered notes (e.g., by last updated)
+        notes_qs = notes_qs.order_by('-updated_at')
 
+        # Extract the related Animal objects from the filtered notes
+        animal_ids = list(notes_qs.values_list('animal_id', flat=True))
+        if not animal_ids: # Handle case where there are no notes (or no notes for the selected hall)
+             animals_list_ordered = []
+        else:
+            animals_qs = Animal.objects.filter(id__in=animal_ids).annotate(
+                 approved_review_count=Count('reviews', filter=Q(reviews__approved=True))
+            )
+             # Create a dictionary for easy lookup
+            animals_dict = {a.id: a for a in animals_qs}
+             # Reconstruct the list of animals in the original note order
+            animals_list_ordered = []
+            for note in notes_qs:
+                animal = animals_dict.get(note.animal_id)
+                if animal:
+                    # The count is already annotated on the animal object
+                    animals_list_ordered.append(animal)
+
+        # Render table rows using the helper function with the ordered list of animals
+        table_html = render_animal_rows(request, animals_list_ordered)
+        print(f"    My Notes AJAX (Hall: {selected_hall_id}) Partial HTML rendered successfully (total length: {len(table_html)}).")
+
+        # Get data for the first animal in the potentially filtered list
         first_animal_data = {}
-        if animals_list:
-            first_animal = animals_list[0]
+        if animals_list_ordered:
+            first_animal = animals_list_ordered[0]
             first_animal_data = {
                 'photo_url': first_animal.photo.url if first_animal.photo else '',
                 'name': first_animal.name or '',
                 'introduction': first_animal.introduction or ''
             }
 
+        print(f"    Returning JSON for My Notes (Hall: {selected_hall_id}).")
         return JsonResponse({'table_html': table_html, 'first_animal': first_animal_data})
     except Exception as e:
         print(f"!!! Error in ajax_get_my_notes: {e} !!!"); traceback.print_exc()
-        return JsonResponse({'error': '無法載入我的筆記'}, status=500)
+        return JsonResponse({'error': f'無法載入我的筆記 (Hall: {selected_hall_id}): {e}'}, status=500)
+# --- *** END MODIFICATION *** ---
 
-# --- NEW: AJAX View for Latest Reviews ---
+# --- AJAX View for Latest Reviews ---
 @require_GET # Allow anonymous access if needed, or add @login_required
 def ajax_get_latest_reviews(request):
     print(">>> Handling AJAX Request for Latest Reviews <<<")
@@ -271,8 +281,8 @@ def ajax_get_latest_reviews(request):
         table_html = render_animal_rows(request, latest_reviewed_animals_qs) # Pass the queryset directly
 
         first_animal_data = {}
-        if latest_reviewed_animals_qs:
-             first_animal = latest_reviewed_animals_qs[0]
+        if latest_reviewed_animals_qs.exists(): # Use exists()
+             first_animal = latest_reviewed_animals_qs.first() # Use first()
              first_animal_data = {
                  'photo_url': first_animal.photo.url if first_animal.photo else '',
                  'name': first_animal.name or '',
@@ -284,7 +294,8 @@ def ajax_get_latest_reviews(request):
         print(f"!!! Error in ajax_get_latest_reviews: {e} !!!"); traceback.print_exc()
         return JsonResponse({'error': '無法載入最新心得'}, status=500)
 
-# --- NEW: AJAX View for Recommendations ---
+
+# --- AJAX View for Recommendations ---
 @require_GET # Allow anonymous access if needed
 def ajax_get_recommendations(request):
     print(">>> Handling AJAX Request for Recommendations <<<")
@@ -297,8 +308,8 @@ def ajax_get_recommendations(request):
         table_html = render_animal_rows(request, recommended_animals_qs) # Pass the queryset
 
         first_animal_data = {}
-        if recommended_animals_qs:
-            first_animal = recommended_animals_qs[0]
+        if recommended_animals_qs.exists(): # Use exists()
+            first_animal = recommended_animals_qs.first() # Use first()
             first_animal_data = {
                 'photo_url': first_animal.photo.url if first_animal.photo else '',
                 'name': first_animal.name or '',

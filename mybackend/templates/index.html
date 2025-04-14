@@ -9,7 +9,7 @@
   <title>動物園入口</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
   <style>
-    /* --- All CSS Rules --- */
+    /* --- All CSS Rules (保持不變) --- */
     /* --- 全站基本設定 --- */
     html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; font-size: 16px; background: #ccc; display: flex; flex-direction: column; line-height: 1.5; }
     *, *::before, *::after { box-sizing: inherit; }
@@ -110,7 +110,7 @@
     .modal-body[data-layout="table"] .intro-top { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 5px; }
     .modal-body[data-layout="table"] .intro-top p { margin: 0; font-size: 0.95rem; color: #333; white-space: pre-wrap; /* Handles \n */ word-break: break-word; }
 
-    /* --- Hall Menu (Daily Schedule) --- */
+    /* --- Hall Menu (Common Style for Daily Schedule & My Notes) --- */
     .modal-body[data-layout="table"] .hall-menu { display: flex; overflow-x: auto; gap: 0.625rem; background: #f8f9fa; border: 1px solid #ccc; border-radius: 5px; padding: 0.5rem; margin: 0.75rem; flex-shrink: 0; }
     .modal-body[data-layout="table"] .hall-menu a { flex-shrink: 0; padding: 0.5rem 0.75rem; text-decoration: none; color: #666; background: #fff; border: 1px solid #ddd; border-radius: 5px; white-space: nowrap; transition: background 0.3s, color 0.3s, border-color 0.3s; font-size: 1.0rem; }
     .modal-body[data-layout="table"] .hall-menu a.active, .modal-body[data-layout="table"] .hall-menu a:hover { background: #e0f7fa; color: #007bff; border-color: #bce8f1; }
@@ -494,7 +494,7 @@
             </div>
         </div>
 
-        <!-- My Notes Modal -->
+        <!-- *** MODIFIED: My Notes Modal (Added Hall Menu) *** -->
         <div id="myNotesModal" class="modal" role="dialog" aria-modal="true">
             <div class="modal-content">
                 <div class="modal-header">
@@ -507,12 +507,20 @@
                         <div class="photo-area" id="myNotesPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div>
                         <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">載入中...</p></div></div>
                     </section>
+                    <!-- *** ADDED HALL MENU for My Notes *** -->
+                    <nav class="hall-menu" id="myNotesHallMenu">
+                         <a href="#" data-hall-id="all" class="active">全部</a> {# Default to 'All' #}
+                         {% for hall in halls %}
+                           <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a>
+                         {% endfor %}
+                    </nav>
+                    <!-- *** END ADDED HALL MENU *** -->
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
                         <div class="body-wrapper"> {# Padding handled by CSS #}
                             <table class="body-table" id="myNotesTable">
                                 <tbody>
-                                     {# Content will be loaded via AJAX #}
+                                     {# Content will be loaded via AJAX (initially all, then filtered) #}
                                     <tr class="loading-message"><td colspan="5">載入中...</td></tr>
                                 </tbody>
                             </table>
@@ -521,6 +529,7 @@
                 </div>
             </div>
         </div>
+        <!-- *** END MODIFIED: My Notes Modal *** -->
 
         <!-- Daily Schedule Modal -->
         <div id="dailyScheduleModal" class="modal" role="dialog" aria-modal="true">
@@ -536,7 +545,7 @@
                         <div class="intro-area" id="dailyIntroArea"><div class="intro-top"><p id="dailyIntroductionContent">點擊下方館別載入介紹</p></div></div>
                     </section>
                     <nav class="hall-menu" id="dailyHallMenu">
-                        {# ***** HTML MODIFICATION: REMOVED "ALL" BUTTON (Ensure this is intended) ***** #}
+                        {# Removed "All" button here as per original code, add if needed #}
                         {# <a href="#" data-hall-id="all" class="active">全部</a> #}
                         {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %}
                     </nav>
@@ -651,7 +660,7 @@
                                 try { selectElement.choicesInstance.setChoiceByValue(''); } catch(err){}
                             } else if (selectElement) { selectElement.selectedIndex = 0; }
                         });
-                        ['faceCheckboxes', 'temperamentCheckboxes'].forEach(groupId => {
+                        ['faceCheckboxes', 'temperamentCheckboxes', 'scaleCheckboxes'].forEach(groupId => { // Added scaleCheckboxes here
                              const group = document.getElementById(groupId);
                              if (group) {
                                  group.querySelectorAll('input[type="checkbox"]').forEach(cb => {
@@ -663,6 +672,7 @@
                          });
                          limitCheckboxSelection('faceCheckboxes', 3);
                          limitCheckboxSelection('temperamentCheckboxes', 3);
+                         // No limit needed for scale, just reset
                         const musicPriceInput = document.getElementById('music_price');
                         if(musicPriceInput) { musicPriceInput.style.display = 'none'; musicPriceInput.value = ''; }
                         const sportsPriceInput = document.getElementById('sports_price');
@@ -713,12 +723,13 @@
            const anyNoteRowsExist = tbody.querySelector('tr.note-row');
            checkbox.disabled = !anyNoteRowsExist;
            const label = checkbox.closest('label');
-           const labelSpan = checkbox.nextElementSibling;
+           const labelSpan = checkbox.nextElementSibling; // Get the span text next to the checkbox
            if (label) {
-               label.style.cursor = checkbox.disabled ? 'not-allowed' : 'pointer';
-               if (labelSpan && labelSpan.tagName === 'SPAN') {
-                   labelSpan.style.opacity = checkbox.disabled ? 0.6 : 1;
-               }
+                // Update styles for the label and its text span based on disabled state
+                label.style.cursor = checkbox.disabled ? 'not-allowed' : 'pointer';
+                if (labelSpan && labelSpan.tagName === 'SPAN') {
+                     labelSpan.style.opacity = checkbox.disabled ? 0.6 : 1;
+                }
            }
        }
        // --- End Note Row Handling Functions ---
@@ -738,13 +749,19 @@
                 const pendingModal = document.getElementById('pendingListModal');
                 if (pendingModal && pendingModal.style.display === 'block') {
                     console.log("Pending list modal is open, reloading content...");
-                    loadModalContent('pendingListModal');
+                    loadModalContent('pendingListModal'); // This reloads the entire list
                 }
-                // Optionally update visual state immediately if needed, e.g., button text in dropdown if still open
-                // This section seems redundant if modal reloads, but kept for potential edge cases
-                 updateRowsByAnimalId(animalId, (r) => {
-                     if (shouldAdd && data.rendered_row_html) { /* Potentially update row visually if needed, but reload is safer */ }
-                 });
+                 // Optional: Update "+" menu text if it's currently open for this animal
+                 const dropdown = document.getElementById('plusDropdown');
+                 if (dropdown?.classList.contains('open')) {
+                    const firstBtn = dropdown.querySelector('button'); // Assume first button is always review
+                    const secondBtn = firstBtn?.nextElementSibling; // Get the next button (should be pending)
+                    // Check if the dropdown corresponds to the animal being updated
+                    // A robust way is harder without storing state, but we can check the current text
+                    if (secondBtn && secondBtn.textContent.includes('待約')) {
+                        secondBtn.textContent = shouldAdd ? "移除待約" : "加入待約";
+                    }
+                 }
 
             } else { alert(data.error || '操作失敗'); }
         })
@@ -811,31 +828,22 @@
                     if (!r.classList.contains('note-row')) {
                          r.setAttribute('data-note-id', data.note_id);
                          r.setAttribute('data-note-content', normalizedNoteContent); // Store normalized content
-                         // Update dropdown button text if it's currently open for this row
-                         const dropdown = document.getElementById('plusDropdown');
-                         if (dropdown?.classList.contains('open')) {
-                              // Find the specific plus button that triggered the current dropdown
-                              // This assumes only one dropdown can be open. Might need refinement if multiple possible.
-                              // A simpler approach might be needed if finding the exact trigger isn't robust.
-                              const plusBtn = document.querySelector(`.plus-menu-btn[data-animal-id="${currentAnimalId}"]`); // Re-query based on ID
-                              if(plusBtn && plusBtn.closest('tr') === r) { // Check if the button belongs to the updated row
-                                   const noteBtn = dropdown.querySelector('button:last-child'); // Assuming note is last button
-                                   if (noteBtn) noteBtn.textContent = "查看/修改筆記";
-                              }
-                         }
                     }
                 });
                 // Reload content in any open modals that show notes/pending/etc.
                  ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal'].forEach(modalId => {
                      const openModalElement = document.getElementById(modalId);
                      if (openModalElement && openModalElement.style.display === 'block') {
-                         if (['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId)) {
-                             loadModalContent(modalId); // Reload standard lists
-                         }
-                         else if (modalId === 'dailyScheduleModal') {
-                             // Re-trigger the active hall load to get updated note data
+                         // If it's My Notes or Daily Schedule, respect the current hall filter
+                         if (modalId === 'myNotesModal') {
+                             const activeHallLink = openModalElement.querySelector('#myNotesHallMenu a.active');
+                             const hallId = activeHallLink ? activeHallLink.dataset.hallId : 'all';
+                             loadFilteredNotes(hallId); // Call the specific function for notes
+                         } else if (modalId === 'dailyScheduleModal') {
                              const activeHallLink = openModalElement.querySelector('#dailyHallMenu a.active');
-                             if (activeHallLink) { activeHallLink.click(); }
+                             if (activeHallLink) { loadFilteredDailySchedule(activeHallLink.dataset.hallId); } // Call specific function
+                         } else if (['pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId)) {
+                             loadModalContent(modalId); // Reload standard lists normally
                          }
                      }
                  });
@@ -862,36 +870,29 @@
                       if (!r.classList.contains('note-row')) {
                            r.removeAttribute('data-note-id');
                            r.removeAttribute('data-note-content');
-                           // Update dropdown button text if it's currently open for this row
-                           const dropdown = document.getElementById('plusDropdown');
-                           if (dropdown?.classList.contains('open')) {
-                               // Similar logic as in save/update to find the relevant button
-                               const plusBtn = document.querySelector(`.plus-menu-btn[data-animal-id="${targetAnimalId}"]`);
-                               if(plusBtn && plusBtn.closest('tr') === r) {
-                                   const noteBtn = dropdown.querySelector('button:last-child');
-                                   if (noteBtn) noteBtn.textContent = "加入筆記";
-                               }
-                           }
                       }
                   });
                   // Remove the actual note row from any visible tables
                   document.querySelectorAll(`.note-row[data-animal-id="${targetAnimalId}"]`).forEach(row => row.remove());
+
                   // Reload relevant modals or update note visibility state
                  ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal'].forEach(modalId => {
                      const openModalElement = document.getElementById(modalId);
                      if (openModalElement && openModalElement.style.display === 'block') {
-                         if (['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId)) {
-                             loadModalContent(modalId); // Reload standard lists
-                         }
-                         else if (modalId === 'dailyScheduleModal') {
-                             // Re-trigger the active hall load
+                         if (modalId === 'myNotesModal') {
+                             const activeHallLink = openModalElement.querySelector('#myNotesHallMenu a.active');
+                             const hallId = activeHallLink ? activeHallLink.dataset.hallId : 'all';
+                             loadFilteredNotes(hallId); // Reload notes respecting filter
+                         } else if (modalId === 'dailyScheduleModal') {
                              const activeHallLink = openModalElement.querySelector('#dailyHallMenu a.active');
-                             if (activeHallLink) { activeHallLink.click(); }
+                             if (activeHallLink) { loadFilteredDailySchedule(activeHallLink.dataset.hallId); } // Reload schedule respecting filter
+                         } else if (['pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId)) {
+                             loadModalContent(modalId); // Reload other lists
                          }
                          // After reload/update, re-sync the checkbox state
-                         const checkbox = openModalElement.querySelector(`.toggle-notes-checkbox[data-table-id="${openModalElement.querySelector('.body-table')?.id}"]`);
+                         const checkbox = openModalElement.querySelector(`.toggle-notes-checkbox`);
                          const tbody = openModalElement.querySelector('.body-table tbody');
-                         if(checkbox && tbody) syncCheckboxState(checkbox, tbody); // Ensure checkbox state is correct after potential removal
+                         if(checkbox && tbody) { syncCheckboxState(checkbox, tbody); } // Ensure checkbox state is correct
                      }
                  });
 
@@ -961,7 +962,7 @@
           const reviewList = document.getElementById('reviewList');
           if (!reviewList) { console.error("Element with ID 'reviewList' not found."); return; }
           reviewList.innerHTML = '<p>載入心得中...</p>'; // Loading indicator
-          fetch(`/add_review/?animal_id=${animalId}`, { method: 'GET', headers: { 'Accept': 'application/json' } })
+          fetch(`/add_review/?animal_id=${animalId}`, { method: 'GET', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } }) // Added X-Requested-With
           .then(response => {
               // Improved error handling for non-JSON or bad responses
               if (!response.ok) { return response.json().catch(() => ({ error: `HTTP error ${response.status}` })).then(errData => { throw new Error(errData.error || `HTTP error ${response.status}`); }); }
@@ -1051,70 +1052,151 @@
                     if (latestModal && latestModal.style.display === 'block') {
                         loadModalContent('latestReviewModal');
                     }
+                    // Reload recommendation modal if open
+                    const recoModal = document.getElementById('dailyRecommendationModal');
+                     if (recoModal && recoModal.style.display === 'block') {
+                         loadModalContent('dailyRecommendationModal');
+                     }
+                    // Reload daily schedule if open and the reviewed animal matches the current hall
+                    const scheduleModal = document.getElementById('dailyScheduleModal');
+                    if (scheduleModal && scheduleModal.style.display === 'block') {
+                         const activeHallLink = scheduleModal.querySelector('#dailyHallMenu a.active');
+                         if (activeHallLink) {
+                            // We might need the animal's hall ID to check if it matches the active hall
+                            // For simplicity, let's just reload the current hall view
+                            loadFilteredDailySchedule(activeHallLink.dataset.hallId);
+                         }
+                    }
                 } else { alert(data.error || '提交失敗'); } // Show backend error message if available
            })
           .catch(err => { console.error("Submit Review Error:", err); alert(`提交心得時發生錯誤: ${err.message}`); });
       });
 
-      // --- Daily Schedule Hall Click Handler ---
-      document.querySelectorAll('#dailyHallMenu a').forEach(link => {
-          link.addEventListener('click', e => {
-            e.preventDefault(); document.querySelectorAll('#dailyHallMenu a').forEach(item => item.classList.remove('active')); link.classList.add('active');
-            const hallId = link.dataset.hallId;
-            const modalBody = link.closest('.modal-body[data-layout="table"]'); if (!modalBody) return;
-            const modal = link.closest('.modal'); // Get parent modal for checkbox
-            const tbody = modalBody.querySelector('#dailyAnimalTable tbody');
-            const photoArea = modalBody.querySelector('#dailyPhotoArea');
-            const introArea = modalBody.querySelector('#dailyIntroArea');
-            const checkbox = modal?.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]'); // Find checkbox within this modal
+      // --- *** MODIFIED: Function to load Daily Schedule with Hall Filter *** ---
+      function loadFilteredDailySchedule(hallId) {
+          const modal = document.getElementById('dailyScheduleModal');
+          if (!modal) return;
+          const modalBody = modal.querySelector('.modal-body[data-layout="table"]');
+          const tbody = modalBody?.querySelector('#dailyAnimalTable tbody');
+          const photoArea = modalBody?.querySelector('#dailyPhotoArea');
+          const introArea = modalBody?.querySelector('#dailyIntroArea');
+          const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]');
 
-            if (!tbody || !photoArea || !introArea) { console.error("Daily schedule elements missing"); return; }
+          if (!tbody || !photoArea || !introArea) { console.error("Daily schedule elements missing for filtering"); return; }
 
-            // Set loading states
-            tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
-            updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...');
-            if (checkbox) checkbox.disabled = true; // Disable checkbox during load
+          // Set loading states
+          tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
+          updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...');
+          if (checkbox) checkbox.disabled = true; // Disable checkbox during load
 
-            // Fetch schedule data
-            fetch("{% url 'home' %}?hall_id=" + hallId + "&ajax=1", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
-              .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct?.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
-              .then(data => {
-                if (data.table_html !== undefined) {
-                  tbody.innerHTML = data.table_html || '<tr class="empty-table-message"><td colspan="5">此館別目前無班表</td></tr>'; // Update table content
-                  processTimeSlotCellsInContainer(tbody); // Format time slots
-                  // Update top section with first animal's data or empty state
-                  if (data.first_animal && Object.keys(data.first_animal).length > 0) {
-                      updateTopSectionFromData(photoArea, introArea, data.first_animal);
-                  } else {
-                      updatePhotoArea(photoArea, null, ''); // Clear photo
-                      updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '此館別目前無班表' : '此館別目前無介紹'); // Set intro based on table content
-                  }
-                  // Update and apply note visibility based on checkbox state
-                  if (checkbox) {
-                      syncCheckboxState(checkbox, tbody); // Re-enable/disable checkbox based on note presence
-                      const shouldShow = checkbox.checked;
-                      applyNoteVisibility(tbody, shouldShow); // Apply visibility
-                  }
-                } else { // Handle case where backend returns an error in JSON
-                   tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入班表時發生錯誤'}</td></tr>`;
-                   updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入介紹時發生錯誤');
-                   if (checkbox) syncCheckboxState(checkbox, tbody); // Still sync checkbox state (likely disable it)
+          // Fetch schedule data for the specific hall
+          fetch("{% url 'home' %}?hall_id=" + hallId + "&ajax=1", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+            .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct?.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
+            .then(data => {
+              if (data.table_html !== undefined) {
+                tbody.innerHTML = data.table_html || '<tr class="empty-table-message"><td colspan="5">此館別目前無班表</td></tr>';
+                processTimeSlotCellsInContainer(tbody);
+                if (data.first_animal && Object.keys(data.first_animal).length > 0) {
+                    updateTopSectionFromData(photoArea, introArea, data.first_animal);
+                } else {
+                    updatePhotoArea(photoArea, null, '');
+                    updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '此館別目前無班表' : '此館別目前無介紹');
                 }
-              }).catch(error => { // Handle fetch/network errors
-                    console.error("Daily Schedule Fetch Error:", error);
-                    tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">無法連接伺服器載入班表</td></tr>`;
-                    updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '無法連接伺服器載入介紹');
-                    if (checkbox) syncCheckboxState(checkbox, tbody); // Sync checkbox state on error too
-                });
-          });
-      });
+                if (checkbox) {
+                    syncCheckboxState(checkbox, tbody);
+                    const shouldShow = checkbox.checked;
+                    applyNoteVisibility(tbody, shouldShow);
+                }
+              } else {
+                 tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入班表時發生錯誤'}</td></tr>`;
+                 updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入介紹時發生錯誤');
+                 if (checkbox) syncCheckboxState(checkbox, tbody);
+              }
+            }).catch(error => {
+                  console.error("Daily Schedule Fetch Error:", error);
+                  tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">無法連接伺服器載入班表</td></tr>`;
+                  updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '無法連接伺服器載入介紹');
+                  if (checkbox) syncCheckboxState(checkbox, tbody);
+              });
+      }
 
-      // --- AJAX Modal Content Loader ---
+      // --- *** NEW: Function to load My Notes with Hall Filter *** ---
+       function loadFilteredNotes(hallId) {
+           const modal = document.getElementById('myNotesModal');
+           if (!modal || !isLoggedIn) return; // Also check login status
+           const modalBody = modal.querySelector('.modal-body[data-layout="table"]');
+           const tbody = modalBody?.querySelector('#myNotesTable tbody');
+           const photoArea = modalBody?.querySelector('#myNotesPhotoArea');
+           const introArea = modalBody?.querySelector('#myNotesIntroArea');
+           const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="myNotesTable"]');
+
+           if (!tbody || !photoArea || !introArea) { console.error("My Notes elements missing for filtering"); return; }
+
+           // Set loading states
+           tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
+           updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...');
+           if (checkbox) checkbox.disabled = true; // Disable checkbox during load
+
+           // Fetch notes data for the specific hall
+           const url = `{% url 'ajax_get_my_notes' %}?hall_id=${hallId}`;
+           fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+               .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct?.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
+               .then(data => {
+                   if (data.table_html !== undefined) {
+                       tbody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">${hallId === 'all' ? '尚無筆記' : '此館別尚無筆記'}</td></tr>`; // More specific empty message
+                       processTimeSlotCellsInContainer(tbody);
+                       if (data.first_animal && Object.keys(data.first_animal).length > 0) {
+                           updateTopSectionFromData(photoArea, introArea, data.first_animal);
+                       } else {
+                           updatePhotoArea(photoArea, null, '');
+                           updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? (hallId === 'all' ? '尚無筆記' : '此館別尚無筆記') : '無介紹');
+                       }
+                       if (checkbox) {
+                           syncCheckboxState(checkbox, tbody);
+                           const shouldShow = checkbox.checked;
+                           applyNoteVisibility(tbody, shouldShow);
+                       }
+                   } else {
+                      tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入筆記時發生錯誤'}</td></tr>`;
+                      updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入介紹時發生錯誤');
+                      if (checkbox) syncCheckboxState(checkbox, tbody);
+                   }
+               }).catch(error => {
+                   console.error("My Notes Fetch Error:", error);
+                   tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">無法連接伺服器載入筆記</td></tr>`;
+                   updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '無法連接伺服器載入介紹');
+                   if (checkbox) syncCheckboxState(checkbox, tbody);
+               });
+       }
+       // --- *** END NEW FUNCTION *** ---
+
+      // --- AJAX Modal Content Loader (For modals WITHOUT hall filters OR initial 'all' load) ---
       function loadModalContent(modalId) {
           const modal = document.getElementById(modalId);
           if (!modal) { console.error(`Modal not found: #${modalId}`); return; }
+
+          // Handle non-table modals or modals requiring specific loading separately
+          if (modalId === 'loginModal' || modalId === 'reviewModal' || modalId === 'reviewSubmitModal' || modalId === 'noteModal') {
+              // These modals don't load table content via this function
+              // Review modal content is loaded via loadReviews() when button clicked
+              // Note modal content is loaded via openNoteModal()
+              return;
+          }
+          // Special handling for modals with hall filters on initial load (default to 'all')
+          if (modalId === 'dailyScheduleModal') {
+              // Initial load is handled by openModal logic clicking first hall
+              return;
+          }
+          if (modalId === 'myNotesModal') {
+               // Load all notes initially when the modal opens
+               loadFilteredNotes('all'); // Use the specific function with 'all'
+               return;
+          }
+
+          // Proceed with generic AJAX loading for other table-based modals
           const modalBody = modal.querySelector('.modal-body[data-layout="table"]');
-          if (!modalBody) { /* console.log(`Modal ${modalId} does not have table layout, skipping AJAX load.`);*/ return; } // Not an error if modal isn't table type
+          if (!modalBody) { return; } // Skip if not a table layout
+
           const tableBody = modalBody.querySelector('.body-table tbody');
           const photoArea = modalBody.querySelector('.photo-area');
           const introArea = modalBody.querySelector('.intro-area');
@@ -1128,10 +1210,11 @@
 
           let ajaxUrl = null; // Determine URL based on modal ID
           if (modalId === 'pendingListModal') ajaxUrl = "{% url 'ajax_get_pending_list' %}";
-          else if (modalId === 'myNotesModal') ajaxUrl = "{% url 'ajax_get_my_notes' %}";
+          // Note: myNotesModal is handled above by loadFilteredNotes('all')
           else if (modalId === 'latestReviewModal') ajaxUrl = "{% url 'ajax_get_latest_reviews' %}";
           else if (modalId === 'dailyRecommendationModal') ajaxUrl = "{% url 'ajax_get_recommendations' %}";
-          if (!ajaxUrl) { console.error(`No AJAX URL defined for modal ${modalId}`); return; } // Should not happen if called correctly
+
+          if (!ajaxUrl) { console.error(`No AJAX URL defined for standard load of modal ${modalId}`); return; }
 
           // Set loading states
           tableBody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
@@ -1158,7 +1241,7 @@
                            // Customize empty message based on the modal
                            if (modalId === 'pendingListModal') emptyMsg = '待約清單是空的';
                            else if (modalId === 'latestReviewModal') emptyMsg = '還沒有任何心得';
-                           else if (modalId === 'myNotesModal') emptyMsg = '尚無筆記';
+                           // else if (modalId === 'myNotesModal') emptyMsg = '尚無筆記'; // Handled by loadFilteredNotes
                            else if (modalId === 'dailyRecommendationModal') emptyMsg = '目前沒有推薦的美容師';
                            updateIntroArea(introArea, emptyMsg);
                        }
@@ -1186,14 +1269,12 @@
           if (modal) {
               modal.style.display = 'block';
               document.body.style.overflow = 'hidden'; // Prevent background scroll
-              const modalBody = modal.querySelector('.modal-body');
-              const isTableLayout = modalBody?.dataset.layout === 'table';
-              // Define which modals need AJAX loading on open
-              const needsAjaxLoad = ['pendingListModal', 'myNotesModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId);
 
-              // Trigger AJAX load for relevant modals
-              if (isTableLayout && needsAjaxLoad) {
-                   loadModalContent(modalId);
+              // Define which modals need initial AJAX loading (excluding those with hall filters handled separately)
+              const needsAjaxLoadOnOpen = ['pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'];
+
+              if (needsAjaxLoadOnOpen.includes(modalId)) {
+                   loadModalContent(modalId); // Trigger initial load for these modals
               }
               // Special handling for Daily Schedule modal on open
               else if (modalId === 'dailyScheduleModal') {
@@ -1204,13 +1285,20 @@
                   const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]');
                   // Reset to initial state before loading first hall
                   if (tbody && photoArea && introArea) {
-                      tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請點擊上方館別載入班表</td></tr>';
+                      tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請點擊下方館別載入班表</td></tr>';
                       updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '點擊下方館別載入介紹');
                       if (checkbox) { syncCheckboxState(checkbox, tbody); } // Sync checkbox (likely disable)
+
+                      // Reset active state on hall menu
+                      modal.querySelectorAll('#dailyHallMenu a').forEach(link => link.classList.remove('active'));
+
                       // Automatically click the first hall link if it exists
                       if (firstHallLink) {
                            // Use setTimeout to ensure the click happens after the modal is fully displayed/rendered
-                           setTimeout(() => { firstHallLink.click(); }, 50);
+                           setTimeout(() => {
+                               firstHallLink.classList.add('active'); // Set first as active before clicking
+                               loadFilteredDailySchedule(firstHallLink.dataset.hallId); // Load data for the first hall
+                           }, 50);
                       } else {
                            // Handle case with no halls
                            tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">目前沒有任何館別可顯示</td></tr>';
@@ -1219,27 +1307,30 @@
                       }
                   } else { console.error("Daily schedule elements missing on open"); }
               }
+              // Special handling for My Notes modal on open
+              else if (modalId === 'myNotesModal') {
+                  const hallMenu = modal.querySelector('#myNotesHallMenu');
+                  if (hallMenu) {
+                      // Reset active state and set 'All' as active
+                      hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active'));
+                      const allLink = hallMenu.querySelector('a[data-hall-id="all"]');
+                      if (allLink) allLink.classList.add('active');
+                  }
+                  // Load all notes initially
+                  loadFilteredNotes('all');
+              }
               // Reset review modal content on open
               else if (modalId === 'reviewModal') {
                    const reviewList = document.getElementById('reviewList');
                    if (reviewList) reviewList.innerHTML = '<p>請點擊列表中的心得按鈕查看。</p>'; // Initial placeholder
               }
-              // Sync note checkbox for table modals that don't load via AJAX initially (if any)
-              if (isTableLayout && !needsAjaxLoad && modalId !== 'dailyScheduleModal') {
-                   const checkbox = modal.querySelector('.toggle-notes-checkbox');
-                   const tableId = checkbox?.dataset.tableId;
-                   const targetTableBody = modalBody.querySelector(`#${tableId} tbody`);
-                   if (checkbox && tableId && targetTableBody) {
-                       syncCheckboxState(checkbox, targetTableBody);
-                       const shouldShow = checkbox.checked;
-                       applyNoteVisibility(targetTableBody, shouldShow);
-                   }
-              }
+
               // Scroll review submit modal to top on open
               if (modalId === 'reviewSubmitModal') {
                   const reviewModalBody = modal.querySelector('.modal-body');
                   if (reviewModalBody) reviewModalBody.scrollTop = 0;
               }
+
               return true; // Indicate success
           }
           console.error(`Modal not found: #${modalId}`); return false; // Indicate failure
@@ -1266,16 +1357,38 @@
           if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
           if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
           if (targetClosest('#btnDailyRecommendationHeader')) { openModal('dailyRecommendationModal'); return; }
-          if (targetClosest('#pendingListBtnHeader')) { openModal('pendingListModal'); return; }
-          if (targetClosest('#myNotesBtnHeader')) { openModal('myNotesModal'); return; }
+          if (targetClosest('#pendingListBtnHeader')) { if (isLoggedIn) { openModal('pendingListModal'); } else { openModal('loginModal'); } return; }
+          if (targetClosest('#myNotesBtnHeader')) { if (isLoggedIn) { openModal('myNotesModal'); } else { openModal('loginModal'); } return; }
           if (targetClosest('#loginBtnHeader')) { openModal('loginModal'); return; }
 
           // Row Action Buttons (+ Menu and Review Count)
           const plusBtn = targetClosest('.plus-menu-btn'); if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; }
           const reviewBtn = targetClosest('.review-count-btn'); if (reviewBtn) { e.stopPropagation(); const animalId = reviewBtn.dataset.animalId; if (animalId) { loadReviews(animalId); openModal('reviewModal'); } return; }
 
+          // *** MODIFIED: Hall Menu Click Handlers ***
+          const dailyHallLink = targetClosest('#dailyHallMenu a');
+          if (dailyHallLink) {
+              e.preventDefault();
+              const menu = dailyHallLink.closest('#dailyHallMenu');
+              menu.querySelectorAll('a').forEach(item => item.classList.remove('active'));
+              dailyHallLink.classList.add('active');
+              const hallId = dailyHallLink.dataset.hallId;
+              loadFilteredDailySchedule(hallId); // Use specific function
+              return;
+          }
+          const notesHallLink = targetClosest('#myNotesHallMenu a');
+          if (notesHallLink) {
+              e.preventDefault();
+              const menu = notesHallLink.closest('#myNotesHallMenu');
+              menu.querySelectorAll('a').forEach(item => item.classList.remove('active'));
+              notesHallLink.classList.add('active');
+              const hallId = notesHallLink.dataset.hallId;
+              loadFilteredNotes(hallId); // Use specific function
+              return;
+          }
+          // *** END MODIFIED ***
+
           // Row Click for Top Section Update (in table modals)
-          // Ensure it's a data row, not a note row, and not clicking an interactive element within the row
           const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
           if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn, a, button, input, select, textarea, .photo-area img')) { // Avoid trigger on specific elements including image click
                 const modal = tableRow.closest('.modal');
@@ -1297,6 +1410,7 @@
                   lightboxImg.src = photoAreaImage.src;
                   lightboxImg.alt = photoAreaImage.alt || "放大圖片"; // Use original alt text
                   lightbox.style.display = 'flex'; // Use flex for potential centering styles (align-items/justify-content)
+                  document.body.style.overflow = 'hidden'; // Prevent background scroll when lightbox is open
               }
               return; // Prevent other actions like row click update
           }
@@ -1309,6 +1423,11 @@
                   lightbox.style.display = 'none';
                   const lightboxImg = document.getElementById('lightboxImage'); // Get image element again
                   if (lightboxImg) lightboxImg.src = ''; // Clear src to free memory/stop loading
+                  // Check if any modals are open before restoring scroll
+                  const anyModalOpen = document.querySelector('.modal[style*="display: block"]');
+                  if (!anyModalOpen) {
+                        document.body.style.overflow = ''; // Restore scroll ONLY if no other modals are open
+                  }
                   return; // Prevent other click actions
               }
               // Do nothing if clicking the image inside the lightbox
@@ -1322,7 +1441,11 @@
           // Close Modal Actions
           const closeBtn = targetClosest('.close-modal'); if (closeBtn) { closeModal(targetClosest('.modal')); return; }
           // Close modal by clicking background overlay (the modal element itself)
-          if (target.classList.contains('modal')) { closeModal(target); if (document.getElementById('plusDropdown')?.classList.contains('open')) { closePlusDropdown(); } return; } // Also close dropdown if open
+          if (target.classList.contains('modal') && target.id !== 'imageLightbox') { // Make sure not to close lightbox this way
+                closeModal(target);
+                if (document.getElementById('plusDropdown')?.classList.contains('open')) { closePlusDropdown(); }
+                return;
+           }
           // Close plus dropdown by clicking bottom overlay
           if (target === bottomOverlay && document.getElementById('plusDropdown')?.classList.contains('open')) { closePlusDropdown(); return; }
       });
@@ -1417,10 +1540,6 @@
                 if (tableId && modal) { // If checkbox is inside a modal
                     const tbody = modal.querySelector(`#${tableId} tbody`);
                     if (tbody) { syncCheckboxState(checkbox, tbody); } // Sync state for that specific table
-                } else if (tableId) { // Fallback: maybe it's not in a modal (unlikely for this app)
-                    // This case might not be needed if all tables with notes are inside modals
-                    const globalTbody = document.querySelector(`#${tableId} tbody`);
-                     if(globalTbody) { syncCheckboxState(checkbox, globalTbody); }
                 }
            });
       }, 100); // Short delay
