@@ -2,12 +2,17 @@
 from django.contrib import admin
 from django.utils import timezone
 from datetime import timedelta
-from .models import Animal, Hall, Review, PendingAppointment, Note, Announcement, StoryReview # Import StoryReview
+# --- Import WeeklySchedule ---
+from .models import Animal, Hall, Review, PendingAppointment, Note, Announcement, StoryReview, WeeklySchedule
+from django.utils.html import format_html # Import format_html for image preview
 
 @admin.register(Hall)
 class HallAdmin(admin.ModelAdmin):
     list_display = ('name', 'order')
     list_editable = ('order',) # Allow editing order in list view
+    # --- START: Add search_fields required by autocomplete ---
+    search_fields = ('name',) # Define fields to search for autocomplete
+    # --- END: Add search_fields ---
 
 @admin.register(Animal)
 class AnimalAdmin(admin.ModelAdmin):
@@ -35,7 +40,7 @@ class AnimalAdmin(admin.ModelAdmin):
         }),
     )
     # Consider adding autocomplete_fields if Hall list gets long
-    # autocomplete_fields = ['hall']
+    autocomplete_fields = ['hall'] # Make hall selection easier
 
 
 @admin.register(Review)
@@ -111,3 +116,24 @@ class StoryReviewAdmin(admin.ModelAdmin):
     # unless you have more complex admin-specific actions during save.
 
 # --- END: Register StoryReview Admin ---
+
+
+# --- START: Register WeeklySchedule Admin ---
+@admin.register(WeeklySchedule)
+class WeeklyScheduleAdmin(admin.ModelAdmin):
+    list_display = ('hall', 'schedule_image_preview', 'updated_at')
+    list_filter = ('hall',)
+    search_fields = ('hall__name',) # Search by hall name
+    readonly_fields = ('updated_at',)
+    list_select_related = ('hall',) # Optimize query for hall name
+    autocomplete_fields = ['hall'] # Easier hall selection
+
+    fields = ('hall', 'schedule_image', 'updated_at') # Define field order in detail view
+
+    @admin.display(description='班表預覽')
+    def schedule_image_preview(self, obj):
+        if obj.schedule_image:
+            # Display a small thumbnail in the admin list view
+            return format_html('<img src="{}" style="max-height: 100px; max-width: 100px;" />', obj.schedule_image.url)
+        return "無圖片"
+# --- END: Register WeeklySchedule Admin ---

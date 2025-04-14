@@ -1,4 +1,5 @@
 # myapp/views.py
+# (No changes to existing imports)
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.utils.dateformat import format as format_date # Import date formatting
@@ -8,7 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Prefetch, Max
 from django.views.decorators.http import require_POST, require_GET # Import require_GET
 from django.template.loader import render_to_string
-from .models import Animal, Hall, Review, PendingAppointment, Note, Announcement, StoryReview # Import StoryReview
+# --- Import WeeklySchedule ---
+from .models import Animal, Hall, Review, PendingAppointment, Note, Announcement, StoryReview, WeeklySchedule
 import traceback
 
 # --- Helper function to render table rows ---
@@ -155,9 +157,6 @@ def home(request):
 
         # --- START: Fetch Active Story Reviews for initial load ---
         # No need to preload story data, it will be fetched via AJAX by JavaScript
-        # context['active_stories'] = StoryReview.objects.filter(
-        #     approved=True, expires_at__gt=timezone.now()
-        # ).select_related('animal', 'animal__hall').order_by('-approved_at')[:15] # Limit initial load?
         # --- END: Fetch Active Story Reviews ---
 
         print("    Rendering full template: index.html")
@@ -741,8 +740,6 @@ def ajax_get_active_stories(request):
                 'hall_name': animal.hall.name if animal.hall else '未知館別',
                 'user_name': user.first_name or user.username, # Or '匿名'?
                 'remaining_time': story.remaining_time_display,
-                # Include content if needed when clicking the story?
-                # 'content': story.content,
             })
 
         return JsonResponse({'stories': stories_data})
@@ -818,3 +815,45 @@ def ajax_get_story_detail(request, story_id):
         print(f"!!! Error in ajax_get_story_detail for ID {story_id}: {e} !!!"); traceback.print_exc()
         return JsonResponse({'success': False, 'error': '無法載入限時動態詳情'}, status=500)
 # --- END: New AJAX View for Story Detail ---
+
+
+# --- START: New AJAX View for Weekly Schedule Image ---
+@require_GET # This view only handles GET requests
+def ajax_get_weekly_schedule(request):
+    hall_id = request.GET.get('hall_id')
+    print(f">>> Handling AJAX Request for Weekly Schedule (Hall ID: {hall_id}) <<<")
+
+    if not hall_id:
+        return JsonResponse({'success': False, 'error': '缺少館別 ID'}, status=400)
+
+    try:
+        hall_id_int = int(hall_id)
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': '無效的館別 ID 格式'}, status=400)
+
+    try:
+        # Fetch the schedule using the related name from Hall (or directly)
+        # Using select_related('hall') is good practice if you might need hall info later
+        schedule = WeeklySchedule.objects.select_related('hall').filter(hall_id=hall_id_int).first()
+
+        if schedule and schedule.schedule_image:
+            print(f"    Found weekly schedule for Hall {hall_id}: {schedule.schedule_image.url}")
+            return JsonResponse({
+                'success': True,
+                'schedule_url': schedule.schedule_image.url,
+                'hall_name': schedule.hall.name # Optionally return hall name for context
+            })
+        else:
+            print(f"    No weekly schedule found for Hall {hall_id}.")
+            return JsonResponse({
+                'success': False,
+                'schedule_url': None,
+                'message': '此館別尚未上傳本週班表'
+            })
+
+    except Hall.DoesNotExist: # Should not happen if hall_id_int is valid, but good practice
+         return JsonResponse({'success': False, 'error': '找不到指定的館別'}, status=404)
+    except Exception as e:
+        print(f"!!! Error fetching weekly schedule for Hall {hall_id}: {e} !!!"); traceback.print_exc()
+        return JsonResponse({'success': False, 'error': '載入每週班表時發生伺服器錯誤'}, status=500)
+# --- END: New AJAX View for Weekly Schedule Image ---

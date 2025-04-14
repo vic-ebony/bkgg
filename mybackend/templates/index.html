@@ -47,7 +47,8 @@
     /* --- Modal 樣式 --- */
     .modal { display: none; position: fixed; z-index: 2999; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0, 0, 0, 0.5); animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    #reviewModal, #reviewSubmitModal, #noteModal, #storyDetailModal { z-index: 3999; } /* Added storyDetailModal */
+    /* --- Adjust Z-index for new modal --- */
+    #reviewModal, #reviewSubmitModal, #noteModal, #storyDetailModal, #weeklyScheduleModal { z-index: 3999; } /* Added weeklyScheduleModal */
 
     .modal-content {
         background-color: #fff; margin: 20px auto; padding: 0; border-radius: 15px;
@@ -68,7 +69,9 @@
     .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background-color: #f8f9fa;}
     .modal-header h2 { margin: 0; font-size: 1.3rem; color: #333; flex-grow: 1; margin-right: 0.5rem; }
     .modal-body { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; padding: 1rem; }
-    .modal-body[data-layout="table"] { padding: 0 !important; overflow-y: hidden; }
+    /* --- Adjust padding for weekly modal body --- */
+    .modal-body[data-layout="table"],
+    #weeklyScheduleModal .modal-body { padding: 0 !important; overflow-y: hidden; } /* Apply no padding to weekly modal body */
     .modal-footer {
         padding: 1rem 1.25rem;
         padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); /* Add safe area + buffer */
@@ -109,10 +112,11 @@
     .modal-body[data-layout="table"] .intro-top { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 5px; }
     .modal-body[data-layout="table"] .intro-top p { margin: 0; font-size: 0.95rem; color: #333; white-space: pre-wrap; /* Handles \n */ word-break: break-word; }
 
-    /* --- Hall Menu (Common Style for Daily Schedule & My Notes) --- */
-    .modal-body[data-layout="table"] .hall-menu { display: flex; overflow-x: auto; gap: 0.625rem; background: #f8f9fa; border: 1px solid #ccc; border-radius: 5px; padding: 0.5rem; margin: 0.75rem; flex-shrink: 0; }
-    .modal-body[data-layout="table"] .hall-menu a { flex-shrink: 0; padding: 0.5rem 0.75rem; text-decoration: none; color: #666; background: #fff; border: 1px solid #ddd; border-radius: 5px; white-space: nowrap; transition: background 0.3s, color 0.3s, border-color 0.3s; font-size: 1.0rem; }
-    .modal-body[data-layout="table"] .hall-menu a.active, .modal-body[data-layout="table"] .hall-menu a:hover { background: #e0f7fa; color: #007bff; border-color: #bce8f1; }
+    /* --- Hall Menu (Common Style for applicable Modals) --- */
+    /* --- Apply hall menu style to weekly modal as well --- */
+    .modal-body .hall-menu { display: flex; overflow-x: auto; gap: 0.625rem; background: #f8f9fa; border: 1px solid #ccc; border-radius: 5px; padding: 0.5rem; margin: 0.75rem; flex-shrink: 0; }
+    .modal-body .hall-menu a { flex-shrink: 0; padding: 0.5rem 0.75rem; text-decoration: none; color: #666; background: #fff; border: 1px solid #ddd; border-radius: 5px; white-space: nowrap; transition: background 0.3s, color 0.3s, border-color 0.3s; font-size: 1.0rem; }
+    .modal-body .hall-menu a.active, .modal-body .hall-menu a:hover { background: #e0f7fa; color: #007bff; border-color: #bce8f1; }
 
     /* --- Header Toggle Notes Checkbox Style --- */
     .modal-header .header-toggle-notes { margin-left: auto; padding-right: 1rem; flex-shrink: 0; }
@@ -181,7 +185,9 @@
         .modal-content { width: 100%; max-width: none; margin: 0; border-radius: 0; max-height: 100vh; padding: 0; min-height: 100%; }
         .modal-header { padding: 0.75rem 1rem; }
         .modal-header h2 { font-size: 1.1rem; }
-        .modal-body[data-layout="table"] { padding: 0 !important; }
+        /* --- Adjust padding for weekly modal body on small screens --- */
+        .modal-body[data-layout="table"],
+        #weeklyScheduleModal .modal-body { padding: 0 !important; }
         .modal-body[data-layout="table"] > .top-section { height: 150px; }
         .modal-footer { padding: 0.75rem 1rem; padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px); }
         #reviewSubmitModal .modal-footer { padding: 0.75rem 1rem; padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px); }
@@ -191,6 +197,8 @@
         .modal-header .header-toggle-notes { padding-right: 0.5rem; }
         .modal-header .header-toggle-notes label { font-size: 0.8rem;}
         .note-box { padding: 0.5rem 0.6rem 0.5rem 0.8rem; margin: 0.4rem 0.2rem; max-width: calc(100% - 0.4rem); }
+        /* --- Adjust weekly schedule image padding on small screens --- */
+        .schedule-image-container { padding: 0.75rem; padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); }
     }
     @media (min-width: 769px) { .header-promo { display: block; } }
 
@@ -436,6 +444,38 @@
      }
     /* --- END: CSS for Story Detail Modal --- */
 
+    /* --- START: CSS for Weekly Schedule Modal --- */
+    #weeklyScheduleModal .modal-body {
+      display: flex; /* Enable flexbox */
+      flex-direction: column; /* Stack hall menu and image area */
+      overflow-y: hidden; /* Prevent body scroll, image area will scroll if needed */
+    }
+    .schedule-image-container {
+      flex-grow: 1; /* Allow image container to take remaining space */
+      overflow-y: auto; /* Allow vertical scroll ONLY if image is too tall */
+      padding: 1rem; /* Add padding around the image */
+      text-align: center; /* Center placeholder text */
+      min-height: 100px; /* Ensure some minimum height */
+      background-color: #f0f0f0; /* Light background for contrast */
+      border-top: 1px solid #eee; /* Separator from hall menu */
+      /* Add bottom padding considering safe area */
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
+    .schedule-image-container img {
+      max-width: 100%; /* Ensure image fits width */
+      height: auto; /* Maintain aspect ratio */
+      display: block; /* Remove extra space below image */
+      margin: 0 auto; /* Center image horizontally */
+      border: 1px solid #ccc; /* Optional border */
+      background-color: #fff; /* White background behind image */
+    }
+    .schedule-image-container p {
+      color: #666;
+      font-style: italic;
+      margin-top: 2rem; /* Space out placeholder text */
+    }
+    /* --- END: CSS for Weekly Schedule Modal --- */
+
   </style>
 </head>
 <body>
@@ -446,6 +486,7 @@
         <!-- Header -->
         <header class="page-header">
             <div class="header-actions">
+                <button id="btnWeeklyScheduleHeader">每週班表</button> {# <-- New Button -- #}
                 <button id="btnDailyScheduleHeader">每日班表</button>
                 <button id="latestReviewBtnHeader">最新心得</button>
                 <button id="btnDailyRecommendationHeader">每日推薦</button>
@@ -765,6 +806,32 @@
                 </div>
             </div>
         </div>
+
+        <!-- START: New Weekly Schedule Modal -->
+        <div id="weeklyScheduleModal" class="modal" role="dialog" aria-modal="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>每週班表</h2>
+                    {# No toggle notes checkbox needed here #}
+                    <button class="close-modal" aria-label="關閉">×</button>
+                </div>
+                <div class="modal-body"> {# Padding is handled by CSS (removed data-layout="table") #}
+                    <nav class="hall-menu" id="weeklyHallMenu">
+                        {% for hall in halls %}
+                          <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a>
+                        {% endfor %}
+                        {% if not halls %}
+                            <p style="color:#666; padding: 0.5rem 0.75rem;">沒有可選的館別</p>
+                        {% endif %}
+                    </nav>
+                    <div id="weeklyScheduleImageArea" class="schedule-image-container">
+                        <p>請點擊上方館別查看班表</p> {# Initial placeholder #}
+                    </div>
+                </div>
+                {# No footer needed unless you add buttons later #}
+            </div>
+        </div>
+        <!-- END: New Weekly Schedule Modal -->
 
 
       <!-- Bottom slide-up menu & Overlay -->
@@ -1358,6 +1425,20 @@
                                 loadFilteredDailySchedule(activeHallLink.dataset.hallId);
                              }
                         }
+                        // Also reload the review count display on the main row(s)
+                        if (animalId) {
+                           // Query for the animal's new review count (this requires another AJAX call or backend modification)
+                           // For now, we just assume the count increased by 1 visually (requires admin approval though)
+                           console.warn("Review count needs proper backend refresh after submission for accuracy.");
+                           // Example of potential visual-only update (inaccurate until approved)
+                           // updateRowsByAnimalId(animalId, (r) => {
+                           //   const countBtn = r.querySelector('.review-count-btn');
+                           //   if (countBtn) {
+                           //     const currentCount = parseInt(countBtn.textContent, 10) || 0;
+                           //     countBtn.textContent = currentCount + 1; // Visually increment
+                           //   }
+                           // });
+                        }
                     }
                     // If it was a story review, we don't need to immediately refresh the panel
                     // as it requires admin approval first. Rely on periodic/manual refresh.
@@ -1474,7 +1555,7 @@
           if (!modal) { console.error(`Modal not found: #${modalId}`); return; }
 
           // Handle non-table modals or modals requiring specific loading separately
-          if (modalId === 'loginModal' || modalId === 'reviewModal' || modalId === 'reviewSubmitModal' || modalId === 'noteModal' || modalId === 'storyDetailModal') {
+          if (modalId === 'loginModal' || modalId === 'reviewModal' || modalId === 'reviewSubmitModal' || modalId === 'noteModal' || modalId === 'storyDetailModal' || modalId === 'weeklyScheduleModal') { // <-- Added weeklyScheduleModal
               // These modals don't load table content via this function
               return;
           }
@@ -1506,7 +1587,6 @@
 
           let ajaxUrl = null; // Determine URL based on modal ID
           if (modalId === 'pendingListModal') ajaxUrl = "{% url 'ajax_get_pending_list' %}";
-          // Note: myNotesModal is handled above by loadFilteredNotes('all')
           else if (modalId === 'latestReviewModal') ajaxUrl = "{% url 'ajax_get_latest_reviews' %}";
           else if (modalId === 'dailyRecommendationModal') ajaxUrl = "{% url 'ajax_get_recommendations' %}";
 
@@ -1537,7 +1617,6 @@
                            // Customize empty message based on the modal
                            if (modalId === 'pendingListModal') emptyMsg = '待約清單是空的';
                            else if (modalId === 'latestReviewModal') emptyMsg = '還沒有任何心得';
-                           // else if (modalId === 'myNotesModal') emptyMsg = '尚無筆記'; // Handled by loadFilteredNotes
                            else if (modalId === 'dailyRecommendationModal') emptyMsg = '目前沒有推薦的美容師';
                            updateIntroArea(introArea, emptyMsg);
                        }
@@ -1574,6 +1653,16 @@
                    if(headerDiv) headerDiv.innerHTML = '<div class="story-loading-message">載入中...</div>';
                    if(contentDiv) contentDiv.innerHTML = ''; // Clear content initially
               }
+              // --- START: Reset Weekly Schedule Modal ---
+              if (modalId === 'weeklyScheduleModal') {
+                  const imageArea = document.getElementById('weeklyScheduleImageArea');
+                  const hallMenu = document.getElementById('weeklyHallMenu');
+                  if (imageArea) imageArea.innerHTML = '<p>請點擊上方館別查看班表</p>'; // Reset image area
+                  if (hallMenu) { // Reset hall menu active state
+                      hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active'));
+                  }
+              }
+              // --- END: Reset Weekly Schedule Modal ---
 
               modal.style.display = 'block';
               document.body.style.overflow = 'hidden'; // Prevent background scroll
@@ -1627,6 +1716,21 @@
                   // Load all notes initially
                   loadFilteredNotes('all');
               }
+              // --- START: Auto-click first hall in Weekly Schedule on open ---
+              else if (modalId === 'weeklyScheduleModal') {
+                  const firstHallLink = modal.querySelector('#weeklyHallMenu a:first-of-type');
+                   // Automatically click the first hall link if it exists
+                  if (firstHallLink) {
+                      setTimeout(() => {
+                          firstHallLink.click(); // Simulate click to load the first schedule
+                      }, 50); // Delay ensures modal is ready
+                  } else {
+                       const imageArea = document.getElementById('weeklyScheduleImageArea');
+                       if (imageArea) imageArea.innerHTML = '<p>目前沒有任何館別可顯示</p>';
+                  }
+              }
+              // --- END: Auto-click first hall in Weekly Schedule on open ---
+
 
               // Scroll review submit modal to top on open
               if (modalId === 'reviewSubmitModal') {
@@ -1777,6 +1881,13 @@
           }
           // --- END: Modified Story Item Click Handler ---
 
+          // --- START: Weekly Schedule Button Click Handler ---
+          if (targetClosest('#btnWeeklyScheduleHeader')) {
+              openModal('weeklyScheduleModal');
+              return; // Prevent other actions
+          }
+          // --- END: Weekly Schedule Button Click Handler ---
+
           // Modal Opening Buttons (Header)
           if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
           if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
@@ -1795,6 +1906,50 @@
           if (dailyHallLink) { e.preventDefault(); const menu = dailyHallLink.closest('#dailyHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); dailyHallLink.classList.add('active'); const hallId = dailyHallLink.dataset.hallId; loadFilteredDailySchedule(hallId); return; }
           const notesHallLink = targetClosest('#myNotesHallMenu a');
           if (notesHallLink) { e.preventDefault(); const menu = notesHallLink.closest('#myNotesHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); notesHallLink.classList.add('active'); const hallId = notesHallLink.dataset.hallId; loadFilteredNotes(hallId); return; }
+
+          // --- START: Weekly Schedule Hall Menu Click Handler ---
+          const weeklyHallLink = targetClosest('#weeklyHallMenu a');
+          if (weeklyHallLink) {
+              e.preventDefault();
+              const menu = weeklyHallLink.closest('#weeklyHallMenu');
+              const hallId = weeklyHallLink.dataset.hallId;
+              const imageArea = document.getElementById('weeklyScheduleImageArea');
+
+              if (!hallId || !imageArea) { console.error("Weekly schedule hall link or image area missing."); return; }
+
+              // Update active state
+              menu.querySelectorAll('a').forEach(item => item.classList.remove('active'));
+              weeklyHallLink.classList.add('active');
+
+              // Set loading state
+              imageArea.innerHTML = '<p>載入中...</p>';
+
+              // Fetch the schedule image URL
+              fetch(`/ajax/weekly_schedule/?hall_id=${hallId}`, {
+                  headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+              })
+              .then(response => {
+                  if (!response.ok) { return response.json().catch(() => null).then(errData => { throw new Error(errData?.error || `HTTP error ${response.status}`); }); }
+                  const contentType = response.headers.get("content-type"); if (!contentType?.includes("application/json")) { throw new TypeError("伺服器未返回有效的 JSON"); }
+                  return response.json();
+              })
+              .then(data => {
+                  if (data.success && data.schedule_url) {
+                      imageArea.innerHTML = `<img src="${data.schedule_url}" alt="${data.hall_name || '館別'} 每週班表">`;
+                  } else if (!data.success && data.message) {
+                      imageArea.innerHTML = `<p>${data.message}</p>`;
+                  } else {
+                      imageArea.innerHTML = `<p>錯誤: ${data.error || '無法載入班表'}</p>`;
+                  }
+              })
+              .catch(error => {
+                  console.error("Error fetching weekly schedule:", error);
+                  imageArea.innerHTML = `<p style="color: red;">無法連接伺服器: ${error.message}</p>`;
+              });
+              return; // Prevent other actions
+          }
+          // --- END: Weekly Schedule Hall Menu Click Handler ---
+
 
           // Row Click for Top Section Update (in table modals)
           const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');

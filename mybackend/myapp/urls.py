@@ -1,4 +1,5 @@
 # urls.py
+# (No changes to existing imports)
 from django.urls import path
 from . import views
 
@@ -17,14 +18,16 @@ urlpatterns = [
     # --- Story Review URLs ---
     path('add_story_review/', views.add_story_review, name='add_story_review'),
     path('ajax/active_stories/', views.ajax_get_active_stories, name='ajax_get_active_stories'),
-    # --- START: New URL for Story Detail ---
     path('ajax/story_detail/<int:story_id>/', views.ajax_get_story_detail, name='ajax_get_story_detail'),
-    # --- END: New URL for Story Detail ---
 
     # --- AJAX URLs for Modals ---
     path('ajax/pending/', views.ajax_get_pending_list, name='ajax_get_pending_list'),
     path('ajax/notes/', views.ajax_get_my_notes, name='ajax_get_my_notes'),
     path('ajax/latest-reviews/', views.ajax_get_latest_reviews, name='ajax_get_latest_reviews'),
     path('ajax/recommendations/', views.ajax_get_recommendations, name='ajax_get_recommendations'),
+
+    # --- START: New URL for Weekly Schedule AJAX ---
+    path('ajax/weekly_schedule/', views.ajax_get_weekly_schedule, name='ajax_get_weekly_schedule'),
+    # --- END: New URL for Weekly Schedule AJAX ---
 
 ]

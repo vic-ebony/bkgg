@@ -1,4 +1,5 @@
 # models.py
+# (No changes to existing imports)
 from django.db import models
 from django.conf import settings
 from django.utils import timezone # Import timezone
@@ -218,3 +219,30 @@ def set_story_approval_times(sender, instance, **kwargs):
         instance.approved_at = None
         instance.expires_at = None
 # --- END: New StoryReview Model ---
+
+
+# --- START: New WeeklySchedule Model ---
+class WeeklySchedule(models.Model):
+    hall = models.OneToOneField(
+        Hall,
+        on_delete=models.CASCADE,
+        verbose_name="館別",
+        related_name='weekly_schedule' # Allows access like hall.weekly_schedule
+        # unique=True is implied by OneToOneField
+    )
+    schedule_image = models.ImageField(
+        "班表圖片",
+        upload_to='weekly_schedules/', # Store images in media/weekly_schedules/
+        help_text="請上傳 A4 尺寸的圖片",
+        # No blank=True or null=True, assuming an image is required if the entry exists
+    )
+    updated_at = models.DateTimeField("最後更新時間", auto_now=True)
+
+    class Meta:
+        ordering = ['hall__order', 'hall__name'] # Order by hall order, then name
+        verbose_name = "每週班表"
+        verbose_name_plural = "每週班表"
+
+    def __str__(self):
+        return f"{self.hall.name} - 每週班表 (更新於 {timezone.localtime(self.updated_at).strftime('%Y-%m-%d %H:%M')})"
+# --- END: New WeeklySchedule Model ---
