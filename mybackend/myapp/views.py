@@ -876,3 +876,34 @@ def ajax_get_weekly_schedule(request):
         print(f"!!! Error fetching weekly schedule for Hall {hall_id}: {e} !!!"); traceback.print_exc()
         return JsonResponse({'success': False, 'error': '載入每週班表時發生伺服器錯誤'}, status=500)
 # --- END: Modified AJAX View for Weekly Schedule Images ---
+
+
+# --- START: New AJAX View for Hall of Fame ---
+@require_GET # No login required, usually
+def ajax_get_hall_of_fame(request):
+    print(">>> Handling AJAX Request for Hall of Fame <<<")
+    try:
+        top_users = Review.objects.filter(approved=True) \
+                        .values('user', 'user__username', 'user__first_name') \
+                        .annotate(review_count=Count('id')) \
+                        .order_by('-review_count')[:10] # Get top 10
+
+        hall_of_fame_data = []
+        for rank, user_data in enumerate(top_users, 1):
+            # Prefer first_name, fallback to username
+            user_display_name = user_data.get('user__first_name') or user_data.get('user__username', '未知用戶')
+            if not user_display_name.strip(): # Handle empty first name/username edge case
+                user_display_name = f"用戶_{user_data.get('user', 'N/A')}" # Fallback using user ID
+
+            hall_of_fame_data.append({
+                'rank': rank,
+                'user_name': user_display_name,
+                'review_count': user_data.get('review_count', 0)
+            })
+
+        print(f"    Returning {len(hall_of_fame_data)} users for Hall of Fame.")
+        return JsonResponse({'users': hall_of_fame_data})
+    except Exception as e:
+        print(f"!!! Error in ajax_get_hall_of_fame: {e} !!!"); traceback.print_exc()
+        return JsonResponse({'error': '無法載入紓壓名人堂'}, status=500)
+# --- END: New AJAX View for Hall of Fame ---

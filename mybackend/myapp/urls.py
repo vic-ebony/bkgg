@@ -30,4 +30,8 @@ urlpatterns = [
     path('ajax/weekly_schedule/', views.ajax_get_weekly_schedule, name='ajax_get_weekly_schedule'),
     # --- END: URL for Weekly Schedule AJAX ---
 
+    # --- START: URL for Hall of Fame AJAX ---
+    path('ajax/hall-of-fame/', views.ajax_get_hall_of_fame, name='ajax_get_hall_of_fame'),
+    # --- END: URL for Hall of Fame AJAX ---
+
 ]

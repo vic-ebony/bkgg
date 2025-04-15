@@ -48,39 +48,69 @@
     .modal { display: none; position: fixed; z-index: 2999; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0, 0, 0, 0.5); animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     /* --- Adjust Z-index for new modal --- */
-    #reviewModal, #reviewSubmitModal, #noteModal, #storyDetailModal, #weeklyScheduleModal { z-index: 3999; } /* Added weeklyScheduleModal */
+    #reviewModal, #reviewSubmitModal, #noteModal, #storyDetailModal, #weeklyScheduleModal, #hallOfFameModal { z-index: 3999; } /* Added weeklyScheduleModal & hallOfFameModal */
 
     .modal-content {
         background-color: #fff; margin: 20px auto; padding: 0; border-radius: 15px;
         width: 95%; max-width: 500px; max-height: 90vh;
-        display: flex; flex-direction: column; overflow-y: hidden; overflow-x: hidden;
+        display: flex; flex-direction: column; /* <-- Important for flex-grow */
+        overflow-y: hidden; overflow-x: hidden;
         position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: none; min-height: 0;
     }
 
     /* --- Specific layout for #reviewSubmitModal --- */
     #reviewSubmitModal .modal-content { overflow-y: hidden; }
-    #reviewSubmitModal .modal-body { flex-grow: 1; overflow-y: auto; min-height: 0; padding: 1rem; padding-bottom: 1rem; }
+    #reviewSubmitModal .modal-body {
+        flex-grow: 1; /* <-- Add flex-grow to make body expand */
+        overflow-y: auto;
+        min-height: 0;
+        padding: 1rem;
+        padding-bottom: 1rem;
+    }
     #reviewSubmitModal .modal-footer {
-        flex-shrink: 0; padding: 1rem 1.25rem;
-        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); /* Add safe area + buffer */
+        flex-shrink: 0; /* Prevent footer from shrinking */
+        padding: 1rem 1.25rem;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); /* Keep padding for internal spacing */
         border-top: 1px solid #eee; background-color: #f8f9fa; text-align: right;
     }
 
     .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background-color: #f8f9fa;}
     .modal-header h2 { margin: 0; font-size: 1.3rem; color: #333; flex-grow: 1; margin-right: 0.5rem; }
-    .modal-body { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; padding: 1rem; }
-    /* --- Adjust padding for weekly modal body --- */
+    .modal-body {
+        /* Default for other modals, will be overridden below for specific cases */
+        flex-grow: 1; /* Make body generally grow */
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        padding: 1rem;
+        overflow-y: auto; /* Default allow scroll */
+    }
+    /* --- Adjust padding/overflow for specific modal bodies --- */
     .modal-body[data-layout="table"],
-    #weeklyScheduleModal .modal-body { padding: 0 !important; overflow-y: hidden; } /* Apply no padding to weekly modal body */
+    #weeklyScheduleModal .modal-body {
+        padding: 0 !important; /* Keep no padding */
+        overflow-y: hidden; /* Keep hidden, internal wrappers scroll */
+        flex-grow: 1; /* Ensure these still grow */
+    }
+    /* Make Hall of Fame modal body scrollable */
+    #hallOfFameModal .modal-body {
+        overflow-y: auto;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+        flex-grow: 1; /* Ensure it grows */
+    }
+
     .modal-footer {
         padding: 1rem 1.25rem;
         padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); /* Add safe area + buffer */
-        border-top: 1px solid #eee; flex-shrink: 0; background-color: #f8f9fa; text-align: right;
+        border-top: 1px solid #eee;
+        flex-shrink: 0; /* Prevent footer shrinking */
+        background-color: #f8f9fa; text-align: right;
     }
     .close-modal { font-size: 1.75rem; font-weight: bold; cursor: pointer; color: #aaa; background: none; border: none; padding: 0 0.5rem; line-height: 1; flex-shrink: 0; }
     .close-modal:hover { color: #666; }
 
     /* --- Modal Table Layout --- */
+    /* Keep the structure where body-wrapper handles scroll */
     .modal-body[data-layout="table"] .table-wrapper { margin-top: 0; background: #fff; border: none; border-radius: 0; overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0; }
     .modal-body[data-layout="table"] .header-table { width: 100%; border-collapse: collapse; table-layout: fixed; flex-shrink: 0; }
     .modal-body[data-layout="table"] .header-table th { padding: 0.5rem 0.3rem; border-bottom: 2px solid #ccc; text-align: left; background: #e9ecef; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; vertical-align: middle; font-size: 0.85rem; color: #495057; font-weight: bold; }
@@ -129,15 +159,47 @@
     #reviewModal .modal-body {
         overflow-y: auto;
         padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); /* Add safe area + buffer */
+        flex-grow: 1; /* Ensure it grows */
     }
 
-    /* --- Note Modal Body Padding --- */
+    /* --- Note Modal Body Padding & Flex Layout --- */
     #noteModal .modal-body {
-        overflow-y: auto;
-        padding-bottom: 1rem; /* Reset to base padding, footer handles the rest */
+        flex-grow: 1; /* <-- Make body expand */
+        overflow-y: auto; /* Allow scroll if content overflows */
+        padding-bottom: 1rem; /* Keep some base padding */
+        display: flex; /* Ensure it's a flex container for children */
+        flex-direction: column; /* Stack children vertically */
+    }
+    /* Ensure form grows and arranges children correctly */
+    #noteModal #noteForm {
+        flex-grow: 1; /* Allow form to take space */
+        display: flex;
+        flex-direction: column;
+    }
+    /* Make the textarea group expand */
+    /* Using :has() for better accuracy, falls back to last-of-type if not supported */
+    #noteModal #noteForm .form-group:has(textarea[name="content"]),
+    #noteModal #noteForm .form-group:last-of-type {
+         flex-grow: 1;
+         display: flex;
+         flex-direction: column;
+         margin-bottom: 0; /* Remove margin from expanding group */
+    }
+    /* Make textarea expand and remove min-height */
+    #noteModal #noteForm textarea {
+        flex-grow: 1;
+        min-height: auto; /* <-- Override default min-height */
+    }
+    /* Make view section expand and scroll if needed */
+    #noteModal #viewNoteSection {
+         flex-grow: 1; /* Allow view section to take space */
+         overflow-y: auto; /* Allow scrolling for long notes */
+         display: flex; /* Needed to make flex-grow work */
+         flex-direction: column; /* Stack content */
     }
     #noteModal .modal-body #viewNoteSection .note-box {
         white-space: pre-wrap; /* Ensure view box respects newlines */
+        flex-grow: 1; /* Allow box to grow within view section if needed */
     }
 
     /* --- Other Element Styles --- */
@@ -161,7 +223,14 @@
     .note-box { border: none; border-left: 4px solid #adb5bd; background-color: #f8f9fa; padding: 0.6rem 0.8rem 0.6rem 1rem; margin: 0.5rem 0.3rem; font-size: 0.9rem; color: #555; width: auto; max-width: calc(100% - 0.6rem); text-align: left; border-radius: 0 4px 4px 0; white-space: pre-wrap; word-break: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 
     /* --- Form Styling --- */
-    .form-group { margin-bottom: 1rem; } .form-group label { display: block; margin-bottom: 0.4rem; font-weight: bold; font-size: 0.95rem; color: #555; } .form-group input[type="text"], .form-group input[type="password"], .form-group input[type="number"], .form-group textarea, .form-group select { width: 100%; padding: 0.6rem 0.75rem; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; } .form-group textarea { resize: vertical; min-height: 80px; white-space: pre-wrap; /* Ensure textarea respects newlines on input */ } input:focus, textarea:focus, select:focus { outline: none; border-color: #80bdff; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); } .choices__inner { padding: 0.45rem 0.75rem !important; border-radius: 4px !important; border: 1px solid #ced4da !important; font-size: 1rem !important; min-height: auto !important;} .choices__list--single { padding: 0 !important; } .choices[data-type*="select-one"]:after { right: 11.5px !important; } .choices.is-focused .choices__inner, .choices.is-open .choices__inner { border-color: #80bdff !important; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important; }
+    .form-group { margin-bottom: 1rem; } .form-group label { display: block; margin-bottom: 0.4rem; font-weight: bold; font-size: 0.95rem; color: #555; } .form-group input[type="text"], .form-group input[type="password"], .form-group input[type="number"], .form-group textarea, .form-group select { width: 100%; padding: 0.6rem 0.75rem; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; }
+    /* Default textarea min-height */
+    .form-group textarea {
+        resize: vertical;
+        min-height: 80px;
+        white-space: pre-wrap; /* Ensure textarea respects newlines on input */
+    }
+     input:focus, textarea:focus, select:focus { outline: none; border-color: #80bdff; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); } .choices__inner { padding: 0.45rem 0.75rem !important; border-radius: 4px !important; border: 1px solid #ced4da !important; font-size: 1rem !important; min-height: auto !important;} .choices__list--single { padding: 0 !important; } .choices[data-type*="select-one"]:after { right: 11.5px !important; } .choices.is-focused .choices__inner, .choices.is-open .choices__inner { border-color: #80bdff !important; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important; }
     button { padding: 0.6rem 1rem; border: 1px solid #ccc; border-radius: 5px; background: #fff; color: #333; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, color 0.2s; font-size: 1rem; line-height: 1.5; } button:hover { background: #f8f8f8; border-color: #bbb; }
     .modal-footer button[type="submit"] { background-color: #007bff; border-color: #007bff; color: white; }
     .modal-footer button[type="submit"]:hover { background-color: #0056b3; border-color: #0056b3; }
@@ -193,7 +262,8 @@
         #reviewSubmitModal .modal-footer { padding: 0.75rem 1rem; padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px); }
         .modal-body[data-layout="table"] .body-wrapper { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px); }
         #reviewModal .modal-body { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px); }
-        #noteModal .modal-body { padding-bottom: 0.75rem; }
+        #noteModal .modal-body { padding-bottom: 0.75rem; } /* Keep base padding */
+        #hallOfFameModal .modal-body { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); } /* Adjust Hall of Fame padding */
         .modal-header .header-toggle-notes { padding-right: 0.5rem; }
         .modal-header .header-toggle-notes label { font-size: 0.8rem;}
         .note-box { padding: 0.5rem 0.6rem 0.5rem 0.8rem; margin: 0.4rem 0.2rem; max-width: calc(100% - 0.4rem); }
@@ -220,7 +290,7 @@
     /* Empty table message style */
     .empty-table-message td { text-align: center !important; padding: 2rem !important; color: #777; font-style: italic; }
     /* Loading message style */
-    .loading-message td { text-align: center !important; padding: 2rem !important; color: #777; }
+    .loading-message td, .loading-message li { text-align: center !important; padding: 2rem !important; color: #777; list-style: none;}
 
 
      /* Style adjustments in View Note section */
@@ -229,8 +299,8 @@
     /* --- MODIFIED: Media Query for Larger Screens --- */
     @media (min-width: 601px) { /* Apply these styles when screen width is 601px or wider */
       .modal-content {
-        height: 85vh;
-        max-height: 90vh;
+        height: 85vh; /* Use height instead of max-height for flex-grow */
+        max-height: 90vh; /* Keep max-height as a safety */
       }
       .modal-body[data-layout="table"] .body-wrapper {
         /* Removed unnecessary padding override here, base CSS handles it */
@@ -393,6 +463,7 @@
         padding-left: 0; /* Remove default body padding */
         padding-right: 0;
         padding-top: 0;
+        flex-grow: 1; /* Ensure it grows */
     }
     /* Reuse review card styling within the story detail */
     #storyDetailContent .review-card {
@@ -414,6 +485,7 @@
         align-items: center;
         gap: 1rem;
         margin-bottom: 1rem;
+        flex-shrink: 0; /* Prevent header info from shrinking */
     }
     .story-detail-header-info img {
         width: 50px;
@@ -449,6 +521,8 @@
       display: flex; /* Enable flexbox */
       flex-direction: column; /* Stack hall menu and image area */
       overflow-y: hidden; /* Prevent body scroll, image area will scroll if needed */
+      flex-grow: 1; /* Ensure body grows */
+      padding: 0 !important; /* Keep override */
     }
     .schedule-image-container {
       flex-grow: 1; /* Allow image container to take remaining space */
@@ -480,6 +554,51 @@
     }
     /* --- END: CSS for Weekly Schedule Modal --- */
 
+    /* --- START: CSS for Hall of Fame Modal --- */
+    #hallOfFameModal .modal-body ol {
+        list-style: none; /* Remove default numbering */
+        padding-left: 0;
+        margin: 0;
+    }
+    #hallOfFameModal .modal-body li {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1rem;
+    }
+    #hallOfFameModal .modal-body li:last-child {
+        border-bottom: none;
+    }
+    #hallOfFameModal .modal-body .rank {
+        font-weight: bold;
+        color: #007bff;
+        min-width: 30px; /* Ensure rank number has space */
+        text-align: right;
+        margin-right: 1rem;
+    }
+    #hallOfFameModal .modal-body .user-name {
+        flex-grow: 1;
+        color: #333;
+        margin-right: 1rem;
+        word-break: break-all; /* Wrap long names */
+    }
+    #hallOfFameModal .modal-body .review-count {
+        font-size: 0.9rem;
+        color: #666;
+        white-space: nowrap;
+    }
+    #hallOfFameModal .modal-body .loading-message,
+    #hallOfFameModal .modal-body .empty-message {
+        padding: 2rem;
+        text-align: center;
+        color: #777;
+        font-style: italic;
+    }
+    /* --- END: CSS for Hall of Fame Modal --- */
+
+
   </style>
 </head>
 <body>
@@ -490,7 +609,8 @@
         <!-- Header -->
         <header class="page-header">
             <div class="header-actions">
-                <button id="btnWeeklyScheduleHeader">每週班表</button> {# <-- New Button -- #}
+                <button id="btnHallOfFameHeader">紓壓名人堂</button> {# <-- New Hall of Fame Button --> #}
+                <button id="btnWeeklyScheduleHeader">每週班表</button>
                 <button id="btnDailyScheduleHeader">每日班表</button>
                 <button id="latestReviewBtnHeader">最新心得</button>
                 <button id="btnDailyRecommendationHeader">每日推薦</button>
@@ -568,7 +688,7 @@
         <div id="reviewModal" class="modal" role="dialog" aria-modal="true">
             <div class="modal-content">
                 <div class="modal-header"><h2>心得評論</h2><button class="close-modal" aria-label="關閉">×</button></div>
-                <div class="modal-body"> {# Padding handled by CSS #}
+                <div class="modal-body"> {# flex-grow applied globally, padding handled by specific rule #}
                     <div id="reviewList"><p>載入中...</p></div>
                 </div>
             </div>
@@ -580,7 +700,7 @@
                 <div class="modal-header">
                     <h2>限時動態心得</h2><button class="close-modal" aria-label="關閉">×</button>
                 </div>
-                <div class="modal-body"> {# Padding handled by CSS #}
+                <div class="modal-body"> {# flex-grow applied, specific padding rules handle rest #}
                     <div id="storyDetailHeader">
                         {# Header info will be loaded here (Photo, Name, Hall, Time) #}
                         <div class="story-loading-message">載入中...</div>
@@ -599,7 +719,7 @@
                 <div class="modal-header">
                     <h2 id="reviewSubmitModalTitle">填寫心得</h2><button class="close-modal" aria-label="關閉">×</button> {# Added ID for title #}
                 </div>
-                <div class="modal-body">
+                <div class="modal-body"> {# flex-grow applied via specific rule #}
                     <form id="reviewForm">
                         {% csrf_token %}
                         {# Add a hidden input to track submission type #}
@@ -642,14 +762,14 @@
                     <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="pendingTable"> <span>顯示筆記</span></label></div>
                     <button class="close-modal" aria-label="關閉">×</button>
                 </div>
-                <div class="modal-body" data-layout="table">
+                <div class="modal-body" data-layout="table"> {# flex-grow handled by this rule #}
                     <section class="top-section">
                         <div class="photo-area" id="pendingPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div>
                         <div class="intro-area" id="pendingIntroArea"><div class="intro-top"><p id="pendingIntroductionContent">載入中...</p></div></div>
                     </section>
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
-                        <div class="body-wrapper"> {# Padding handled by CSS #}
+                        <div class="body-wrapper"> {# Internal scroll, padding handles bottom space #}
                             <table class="body-table" id="pendingTable">
                                 <tbody>
                                     {# Content will be loaded via AJAX #}
@@ -670,14 +790,14 @@
                     <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="latestReviewTable"> <span>顯示筆記</span></label></div>
                     <button class="close-modal" aria-label="關閉">×</button>
                 </div>
-                <div class="modal-body" data-layout="table">
+                <div class="modal-body" data-layout="table"> {# flex-grow handled by this rule #}
                     <section class="top-section">
                         <div class="photo-area" id="latestPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div>
                         <div class="intro-area" id="latestIntroArea"><div class="intro-top"><p id="latestIntroductionContent">載入中...</p></div></div>
                     </section>
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
-                        <div class="body-wrapper"> {# Padding handled by CSS #}
+                        <div class="body-wrapper"> {# Internal scroll, padding handles bottom space #}
                             <table class="body-table" id="latestReviewTable">
                                 <tbody>
                                     {# Content will be loaded via AJAX #}
@@ -696,14 +816,15 @@
                 <div class="modal-header">
                     <h2 id="noteModalTitle">筆記</h2><button class="close-modal" aria-label="關閉">×</button>
                 </div>
-                <div class="modal-body"> {# Padding handled by CSS #}
-                    <form id="noteForm" method="POST" style="display:none;">
+                <div class="modal-body"> {# flex-grow applied via specific rule #}
+                    <form id="noteForm" method="POST" style="display:none;"> {# Flex properties applied via specific rule #}
                         {% csrf_token %}
                         <input type="hidden" id="noteAnimalId" name="animal_id" value="">
                         <input type="hidden" id="currentNoteId" name="note_id" value="">
+                        {# Textarea is inside the last form group which has flex properties applied #}
                         <div class="form-group"><label for="noteContent">筆記內容</label><textarea name="content" id="noteContent" rows="5" placeholder="請輸入筆記內容" required></textarea></div>
                     </form>
-                    <div id="viewNoteSection" style="display:none;">
+                    <div id="viewNoteSection" style="display:none;"> {# Flex properties applied via specific rule #}
                         <div class="note-box" id="viewNoteContent"></div>
                     </div>
                 </div>
@@ -725,7 +846,7 @@
                     <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="myNotesTable"> <span>顯示筆記</span></label></div>
                     <button class="close-modal" aria-label="關閉">×</button>
                 </div>
-                <div class="modal-body" data-layout="table">
+                <div class="modal-body" data-layout="table"> {# flex-grow handled by this rule #}
                     <section class="top-section">
                         <div class="photo-area" id="myNotesPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div>
                         <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">載入中...</p></div></div>
@@ -738,7 +859,7 @@
                     </nav>
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
-                        <div class="body-wrapper"> {# Padding handled by CSS #}
+                        <div class="body-wrapper"> {# Internal scroll, padding handles bottom space #}
                             <table class="body-table" id="myNotesTable">
                                 <tbody>
                                      {# Content will be loaded via AJAX (initially all, then filtered) #}
@@ -759,7 +880,7 @@
                     <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="dailyAnimalTable"> <span>顯示筆記</span></label></div>
                     <button class="close-modal" aria-label="關閉">×</button>
                 </div>
-                <div class="modal-body" data-layout="table">
+                <div class="modal-body" data-layout="table"> {# flex-grow handled by this rule #}
                     <section class="top-section">
                         <div class="photo-area" id="dailyPhotoArea"><p style="color:#888;font-size:0.9rem;">請點擊下方館別載入班表</p></div>
                         <div class="intro-area" id="dailyIntroArea"><div class="intro-top"><p id="dailyIntroductionContent">點擊下方館別載入介紹</p></div></div>
@@ -770,7 +891,7 @@
                     </nav>
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
-                        <div class="body-wrapper"> {# Padding handled by CSS #}
+                        <div class="body-wrapper"> {# Internal scroll, padding handles bottom space #}
                             <table class="body-table" id="dailyAnimalTable">
                                 <tbody>
                                     {# Initial message might change based on JS logic below #}
@@ -791,14 +912,14 @@
                     <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="recommendationTable"> <span>顯示筆記</span></label></div>
                     <button class="close-modal" aria-label="關閉">×</button>
                 </div>
-                <div class="modal-body" data-layout="table">
+                <div class="modal-body" data-layout="table"> {# flex-grow handled by this rule #}
                     <section class="top-section">
                         <div class="photo-area" id="recommendationPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div>
                         <div class="intro-area" id="recommendationIntroArea"><div class="intro-top"><p id="recommendationIntroductionContent">載入中...</p></div></div>
                     </section>
                     <div class="table-wrapper">
                         <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
-                        <div class="body-wrapper"> {# Padding handled by CSS #}
+                        <div class="body-wrapper"> {# Internal scroll, padding handles bottom space #}
                             <table class="body-table" id="recommendationTable">
                                 <tbody>
                                     {# Content will be loaded via AJAX #}
@@ -819,7 +940,7 @@
                     {# No toggle notes checkbox needed here #}
                     <button class="close-modal" aria-label="關閉">×</button>
                 </div>
-                <div class="modal-body"> {# Padding is handled by CSS (removed data-layout="table") #}
+                <div class="modal-body"> {# flex-grow handled by specific rule #}
                     <nav class="hall-menu" id="weeklyHallMenu">
                         {% for hall in halls %}
                           <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a>
@@ -828,7 +949,7 @@
                             <p style="color:#666; padding: 0.5rem 0.75rem;">沒有可選的館別</p>
                         {% endif %}
                     </nav>
-                    <div id="weeklyScheduleImageArea" class="schedule-image-container">
+                    <div id="weeklyScheduleImageArea" class="schedule-image-container"> {# Internal scroll #}
                         <p>請點擊上方館別查看班表</p> {# Initial placeholder #}
                     </div>
                 </div>
@@ -836,6 +957,22 @@
             </div>
         </div>
         <!-- END: New Weekly Schedule Modal -->
+
+        <!-- START: New Hall of Fame Modal -->
+        <div id="hallOfFameModal" class="modal" role="dialog" aria-modal="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>紓壓名人堂 (Top 10)</h2>
+                    <button class="close-modal" aria-label="關閉">×</button>
+                </div>
+                <div class="modal-body"> {# flex-grow applied, padding handles bottom space #}
+                    <ol id="hallOfFameList">
+                        <li class="loading-message">載入中...</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <!-- END: New Hall of Fame Modal -->
 
 
       <!-- Bottom slide-up menu & Overlay -->
@@ -935,6 +1072,10 @@
                         togglePriceInput('music', 'music_price');
                         togglePriceInput('sports', 'sports_price');
                      }
+                     // Scroll body to top when opening for form
+                     const modalBody = modal.querySelector('.modal-body');
+                     if(modalBody) modalBody.scrollTop = 0;
+
                     modal.style.display = 'block'; // Show the modal
                  }
                 closePlusDropdown();
@@ -990,6 +1131,10 @@
                         togglePriceInput('music', 'music_price');
                         togglePriceInput('sports', 'sports_price');
                      }
+                     // Scroll body to top when opening for form
+                     const modalBody = modal.querySelector('.modal-body');
+                     if(modalBody) modalBody.scrollTop = 0;
+
                     modal.style.display = 'block';
                  }
                 closePlusDropdown();
@@ -1128,8 +1273,9 @@
         const deleteBtn = document.getElementById('deleteNoteBtn');
         const saveBtn = document.getElementById('saveNoteBtn');
         const viewButtons = document.getElementById('viewNoteButtons');
+        const modalBody = modal.querySelector('.modal-body'); // Get body for scrolling
 
-        if (!modal || !form || !viewSection || !title || !textarea || !viewContent || !animalIdInput || !noteIdInput || !deleteBtn || !saveBtn || !viewButtons) {
+        if (!modal || !form || !viewSection || !title || !textarea || !viewContent || !animalIdInput || !noteIdInput || !deleteBtn || !saveBtn || !viewButtons || !modalBody) {
             console.error("Note modal elements missing"); return;
         }
 
@@ -1139,14 +1285,17 @@
         const normalizedNoteContent = normalizeNewlines(noteContent || ''); // Normalize here
         textarea.value = normalizedNoteContent; // Set normalized content to textarea
 
+        // Scroll body to top
+        modalBody.scrollTop = 0;
+
         if (noteId) {
             title.textContent = "查看/修改筆記"; noteIdInput.value = noteId;
             viewContent.textContent = normalizedNoteContent; // Display normalized content
-            viewSection.style.display = 'block'; form.style.display = 'none';
+            viewSection.style.display = 'flex'; /* Ensure flex for flex-grow */ form.style.display = 'none';
             saveBtn.style.display = 'none'; viewButtons.style.display = 'block';
         } else {
             title.textContent = "加入筆記"; noteIdInput.value = '';
-            viewSection.style.display = 'none'; form.style.display = 'block';
+            viewSection.style.display = 'none'; form.style.display = 'flex'; /* Ensure flex for flex-grow */
             saveBtn.style.display = 'inline-block'; viewButtons.style.display = 'none';
             textarea.focus();
         }
@@ -1255,7 +1404,7 @@
         const title = document.getElementById('noteModalTitle'); const textarea = document.getElementById('noteContent');
         const saveBtn = document.getElementById('saveNoteBtn'); const viewButtons = document.getElementById('viewNoteButtons');
         if(form && viewSection && title && textarea && saveBtn && viewButtons){
-            viewSection.style.display = 'none'; form.style.display = 'block';
+            viewSection.style.display = 'none'; form.style.display = 'flex'; /* Ensure flex */
             title.textContent = "修改筆記";
             saveBtn.style.display = 'inline-block'; viewButtons.style.display = 'none';
             textarea.focus();
@@ -1429,19 +1578,16 @@
                                 loadFilteredDailySchedule(activeHallLink.dataset.hallId);
                              }
                         }
+                        // Reload Hall of Fame if open (review count might change ranking)
+                        const hofModal = document.getElementById('hallOfFameModal');
+                        if (hofModal && hofModal.style.display === 'block') {
+                            loadHallOfFameData(); // Reload Hall of Fame data
+                        }
                         // Also reload the review count display on the main row(s)
                         if (animalId) {
                            // Query for the animal's new review count (this requires another AJAX call or backend modification)
                            // For now, we just assume the count increased by 1 visually (requires admin approval though)
                            console.warn("Review count needs proper backend refresh after submission for accuracy.");
-                           // Example of potential visual-only update (inaccurate until approved)
-                           // updateRowsByAnimalId(animalId, (r) => {
-                           //   const countBtn = r.querySelector('.review-count-btn');
-                           //   if (countBtn) {
-                           //     const currentCount = parseInt(countBtn.textContent, 10) || 0;
-                           //     countBtn.textContent = currentCount + 1; // Visually increment
-                           //   }
-                           // });
                         }
                     }
                     // If it was a story review, we don't need to immediately refresh the panel
@@ -1559,7 +1705,7 @@
           if (!modal) { console.error(`Modal not found: #${modalId}`); return; }
 
           // Handle non-table modals or modals requiring specific loading separately
-          if (modalId === 'loginModal' || modalId === 'reviewModal' || modalId === 'reviewSubmitModal' || modalId === 'noteModal' || modalId === 'storyDetailModal' || modalId === 'weeklyScheduleModal') { // <-- Added weeklyScheduleModal
+          if (modalId === 'loginModal' || modalId === 'reviewModal' || modalId === 'reviewSubmitModal' || modalId === 'noteModal' || modalId === 'storyDetailModal' || modalId === 'weeklyScheduleModal' || modalId === 'hallOfFameModal') { // <-- Added weeklyScheduleModal & hallOfFameModal
               // These modals don't load table content via this function
               return;
           }
@@ -1646,36 +1792,42 @@
       const openModal = (modalId) => {
           const modal = document.getElementById(modalId);
           if (modal) {
-              // Reset modal content if necessary (e.g., for modals showing specific item details)
+               // Always scroll body to top for relevant modals on open
+               const modalBody = modal.querySelector('.modal-body');
+               if(modalBody && ['reviewModal', 'reviewSubmitModal', 'noteModal', 'storyDetailModal', 'hallOfFameModal'].includes(modalId)) {
+                   modalBody.scrollTop = 0;
+               }
+
+              // Reset specific modal content if necessary
               if (modalId === 'reviewModal') {
                    const reviewList = document.getElementById('reviewList');
-                   if (reviewList) reviewList.innerHTML = '<p>請點擊列表中的心得按鈕查看。</p>'; // Initial placeholder
+                   if (reviewList) reviewList.innerHTML = '<p>請點擊列表中的心得按鈕查看。</p>';
               }
               if (modalId === 'storyDetailModal') {
                    const headerDiv = document.getElementById('storyDetailHeader');
                    const contentDiv = document.getElementById('storyDetailContent');
                    if(headerDiv) headerDiv.innerHTML = '<div class="story-loading-message">載入中...</div>';
-                   if(contentDiv) contentDiv.innerHTML = ''; // Clear content initially
+                   if(contentDiv) contentDiv.innerHTML = '';
               }
-              // --- START: Reset Weekly Schedule Modal ---
               if (modalId === 'weeklyScheduleModal') {
                   const imageArea = document.getElementById('weeklyScheduleImageArea');
                   const hallMenu = document.getElementById('weeklyHallMenu');
-                  if (imageArea) imageArea.innerHTML = '<p>請點擊上方館別查看班表</p>'; // Reset image area
-                  if (hallMenu) { // Reset hall menu active state
-                      hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active'));
-                  }
+                  if (imageArea) imageArea.innerHTML = '<p>請點擊上方館別查看班表</p>';
+                  if (hallMenu) hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active'));
               }
-              // --- END: Reset Weekly Schedule Modal ---
+              if (modalId === 'hallOfFameModal') {
+                  const listElement = document.getElementById('hallOfFameList');
+                  if(listElement) listElement.innerHTML = '<li class="loading-message">載入中...</li>';
+              }
 
               modal.style.display = 'block';
-              document.body.style.overflow = 'hidden'; // Prevent background scroll
+              document.body.style.overflow = 'hidden';
 
               // Define which modals need initial AJAX loading (excluding those with hall filters handled separately)
               const needsAjaxLoadOnOpen = ['pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'];
 
               if (needsAjaxLoadOnOpen.includes(modalId)) {
-                   loadModalContent(modalId); // Trigger initial load for these modals
+                   loadModalContent(modalId);
               }
               // Special handling for Daily Schedule modal on open
               else if (modalId === 'dailyScheduleModal') {
@@ -1684,24 +1836,17 @@
                   const photoArea = modal.querySelector('#dailyPhotoArea');
                   const introArea = modal.querySelector('#dailyIntroArea');
                   const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]');
-                  // Reset to initial state before loading first hall
                   if (tbody && photoArea && introArea) {
                       tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請點擊下方館別載入班表</td></tr>';
                       updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '點擊下方館別載入介紹');
-                      if (checkbox) { syncCheckboxState(checkbox, tbody); } // Sync checkbox (likely disable)
-
-                      // Reset active state on hall menu
+                      if (checkbox) { syncCheckboxState(checkbox, tbody); }
                       modal.querySelectorAll('#dailyHallMenu a').forEach(link => link.classList.remove('active'));
-
-                      // Automatically click the first hall link if it exists
                       if (firstHallLink) {
-                           // Use setTimeout to ensure the click happens after the modal is fully displayed/rendered
                            setTimeout(() => {
-                               firstHallLink.classList.add('active'); // Set first as active before clicking
-                               loadFilteredDailySchedule(firstHallLink.dataset.hallId); // Load data for the first hall
+                               firstHallLink.classList.add('active');
+                               loadFilteredDailySchedule(firstHallLink.dataset.hallId);
                            }, 50);
                       } else {
-                           // Handle case with no halls
                            tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">目前沒有任何館別可顯示</td></tr>';
                            updatePhotoArea(photoArea, null, '無館別'); updateIntroArea(introArea, '目前沒有任何館別可顯示');
                            if (checkbox) syncCheckboxState(checkbox, tbody);
@@ -1712,36 +1857,30 @@
               else if (modalId === 'myNotesModal') {
                   const hallMenu = modal.querySelector('#myNotesHallMenu');
                   if (hallMenu) {
-                      // Reset active state and set 'All' as active
                       hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active'));
                       const allLink = hallMenu.querySelector('a[data-hall-id="all"]');
                       if (allLink) allLink.classList.add('active');
                   }
-                  // Load all notes initially
                   loadFilteredNotes('all');
               }
-              // --- START: Auto-click first hall in Weekly Schedule on open ---
+              // Auto-click first hall in Weekly Schedule on open
               else if (modalId === 'weeklyScheduleModal') {
                   const firstHallLink = modal.querySelector('#weeklyHallMenu a:first-of-type');
-                   // Automatically click the first hall link if it exists
                   if (firstHallLink) {
                       setTimeout(() => {
-                          firstHallLink.click(); // Simulate click to load the first schedule
-                      }, 50); // Delay ensures modal is ready
+                          firstHallLink.click();
+                      }, 50);
                   } else {
                        const imageArea = document.getElementById('weeklyScheduleImageArea');
                        if (imageArea) imageArea.innerHTML = '<p>目前沒有任何館別可顯示</p>';
                   }
               }
-              // --- END: Auto-click first hall in Weekly Schedule on open ---
-
-
-              // Scroll review submit modal to top on open
-              if (modalId === 'reviewSubmitModal') {
-                  const reviewModalBody = modal.querySelector('.modal-body');
-                  if (reviewModalBody) reviewModalBody.scrollTop = 0;
-                   // Reset title and hidden type to default (regular review) when opened directly
-                   // This ensures if opened NOT via plus menu, it defaults to regular review
+              // Load Hall of Fame data on open
+              else if (modalId === 'hallOfFameModal') {
+                    loadHallOfFameData();
+              }
+              // Reset review submit modal title/type if opened directly
+              if (modalId === 'reviewSubmitModal' && !document.getElementById('plusDropdown')?.classList.contains('open')) {
                    const modalTitle = document.getElementById('reviewSubmitModalTitle');
                    const hiddenTypeInput = document.getElementById('submissionType');
                    if(modalTitle) modalTitle.textContent = "填寫心得";
@@ -1780,7 +1919,7 @@
           // Set loading state
           headerDiv.innerHTML = '<div class="story-loading-message">載入動態標頭中...</div>';
           contentDiv.innerHTML = '<div class="story-loading-message">載入動態內容中...</div>';
-          openModal('storyDetailModal'); // Open the modal first
+          openModal('storyDetailModal'); // Open the modal first (will also scroll body top)
 
           fetch(`/ajax/story_detail/${storyId}/`, {
               headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
@@ -1865,6 +2004,45 @@
       // --- END: New Function to Show Story Detail ---
 
 
+      // --- START: New Function to Load Hall of Fame Data ---
+       function loadHallOfFameData() {
+           const listElement = document.getElementById('hallOfFameList');
+           if (!listElement) { console.error("Hall of Fame list element (#hallOfFameList) not found."); return; }
+
+           listElement.innerHTML = '<li class="loading-message">載入中...</li>'; // Set loading state
+
+           fetch("{% url 'ajax_get_hall_of_fame' %}", {
+               headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+           })
+           .then(response => {
+               if (!response.ok) { return response.json().catch(() => ({ error: `HTTP error ${response.status}` })).then(errData => { throw new Error(errData.error || `HTTP error ${response.status}`); }); }
+               const contentType = response.headers.get("content-type"); if (!contentType?.includes("application/json")) { throw new TypeError("伺服器未返回有效的 JSON"); }
+               return response.json();
+           })
+           .then(data => {
+               listElement.innerHTML = ''; // Clear loading/previous content
+               if (data.users && data.users.length > 0) {
+                   data.users.forEach(user => {
+                       const li = document.createElement('li');
+                       li.innerHTML = `
+                           <span class="rank">#${user.rank}</span>
+                           <span class="user-name">${user.user_name}</span>
+                           <span class="review-count">${user.review_count} 心得</span>
+                       `;
+                       listElement.appendChild(li);
+                   });
+               } else {
+                   listElement.innerHTML = '<li class="empty-message">目前尚無心得排行</li>';
+               }
+           })
+           .catch(error => {
+               console.error("Error loading Hall of Fame:", error);
+               listElement.innerHTML = `<li class="empty-message" style="color: red;">無法載入名人堂: ${error.message}</li>`;
+           });
+       }
+       // --- END: New Function to Load Hall of Fame Data ---
+
+
       // --- Event Listener Setup (using event delegation on document) ---
       document.addEventListener('click', function(e) {
           const target = e.target;
@@ -1891,6 +2069,14 @@
               return; // Prevent other actions
           }
           // --- END: Weekly Schedule Button Click Handler ---
+
+          // --- START: Hall of Fame Button Click Handler ---
+          if (targetClosest('#btnHallOfFameHeader')) {
+              openModal('hallOfFameModal'); // This already calls loadHallOfFameData inside
+              return;
+          }
+          // --- END: Hall of Fame Button Click Handler ---
+
 
           // Modal Opening Buttons (Header)
           if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
