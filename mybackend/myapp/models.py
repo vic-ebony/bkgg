@@ -221,28 +221,38 @@ def set_story_approval_times(sender, instance, **kwargs):
 # --- END: New StoryReview Model ---
 
 
-# --- START: New WeeklySchedule Model ---
+# --- START: Modified WeeklySchedule Model ---
 class WeeklySchedule(models.Model):
-    hall = models.OneToOneField(
+    # Changed from OneToOneField to ForeignKey
+    hall = models.ForeignKey(
         Hall,
         on_delete=models.CASCADE,
         verbose_name="館別",
-        related_name='weekly_schedule' # Allows access like hall.weekly_schedule
-        # unique=True is implied by OneToOneField
+        related_name='weekly_schedules' # Changed related_name to plural
     )
     schedule_image = models.ImageField(
         "班表圖片",
         upload_to='weekly_schedules/', # Store images in media/weekly_schedules/
-        help_text="請上傳 A4 尺寸的圖片",
-        # No blank=True or null=True, assuming an image is required if the entry exists
+        help_text="請上傳班表圖片",
+        # No blank=True or null=True, assuming an image is required
+    )
+    # Added order field
+    order = models.PositiveIntegerField(
+        "排序",
+        default=0,
+        help_text="用於排序同一個館別的多張班表圖片，數字越小越前面"
     )
     updated_at = models.DateTimeField("最後更新時間", auto_now=True)
 
     class Meta:
-        ordering = ['hall__order', 'hall__name'] # Order by hall order, then name
-        verbose_name = "每週班表"
-        verbose_name_plural = "每週班表"
+        # Updated ordering to include the new order field
+        ordering = ['hall__order', 'hall__name', 'order']
+        verbose_name = "每週班表圖片" # Adjusted verbose name slightly
+        verbose_name_plural = "每週班表圖片"
 
     def __str__(self):
-        return f"{self.hall.name} - 每週班表 (更新於 {timezone.localtime(self.updated_at).strftime('%Y-%m-%d %H:%M')})"
-# --- END: New WeeklySchedule Model ---
+        # Adjusted string representation
+        local_time_str = timezone.localtime(self.updated_at).strftime('%Y-%m-%d %H:%M') if self.updated_at else '未知時間'
+        image_name = self.schedule_image.name.split('/')[-1] if self.schedule_image else '無圖片'
+        return f"{self.hall.name} - 班表 {self.order} ({image_name}) - 更新於 {local_time_str}"
+# --- END: Modified WeeklySchedule Model ---

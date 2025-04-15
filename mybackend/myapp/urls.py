@@ -26,8 +26,8 @@ urlpatterns = [
     path('ajax/latest-reviews/', views.ajax_get_latest_reviews, name='ajax_get_latest_reviews'),
     path('ajax/recommendations/', views.ajax_get_recommendations, name='ajax_get_recommendations'),
 
-    # --- START: New URL for Weekly Schedule AJAX ---
+    # --- START: URL for Weekly Schedule AJAX (No change needed here) ---
     path('ajax/weekly_schedule/', views.ajax_get_weekly_schedule, name='ajax_get_weekly_schedule'),
-    # --- END: New URL for Weekly Schedule AJAX ---
+    # --- END: URL for Weekly Schedule AJAX ---
 
 ]

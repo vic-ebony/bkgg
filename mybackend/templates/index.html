@@ -465,9 +465,13 @@
       max-width: 100%; /* Ensure image fits width */
       height: auto; /* Maintain aspect ratio */
       display: block; /* Remove extra space below image */
-      margin: 0 auto; /* Center image horizontally */
+      margin: 0 auto 1rem auto; /* Center image horizontally and add bottom margin */
       border: 1px solid #ccc; /* Optional border */
       background-color: #fff; /* White background behind image */
+      cursor: pointer; /* Add pointer cursor to indicate clickability */
+    }
+    .schedule-image-container img:last-child {
+        margin-bottom: 0; /* Remove bottom margin from the last image */
     }
     .schedule-image-container p {
       color: #666;
@@ -1907,7 +1911,7 @@
           const notesHallLink = targetClosest('#myNotesHallMenu a');
           if (notesHallLink) { e.preventDefault(); const menu = notesHallLink.closest('#myNotesHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); notesHallLink.classList.add('active'); const hallId = notesHallLink.dataset.hallId; loadFilteredNotes(hallId); return; }
 
-          // --- START: Weekly Schedule Hall Menu Click Handler ---
+          // --- START: Weekly Schedule Hall Menu Click Handler (MODIFIED) ---
           const weeklyHallLink = targetClosest('#weeklyHallMenu a');
           if (weeklyHallLink) {
               e.preventDefault();
@@ -1924,7 +1928,7 @@
               // Set loading state
               imageArea.innerHTML = '<p>載入中...</p>';
 
-              // Fetch the schedule image URL
+              // Fetch the schedule image URLs (plural)
               fetch(`/ajax/weekly_schedule/?hall_id=${hallId}`, {
                   headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
               })
@@ -1934,32 +1938,108 @@
                   return response.json();
               })
               .then(data => {
-                  if (data.success && data.schedule_url) {
-                      imageArea.innerHTML = `<img src="${data.schedule_url}" alt="${data.hall_name || '館別'} 每週班表">`;
+                  imageArea.innerHTML = ''; // Clear loading/previous content
+                  if (data.success && data.schedule_urls && data.schedule_urls.length > 0) {
+                      // *** Loop through the URLs and create images ***
+                      data.schedule_urls.forEach((url, index) => {
+                          const img = document.createElement('img');
+                          img.src = url;
+                          img.alt = `${data.hall_name || '館別'} 每週班表 (圖片 ${index + 1})`;
+                          // CSS handles styling (max-width, margin, etc.)
+                          imageArea.appendChild(img);
+                      });
+                  } else if (data.success && (!data.schedule_urls || data.schedule_urls.length === 0)) {
+                      // Schedules might exist, but no images are associated or returned
+                      imageArea.innerHTML = `<p>${data.message || '此館別班表紀錄中未找到有效圖片'}</p>`;
                   } else if (!data.success && data.message) {
+                      // Specific message from backend when no schedules are found at all
                       imageArea.innerHTML = `<p>${data.message}</p>`;
                   } else {
+                      // General error case
                       imageArea.innerHTML = `<p>錯誤: ${data.error || '無法載入班表'}</p>`;
                   }
               })
               .catch(error => {
                   console.error("Error fetching weekly schedule:", error);
                   imageArea.innerHTML = `<p style="color: red;">無法連接伺服器: ${error.message}</p>`;
+                  imageArea.innerHTML = ''; // Clear image area on error too
               });
               return; // Prevent other actions
           }
-          // --- END: Weekly Schedule Hall Menu Click Handler ---
+          // --- END: Weekly Schedule Hall Menu Click Handler (MODIFIED) ---
+
+          // --- START: MODIFICATION - Weekly Schedule Image Click Handler ---
+          const weeklyScheduleImage = targetClosest('#weeklyScheduleImageArea img');
+          if (weeklyScheduleImage) {
+              const lightbox = document.getElementById('imageLightbox');
+              const lightboxImg = document.getElementById('lightboxImage');
+              if (lightbox && lightboxImg) {
+                  lightboxImg.src = weeklyScheduleImage.src;
+                  lightboxImg.alt = weeklyScheduleImage.alt || "放大班表圖片"; // Use original alt or default
+                  lightbox.style.display = 'flex'; // Use flex for centering from CSS
+                  document.body.style.overflow = 'hidden'; // Prevent background scroll
+                  console.log("Showing lightbox for schedule image:", weeklyScheduleImage.src);
+              } else {
+                  console.error("Lightbox elements (#imageLightbox or #lightboxImage) not found!");
+              }
+              return; // Prevent other click handlers like closing the modal
+          }
+          // --- END: MODIFICATION - Weekly Schedule Image Click Handler ---
 
 
           // Row Click for Top Section Update (in table modals)
           const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
-          if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn, a, button, input, select, textarea, .photo-area img')) { const modal = tableRow.closest('.modal'); if(modal?.querySelector('.modal-body[data-layout="table"] .top-section')){ const photoArea = modal.querySelector('.photo-area'); const introArea = modal.querySelector('.intro-area'); if (photoArea && introArea) { updateTopSectionFromRow(photoArea, introArea, tableRow); } } return; }
+          if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn, a, button, input, select, textarea, .photo-area img, #weeklyScheduleImageArea img')) { // Added #weeklyScheduleImageArea img exclusion
+              const modal = tableRow.closest('.modal');
+              if(modal?.querySelector('.modal-body[data-layout="table"] .top-section')){
+                  const photoArea = modal.querySelector('.photo-area');
+                  const introArea = modal.querySelector('.intro-area');
+                  if (photoArea && introArea) {
+                      updateTopSectionFromRow(photoArea, introArea, tableRow);
+                  }
+              }
+              return;
+          }
 
-          // Lightbox Click Handling
+          // Lightbox Click Handling (Profile Photo)
           const photoAreaImage = targetClosest('.photo-area img');
-          if (photoAreaImage) { const lightbox = document.getElementById('imageLightbox'); const lightboxImg = document.getElementById('lightboxImage'); if (lightbox && lightboxImg) { lightboxImg.src = photoAreaImage.src; lightboxImg.alt = photoAreaImage.alt || "放大圖片"; lightbox.style.display = 'flex'; document.body.style.overflow = 'hidden'; } return; }
+          if (photoAreaImage) {
+              const lightbox = document.getElementById('imageLightbox');
+              const lightboxImg = document.getElementById('lightboxImage');
+              if (lightbox && lightboxImg) {
+                  lightboxImg.src = photoAreaImage.src;
+                  lightboxImg.alt = photoAreaImage.alt || "放大圖片";
+                  lightbox.style.display = 'flex';
+                  document.body.style.overflow = 'hidden';
+                  console.log("Showing lightbox for profile image:", photoAreaImage.src);
+              } else {
+                   console.error("Lightbox elements (#imageLightbox or #lightboxImage) not found!");
+              }
+              return;
+          }
+
+          // Lightbox Closing Logic (Handles closing for BOTH profile and schedule images)
           const lightbox = document.getElementById('imageLightbox');
-          if (lightbox && lightbox.style.display === 'flex') { if (target.id === 'closeLightbox' || target.id === 'imageLightbox') { lightbox.style.display = 'none'; const lightboxImg = document.getElementById('lightboxImage'); if (lightboxImg) lightboxImg.src = ''; const anyModalOpen = document.querySelector('.modal[style*="display: block"]'); if (!anyModalOpen) { document.body.style.overflow = ''; } return; } if (target.id === 'lightboxImage') { return; } }
+          if (lightbox && lightbox.style.display === 'flex') { // Check if lightbox is open
+              if (target.id === 'closeLightbox' || target.id === 'imageLightbox') { // Click on close button or background
+                  lightbox.style.display = 'none';
+                  const lightboxImg = document.getElementById('lightboxImage');
+                  if (lightboxImg) lightboxImg.src = ''; // Clear src
+                  // Restore body scroll ONLY if no other modals are open
+                  const anyModalOpen = document.querySelector('.modal[style*="display: block"]');
+                  if (!anyModalOpen) {
+                      document.body.style.overflow = '';
+                  }
+                  console.log("Lightbox closed.");
+                  return; // Prevent other handlers
+              }
+              // If click is inside the image itself, do nothing (don't close)
+              if (target.id === 'lightboxImage') {
+                   console.log("Clicked inside lightbox image.");
+                   return;
+              }
+          }
+
 
           // Close Modal Actions
           const closeBtn = targetClosest('.close-modal'); if (closeBtn) { closeModal(targetClosest('.modal')); return; }

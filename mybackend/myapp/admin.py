@@ -118,22 +118,26 @@ class StoryReviewAdmin(admin.ModelAdmin):
 # --- END: Register StoryReview Admin ---
 
 
-# --- START: Register WeeklySchedule Admin ---
+# --- START: Modified WeeklySchedule Admin ---
 @admin.register(WeeklySchedule)
 class WeeklyScheduleAdmin(admin.ModelAdmin):
-    list_display = ('hall', 'schedule_image_preview', 'updated_at')
+    # Added 'order' to list_display
+    list_display = ('hall', 'order', 'schedule_image_preview', 'updated_at')
     list_filter = ('hall',)
     search_fields = ('hall__name',) # Search by hall name
     readonly_fields = ('updated_at',)
     list_select_related = ('hall',) # Optimize query for hall name
     autocomplete_fields = ['hall'] # Easier hall selection
+    # Added 'order' to list_editable
+    list_editable = ('order',)
 
-    fields = ('hall', 'schedule_image', 'updated_at') # Define field order in detail view
+    # Added 'order' to fields
+    fields = ('hall', 'schedule_image', 'order', 'updated_at') # Define field order in detail view
 
-    @admin.display(description='班表預覽')
+    @admin.display(description='班表圖片預覽') # Changed description slightly
     def schedule_image_preview(self, obj):
         if obj.schedule_image:
             # Display a small thumbnail in the admin list view
             return format_html('<img src="{}" style="max-height: 100px; max-width: 100px;" />', obj.schedule_image.url)
         return "無圖片"
-# --- END: Register WeeklySchedule Admin ---
+# --- END: Modified WeeklySchedule Admin ---

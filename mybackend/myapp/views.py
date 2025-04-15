@@ -817,7 +817,7 @@ def ajax_get_story_detail(request, story_id):
 # --- END: New AJAX View for Story Detail ---
 
 
-# --- START: New AJAX View for Weekly Schedule Image ---
+# --- START: Modified AJAX View for Weekly Schedule Images ---
 @require_GET # This view only handles GET requests
 def ajax_get_weekly_schedule(request):
     hall_id = request.GET.get('hall_id')
@@ -832,23 +832,42 @@ def ajax_get_weekly_schedule(request):
         return JsonResponse({'success': False, 'error': '無效的館別 ID 格式'}, status=400)
 
     try:
-        # Fetch the schedule using the related name from Hall (or directly)
-        # Using select_related('hall') is good practice if you might need hall info later
-        schedule = WeeklySchedule.objects.select_related('hall').filter(hall_id=hall_id_int).first()
+        # Fetch ALL schedules for the hall, ordered by the 'order' field
+        schedules = WeeklySchedule.objects.filter(
+            hall_id=hall_id_int
+        ).order_by('order').select_related('hall') # Added order_by
 
-        if schedule and schedule.schedule_image:
-            print(f"    Found weekly schedule for Hall {hall_id}: {schedule.schedule_image.url}")
-            return JsonResponse({
-                'success': True,
-                'schedule_url': schedule.schedule_image.url,
-                'hall_name': schedule.hall.name # Optionally return hall name for context
-            })
+        if schedules.exists():
+            # Extract URLs from the schedules that have an image
+            schedule_urls = [s.schedule_image.url for s in schedules if s.schedule_image]
+            hall_name = schedules.first().hall.name # Get hall name from the first schedule
+
+            if schedule_urls:
+                print(f"    Found {len(schedule_urls)} weekly schedule images for Hall {hall_id}.")
+                return JsonResponse({
+                    'success': True,
+                    'schedule_urls': schedule_urls, # Return a list of URLs
+                    'hall_name': hall_name
+                })
+            else:
+                # Schedules exist but have no images? Or filter removed them.
+                print(f"    Weekly schedule entries found for Hall {hall_id}, but no valid images associated.")
+                return JsonResponse({
+                    'success': False,
+                    'schedule_urls': [],
+                    'hall_name': hall_name,
+                    'message': '此館別班表紀錄中未找到有效圖片' # More specific message
+                })
         else:
-            print(f"    No weekly schedule found for Hall {hall_id}.")
+            # No WeeklySchedule objects found for this hall
+            print(f"    No weekly schedule entries found for Hall {hall_id}.")
+            hall_name = Hall.objects.filter(id=hall_id_int).values_list('name', flat=True).first() or '此館別'
             return JsonResponse({
                 'success': False,
-                'schedule_url': None,
-                'message': '此館別尚未上傳本週班表'
+                'schedule_urls': [], # Empty list
+                 # Try to get hall name even if no schedules exist
+                'hall_name': hall_name,
+                'message': f'{hall_name}尚未上傳本週班表'
             })
 
     except Hall.DoesNotExist: # Should not happen if hall_id_int is valid, but good practice
@@ -856,4 +875,4 @@ def ajax_get_weekly_schedule(request):
     except Exception as e:
         print(f"!!! Error fetching weekly schedule for Hall {hall_id}: {e} !!!"); traceback.print_exc()
         return JsonResponse({'success': False, 'error': '載入每週班表時發生伺服器錯誤'}, status=500)
-# --- END: New AJAX View for Weekly Schedule Image ---
+# --- END: Modified AJAX View for Weekly Schedule Images ---
