@@ -8,6 +8,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"> {# Added viewport-fit=cover #}
   <title>動物園入口</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+  <!-- 引入 Font Awesome 圖標庫 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     /* --- 全站基本設定 --- */
     html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; font-size: 16px; background: #ccc; display: flex; flex-direction: column; line-height: 1.5; }
@@ -48,7 +50,7 @@
     .modal { display: none; position: fixed; z-index: 2999; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0, 0, 0, 0.5); animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     /* --- Adjust Z-index for new modal --- */
-    #reviewModal, #reviewSubmitModal, #noteModal, #storyDetailModal, #weeklyScheduleModal, #hallOfFameModal { z-index: 3999; } /* Added weeklyScheduleModal & hallOfFameModal */
+    #reviewModal, #reviewSubmitModal, #noteModal, #storyDetailModal, #weeklyScheduleModal, #hallOfFameModal { z-index: 3999; }
 
     .modal-content {
         background-color: #fff; margin: 20px auto; padding: 0; border-radius: 15px;
@@ -95,8 +97,8 @@
     /* Make Hall of Fame modal body scrollable */
     #hallOfFameModal .modal-body {
         overflow-y: auto;
-        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
         flex-grow: 1; /* Ensure it grows */
+        padding: 0; /* Remove default padding */
     }
 
     .modal-footer {
@@ -108,6 +110,36 @@
     }
     .close-modal { font-size: 1.75rem; font-weight: bold; cursor: pointer; color: #aaa; background: none; border: none; padding: 0 0.5rem; line-height: 1; flex-shrink: 0; }
     .close-modal:hover { color: #666; }
+
+    /* START: Hall of Fame Close Button Style Adjustment (Top Right) */
+    #hallOfFameModal .close-modal {
+        /* --- Positioning --- */
+        position: absolute; /* Position relative to parent */
+        top: 15px;        /* Distance from top edge of modal-content */
+        right: 20px;       /* Distance from right edge of modal-content */
+        z-index: 10;       /* Ensure it's above header border */
+
+        /* --- Style Reset/Inheritance --- */
+        color: #aaa;
+        opacity: 0.7;
+        transition: opacity 0.3s ease, color 0.3s ease;
+        background: none;
+        border: none;
+        padding: 5px; /* Add some clickable area */
+        line-height: 0.8; /* Adjust line height for better centering */
+        font-size: 2rem; /* Slightly larger for easier clicking */
+        font-weight: bold;
+        cursor: pointer;
+        /* Remove flex properties */
+        margin-left: 0;
+        flex-shrink: 0;
+    }
+    #hallOfFameModal .close-modal:hover {
+        color: #FFD700; /* Gold on hover */
+        opacity: 1;
+    }
+    /* END: Hall of Fame Close Button Style Adjustment */
+
 
     /* --- Modal Table Layout --- */
     /* Keep the structure where body-wrapper handles scroll */
@@ -263,12 +295,62 @@
         .modal-body[data-layout="table"] .body-wrapper { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px); }
         #reviewModal .modal-body { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px); }
         #noteModal .modal-body { padding-bottom: 0.75rem; } /* Keep base padding */
-        #hallOfFameModal .modal-body { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); } /* Adjust Hall of Fame padding */
+        #hallOfFameModal .modal-body {
+            /* Padding handled by modal-content */
+        }
         .modal-header .header-toggle-notes { padding-right: 0.5rem; }
         .modal-header .header-toggle-notes label { font-size: 0.8rem;}
         .note-box { padding: 0.5rem 0.6rem 0.5rem 0.8rem; margin: 0.4rem 0.2rem; max-width: calc(100% - 0.4rem); }
         /* --- Adjust weekly schedule image padding on small screens --- */
         .schedule-image-container { padding: 0.75rem; padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); }
+
+        /* START: Adjust Hall of Fame modal on small screens (Font Size Adjusted & Button Fix) */
+        #hallOfFameModal .modal-content {
+            padding-left: 15px; padding-right: 15px; /* Reduce padding slightly */
+            padding-bottom: calc(15px + env(safe-area-inset-bottom, 0px)); /* Adjust bottom safe area padding */
+        }
+        #hallOfFameModal .modal-header {
+             padding: 10px 0 15px 0; /* Further reduce header padding */
+             /* Adjust padding-right to account for absolutely positioned button if using that method */
+             /* padding-right: 40px; */ /* Example if using absolute positioning */
+        }
+        #hallOfFameModal .modal-header h2 {
+            /* --- FONT SIZE ADJUSTED --- */
+            font-size: 1.4em; /* Further reduce title size on small screens */
+            letter-spacing: 0.5px;
+            margin-right: 5px; /* Slightly reduce space for button */
+        }
+        #hallOfFameModal .modal-header .close-modal {
+             font-size: 1.6rem; /* Slightly smaller close button */
+             /* Adjust positioning/margin for small screens if needed */
+             /* top: 12px; */ /* Example adjustment */
+             /* right: 15px; */ /* Example adjustment */
+        }
+        #hallOfFameModal .modal-body li {
+             padding: 12px 3px; /* Further reduce item padding */
+        }
+        #hallOfFameModal .modal-body .rank {
+            flex-basis: 60px; /* Further reduce rank area */
+             /* --- FONT SIZE ADJUSTED --- */
+            font-size: 0.95em;
+        }
+        #hallOfFameModal .modal-body .rank .fas {
+            margin-right: 6px;
+            /* --- FONT SIZE ADJUSTED --- */
+            font-size: 1.1em;
+             width: 18px;
+        }
+        #hallOfFameModal .modal-body .user-name {
+            /* --- FONT SIZE ADJUSTED --- */
+             font-size: 0.9em;
+             margin: 0 8px; /* Reduce margin */
+        }
+        #hallOfFameModal .modal-body .review-count {
+            flex-basis: 70px; /* Further reduce count area */
+             /* --- FONT SIZE ADJUSTED --- */
+             font-size: 0.8em;
+        }
+        /* END: Adjust Hall of Fame modal on small screens */
     }
     @media (min-width: 769px) { .header-promo { display: block; } }
 
@@ -302,9 +384,19 @@
         height: 85vh; /* Use height instead of max-height for flex-grow */
         max-height: 90vh; /* Keep max-height as a safety */
       }
-      .modal-body[data-layout="table"] .body-wrapper {
-        /* Removed unnecessary padding override here, base CSS handles it */
-      }
+       /* START: Adjust Hall of Fame modal on larger screens */
+       #hallOfFameModal .modal-content {
+           max-width: 480px; /* Slightly wider on larger screens */
+           height: auto; /* Let content determine height */
+           max-height: 85vh; /* Limit max height */
+           position: relative; /* Needed for absolute positioned close button */
+           padding-bottom: calc(25px + env(safe-area-inset-bottom, 0px)); /* Ensure safe area is added for larger screens too */
+       }
+       #hallOfFameModal .modal-header {
+           /* Adjust padding-right to make space for the button */
+           padding-right: 50px; /* Adjust as needed based on button size */
+       }
+       /* END: Adjust Hall of Fame modal on larger screens */
     }
     /* --- End MODIFIED --- */
 
@@ -554,50 +646,187 @@
     }
     /* --- END: CSS for Weekly Schedule Modal --- */
 
-    /* --- START: CSS for Hall of Fame Modal --- */
-    #hallOfFameModal .modal-body ol {
-        list-style: none; /* Remove default numbering */
-        padding-left: 0;
+    /* --- START: CSS for Hall of Fame Modal (Scheme 1 Applied & Font Size Adjusted & Top Right Button) --- */
+    /* Apply luxury background and overall style to modal-content */
+    #hallOfFameModal .modal-content {
+        background: #222222; /* Deep charcoal gray */
+        color: #e0e0e0;
+        border-radius: 15px;
+        padding: 25px 30px; /* Padding for content */
+        padding-bottom: calc(25px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 215, 0, 0.1);
+        border: 1px solid rgba(255, 215, 0, 0.45);
+        position: relative; /* Needed for absolute positioned close button */
+    }
+
+    /* Style the header specifically */
+    #hallOfFameModal .modal-header {
+        background: transparent;
+        border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+        padding: 15px 0 20px 0;
+        margin-bottom: 10px;
+        display: block; /* Change back to block to allow title centering */
+        text-align: center; /* Center title */
+        /* Remove flex properties */
+        /* align-items: center; */
+        /* justify-content: center; */
+        /* Add padding right to avoid overlap with absolute button */
+        padding-right: 50px; /* Adjust as needed */
+        position: static; /* Reset position if previously set */
+    }
+
+    #hallOfFameModal .modal-header h2 {
+        /* Remove Flexbox specific properties */
+        /* flex-grow: 0; */
+        /* flex-shrink: 1; */
+        /* margin-right: 10px; */
+        display: inline-block; /* Ensure it doesn't take full width */
+        /* Keep other styles */
+        text-align: center;
+        color: #FFD700;
         margin: 0;
+        font-size: 1.6em;
+        font-weight: 300;
+        letter-spacing: 1px;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.4);
     }
+
+    #hallOfFameModal .modal-header h2 .fa-crown {
+        margin-right: 10px;
+        opacity: 0.9;
+        vertical-align: middle;
+    }
+
+    /* Hall of Fame Close Button Style (Top Right - Absolute Position) */
+    #hallOfFameModal .close-modal {
+        position: absolute;
+        top: 15px;        /* Adjust vertical position */
+        right: 20px;       /* Adjust horizontal position */
+        z-index: 10;       /* Ensure it's above header border */
+        color: #aaa;
+        opacity: 0.7;
+        transition: opacity 0.3s ease, color 0.3s ease;
+        background: none;
+        border: none;
+        padding: 5px;
+        line-height: 0.8;
+        font-size: 2rem;
+        font-weight: bold;
+        cursor: pointer;
+        margin-left: 0; /* Reset margin */
+        flex-shrink: 0; /* Keep flex-shrink just in case */
+    }
+    #hallOfFameModal .close-modal:hover {
+        color: #FFD700;
+        opacity: 1;
+    }
+
+
+    /* Style the list container */
+    #hallOfFameModal .modal-body ol#hallOfFameList {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0 0 0;
+    }
+
+    /* Style individual list items */
     #hallOfFameModal .modal-body li {
-        padding: 0.75rem 0.5rem;
-        border-bottom: 1px solid #eee;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 1rem;
+        padding: 15px 5px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        cursor: default;
     }
+
     #hallOfFameModal .modal-body li:last-child {
         border-bottom: none;
     }
-    #hallOfFameModal .modal-body .rank {
-        font-weight: bold;
-        color: #007bff;
-        min-width: 30px; /* Ensure rank number has space */
-        text-align: right;
-        margin-right: 1rem;
+
+    #hallOfFameModal .modal-body li:hover {
+        background-color: rgba(255, 215, 0, 0.08);
+        transform: scale(1.015);
+        border-radius: 8px;
+        border-bottom-color: transparent;
     }
+
+    /* Style the Rank span */
+    #hallOfFameModal .modal-body .rank {
+        flex: 0 0 65px;
+        font-weight: 600;
+        color: #FFD700;
+        font-size: 1.0em;
+        display: flex;
+        align-items: center;
+        padding-left: 5px;
+    }
+
+    #hallOfFameModal .modal-body .rank .fas {
+        margin-right: 8px;
+        font-size: 1.15em;
+        opacity: 0.85;
+        width: 20px;
+        text-align: center;
+        transition: color 0.3s ease, opacity 0.3s ease;
+    }
+
+    /* Specific icon colors for top 3 */
+    #hallOfFameModal .modal-body li.rank-1 .rank .fas { color: #FFD700; }
+    #hallOfFameModal .modal-body li.rank-2 .rank .fas { color: #C0C0C0; }
+    #hallOfFameModal .modal-body li.rank-3 .rank .fas { color: #CD7F32; }
+    #hallOfFameModal .modal-body li:not(.rank-1):not(.rank-2):not(.rank-3) .rank .fas {
+        color: #888;
+        opacity: 0.7;
+    }
+     #hallOfFameModal .modal-body li:hover .rank .fas {
+        opacity: 1;
+    }
+
+    /* Style the User Name span */
     #hallOfFameModal .modal-body .user-name {
         flex-grow: 1;
-        color: #333;
-        margin-right: 1rem;
-        word-break: break-all; /* Wrap long names */
+        margin: 0 12px;
+        font-size: 0.95em;
+        color: #f0f0f0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
+
+    /* Style the Review Count span */
     #hallOfFameModal .modal-body .review-count {
-        font-size: 0.9rem;
-        color: #666;
+        flex: 0 0 80px;
+        font-size: 0.85em;
+        color: #aaa;
+        text-align: right;
         white-space: nowrap;
     }
-    #hallOfFameModal .modal-body .loading-message,
-    #hallOfFameModal .modal-body .empty-message {
-        padding: 2rem;
-        text-align: center;
-        color: #777;
-        font-style: italic;
-    }
-    /* --- END: CSS for Hall of Fame Modal --- */
 
+    /* Loading and Empty message styles */
+    #hallOfFameModal .modal-body li.loading-message,
+    #hallOfFameModal .modal-body li.empty-message {
+        text-align: center;
+        padding: 30px 20px;
+        font-style: italic;
+        color: #888;
+        font-size: 0.95em;
+        border-bottom: none;
+        display: block;
+        cursor: default;
+        background-color: transparent !important;
+        transform: none !important;
+        border-radius: 0 !important;
+    }
+
+    #hallOfFameModal .modal-body li.loading-message::before {
+        content: "\f110";
+        font-family: "Font Awesome 6 Free"; font-weight: 900;
+        margin-right: 8px;
+        display: inline-block;
+        animation: fa-spin 1.5s infinite linear;
+        color: #FFD700;
+        font-size: 1.1em;
+    }
+    @keyframes fa-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    /* --- END: CSS for Hall of Fame Modal --- */
 
   </style>
 </head>
@@ -958,21 +1187,24 @@
         </div>
         <!-- END: New Weekly Schedule Modal -->
 
-        <!-- START: New Hall of Fame Modal -->
+        <!-- START: Hall of Fame Modal (Top Right Button) -->
         <div id="hallOfFameModal" class="modal" role="dialog" aria-modal="true">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>紓壓名人堂 (Top 10)</h2>
-                    <button class="close-modal" aria-label="關閉">×</button>
+            <div class="modal-content"> <!-- Position relative applied here -->
+                 <!-- Button moved here, outside header -->
+                <button class="close-modal" aria-label="關閉">×</button>
+                <div class="modal-header"> <!-- Centered title, no flex needed for button -->
+                    <h2><i class="fas fa-crown"></i> 紓壓名人堂 (Top 10)</h2>
                 </div>
-                <div class="modal-body"> {# flex-grow applied, padding handles bottom space #}
+                <div class="modal-body">
                     <ol id="hallOfFameList">
+                        <!-- JS will populate this -->
                         <li class="loading-message">載入中...</li>
                     </ol>
                 </div>
+                <!-- No footer -->
             </div>
         </div>
-        <!-- END: New Hall of Fame Modal -->
+        <!-- END: Hall of Fame Modal -->
 
 
       <!-- Bottom slide-up menu & Overlay -->
@@ -1705,8 +1937,8 @@
           if (!modal) { console.error(`Modal not found: #${modalId}`); return; }
 
           // Handle non-table modals or modals requiring specific loading separately
-          if (modalId === 'loginModal' || modalId === 'reviewModal' || modalId === 'reviewSubmitModal' || modalId === 'noteModal' || modalId === 'storyDetailModal' || modalId === 'weeklyScheduleModal' || modalId === 'hallOfFameModal') { // <-- Added weeklyScheduleModal & hallOfFameModal
-              // These modals don't load table content via this function
+          if (modalId === 'loginModal' || modalId === 'reviewModal' || modalId === 'reviewSubmitModal' || modalId === 'noteModal' || modalId === 'storyDetailModal' || modalId === 'weeklyScheduleModal' || modalId === 'hallOfFameModal') {
+              // Hall of Fame loading is handled by its own function loadHallOfFameData()
               return;
           }
           // Special handling for modals with hall filters on initial load (default to 'all')
@@ -1815,15 +2047,17 @@
                   if (imageArea) imageArea.innerHTML = '<p>請點擊上方館別查看班表</p>';
                   if (hallMenu) hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active'));
               }
+              // Reset Hall of Fame list on open
               if (modalId === 'hallOfFameModal') {
                   const listElement = document.getElementById('hallOfFameList');
+                  // Use the new loading message style
                   if(listElement) listElement.innerHTML = '<li class="loading-message">載入中...</li>';
               }
 
               modal.style.display = 'block';
               document.body.style.overflow = 'hidden';
 
-              // Define which modals need initial AJAX loading (excluding those with hall filters handled separately)
+              // Define which modals need initial AJAX loading
               const needsAjaxLoadOnOpen = ['pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'];
 
               if (needsAjaxLoadOnOpen.includes(modalId)) {
@@ -1877,7 +2111,7 @@
               }
               // Load Hall of Fame data on open
               else if (modalId === 'hallOfFameModal') {
-                    loadHallOfFameData();
+                    loadHallOfFameData(); // This function now handles the loading state display too
               }
               // Reset review submit modal title/type if opened directly
               if (modalId === 'reviewSubmitModal' && !document.getElementById('plusDropdown')?.classList.contains('open')) {
@@ -2004,12 +2238,13 @@
       // --- END: New Function to Show Story Detail ---
 
 
-      // --- START: New Function to Load Hall of Fame Data ---
+      // --- START: MODIFIED Function to Load Hall of Fame Data ---
        function loadHallOfFameData() {
            const listElement = document.getElementById('hallOfFameList');
            if (!listElement) { console.error("Hall of Fame list element (#hallOfFameList) not found."); return; }
 
-           listElement.innerHTML = '<li class="loading-message">載入中...</li>'; // Set loading state
+           // Use the new loading message style
+           listElement.innerHTML = '<li class="loading-message">載入中...</li>';
 
            fetch("{% url 'ajax_get_hall_of_fame' %}", {
                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
@@ -2024,23 +2259,44 @@
                if (data.users && data.users.length > 0) {
                    data.users.forEach(user => {
                        const li = document.createElement('li');
+                       // Add rank class for styling top 3
+                       if (user.rank >= 1 && user.rank <= 3) {
+                           li.classList.add(`rank-${user.rank}`);
+                       }
+
+                       // Determine the correct icon based on rank
+                       let iconClass = 'fas fa-trophy'; // Default icon for rank 4+
+                       if (user.rank === 1) iconClass = 'fas fa-medal';
+                       else if (user.rank === 2) iconClass = 'fas fa-award';
+                       else if (user.rank === 3) iconClass = 'fas fa-star';
+
+                       // Build the inner HTML using new structure and classes
                        li.innerHTML = `
-                           <span class="rank">#${user.rank}</span>
+                           <span class="rank">
+                               <i class="${iconClass}"></i> #${user.rank}
+                           </span>
                            <span class="user-name">${user.user_name}</span>
                            <span class="review-count">${user.review_count} 心得</span>
                        `;
+                       // Apply flex display directly via style for simplicity here
+                       li.style.display = 'flex';
+                       li.style.alignItems = 'center';
+                       li.style.justifyContent = 'space-between';
+
                        listElement.appendChild(li);
                    });
                } else {
+                   // Use the new empty message style
                    listElement.innerHTML = '<li class="empty-message">目前尚無心得排行</li>';
                }
            })
            .catch(error => {
                console.error("Error loading Hall of Fame:", error);
-               listElement.innerHTML = `<li class="empty-message" style="color: red;">無法載入名人堂: ${error.message}</li>`;
+               // Use the new error message style
+               listElement.innerHTML = `<li class="empty-message" style="color: #ff8a8a;">無法載入名人堂: ${error.message}</li>`; // Use a subtle error color
            });
        }
-       // --- END: New Function to Load Hall of Fame Data ---
+       // --- END: MODIFIED Function to Load Hall of Fame Data ---
 
 
       // --- Event Listener Setup (using event delegation on document) ---
@@ -2148,7 +2404,7 @@
               .catch(error => {
                   console.error("Error fetching weekly schedule:", error);
                   imageArea.innerHTML = `<p style="color: red;">無法連接伺服器: ${error.message}</p>`;
-                  imageArea.innerHTML = ''; // Clear image area on error too
+                  // imageArea.innerHTML = ''; // Clear image area on error too? Maybe keep error message
               });
               return; // Prevent other actions
           }
