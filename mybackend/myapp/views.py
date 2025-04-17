@@ -12,6 +12,9 @@ from django.template.loader import render_to_string
 from .models import Animal, Hall, Review, PendingAppointment, Note, Announcement, StoryReview, WeeklySchedule
 import traceback
 import html
+import logging # 添加 logging
+
+logger = logging.getLogger(__name__) # 添加 logger
 
 # --- *** 導入 DailySchedule (保持不變) *** ---
 try:
@@ -80,7 +83,9 @@ def render_animal_rows(request, animals_qs, fetch_daily_slots=False):
             rendered_rows_html_list.append(rendered_html)
         except Exception as render_err:
             print(f"!!! Error rendering partial (animal_rows) for {animal_instance.id}: {render_err} !!!"); traceback.print_exc()
-            rendered_rows_html_list.append(f'<tr><td colspan="5">Error loading data for {animal_instance.name}</td></tr>')
+            # 使用 logger 記錄錯誤
+            logger.error(f"Error rendering row for animal {animal_instance.id}", exc_info=True)
+            rendered_rows_html_list.append(f'<tr><td colspan="5">渲染錯誤: {animal_instance.name}</td></tr>') # 更具体的错误提示
 
     print("--- render_animal_rows finished ---")
     return "".join(rendered_rows_html_list)
@@ -88,7 +93,7 @@ def render_animal_rows(request, animals_qs, fetch_daily_slots=False):
 # --- *** 移除舊的 render_daily_schedule_rows 函數 *** ---
 # (確保這裡沒有舊的 render_daily_schedule_rows 函數定義)
 
-# --- Home View (修改以使用新的 render_animal_rows) ---
+# --- Home View (修改以使用新的 render_animal_rows 並修正 fetch_type 判斷) ---
 def home(request):
     is_ajax_request = request.headers.get('x-requested-with') == 'XMLHttpRequest'
     fetch_type = request.GET.get('fetch')
@@ -138,17 +143,30 @@ def home(request):
 
         except Exception as e:
             print(f"    !!! Error during Daily Schedule AJAX processing: {e} !!!"); traceback.print_exc()
+            logger.error("Error processing daily schedule AJAX", exc_info=True) # 使用 logger
             error_html = f'<tr class="empty-table-message"><td colspan="5">載入班表時發生內部錯誤</td></tr>'
             return JsonResponse({'table_html': error_html, 'first_animal': {}}, status=500)
 
-    # --- 處理其他 AJAX 請求 (調用修改後的 render_animal_rows) ---
+    # --- 處理其他 AJAX 請求 (修正 fetch_type 判斷) ---
     elif is_ajax_request:
-        print(f">>> Handling AJAX Request for: {fetch_type} <<<")
-        if fetch_type == 'pending': return ajax_get_pending_list(request)
-        elif fetch_type == 'notes': return ajax_get_my_notes(request)
-        elif fetch_type == 'latest_reviews': return ajax_get_latest_reviews(request)
-        elif fetch_type == 'recommendations': return ajax_get_recommendations(request)
-        else: return JsonResponse({'error': '未知的請求類型'}, status=400)
+        print(f">>> Handling AJAX Request. Received fetch_type = '{fetch_type}' (Type: {type(fetch_type)}) <<<")
+        if fetch_type == 'pending':
+            print("    Dispatching to ajax_get_pending_list...")
+            return ajax_get_pending_list(request)
+        # --- *** 修改這裡的判斷條件 *** ---
+        elif fetch_type == 'my_notes': # <-- 從 'notes' 改為 'my_notes'
+        # --- *** 修改結束 *** ---
+             print("    Dispatching to ajax_get_my_notes...")
+             return ajax_get_my_notes(request)
+        elif fetch_type == 'latest_reviews':
+             print("    Dispatching to ajax_get_latest_reviews...")
+             return ajax_get_latest_reviews(request)
+        elif fetch_type == 'recommendations':
+             print("    Dispatching to ajax_get_recommendations...")
+             return ajax_get_recommendations(request)
+        else:
+            print(f"    ERROR: Unknown fetch_type '{fetch_type}', returning 400.")
+            return JsonResponse({'error': '未知的請求類型'}, status=400)
 
     # --- Full Page Rendering (保持不變) ---
     else:
@@ -172,7 +190,10 @@ def home(request):
         template_path = 'myapp/index.html'
         print(f"    Rendering full template: {template_path}")
         try: return render(request, template_path, context)
-        except Exception as e: print(f"    !!! Error rendering {template_path}: {e} !!!"); traceback.print_exc(); raise
+        except Exception as e:
+            print(f"    !!! Error rendering {template_path}: {e} !!!"); traceback.print_exc()
+            logger.error(f"Error rendering template {template_path}", exc_info=True) # 使用 logger
+            raise
 
 # ======================================================================
 # --- 以下 AJAX view 現在需要調用修改後的 render_animal_rows ---
@@ -198,7 +219,10 @@ def ajax_get_pending_list(request):
             first_animal = animals_list_ordered[0]
             first_animal_data = {'photo_url': first_animal.photo.url if first_animal.photo else '', 'name': first_animal.name or '', 'introduction': first_animal.introduction or '' }
         return JsonResponse({'table_html': table_html, 'first_animal': first_animal_data})
-    except Exception as e: print(f"!!! Error in ajax_get_pending_list: {e} !!!"); traceback.print_exc(); return JsonResponse({'error': '無法載入待約清單'}, status=500)
+    except Exception as e:
+        print(f"!!! Error in ajax_get_pending_list: {e} !!!"); traceback.print_exc()
+        logger.error("Error fetching pending list", exc_info=True)
+        return JsonResponse({'error': '無法載入待約清單'}, status=500)
 
 # --- AJAX View for My Notes (修改調用) ---
 @login_required
@@ -210,9 +234,16 @@ def ajax_get_my_notes(request):
     try:
         notes_base_qs = Note.objects.filter(user=request.user).filter(Q(animal__hall__isnull=True) | Q(animal__hall__is_active=True)).select_related('animal', 'animal__hall')
         if selected_hall_id != "all":
-            try: hall_id_int = int(selected_hall_id); notes_qs = notes_base_qs.filter(animal__hall_id=hall_id_int)
-            except (ValueError, TypeError): print(f"Warn: Invalid hall_id '{selected_hall_id}'"); notes_qs = notes_base_qs.all()
-        else: notes_qs = notes_base_qs.all()
+            try:
+                hall_id_int = int(selected_hall_id)
+                notes_qs = notes_base_qs.filter(animal__hall_id=hall_id_int)
+            except (ValueError, TypeError):
+                # --- *** 修改：處理無效 hall_id 時返回 400 *** ---
+                print(f"Error: Invalid hall_id '{selected_hall_id}' received for notes.")
+                return JsonResponse({'error': '無效的館別 ID 格式'}, status=400)
+        else:
+            notes_qs = notes_base_qs.all()
+
         notes_qs = notes_qs.order_by('-updated_at')
         animal_ids = list(notes_qs.values_list('animal_id', flat=True)); animals_list_ordered = []
         if animal_ids:
@@ -229,7 +260,10 @@ def ajax_get_my_notes(request):
             first_animal_data = {'photo_url': first_animal.photo.url if first_animal.photo else '','name': first_animal.name or '','introduction': first_animal.introduction or ''}
         print(f"    Returning JSON for My Notes (Hall: {selected_hall_id}).")
         return JsonResponse({'table_html': table_html, 'first_animal': first_animal_data})
-    except Exception as e: print(f"!!! Error in ajax_get_my_notes: {e} !!!"); traceback.print_exc(); return JsonResponse({'error': f'無法載入我的筆記 (Hall: {selected_hall_id}): {e}'}, status=500)
+    except Exception as e:
+        print(f"!!! Error in ajax_get_my_notes: {e} !!!"); traceback.print_exc()
+        logger.error(f"Error fetching my notes (Hall: {selected_hall_id})", exc_info=True)
+        return JsonResponse({'error': f'無法載入我的筆記'}, status=500) # 簡化錯誤信息
 
 # --- AJAX View for Latest Reviews (修改調用) ---
 @require_GET
@@ -246,7 +280,10 @@ def ajax_get_latest_reviews(request):
              first_animal = latest_reviewed_animals_qs.first()
              first_animal_data = {'photo_url': first_animal.photo.url if first_animal.photo else '','name': first_animal.name or '','introduction': first_animal.introduction or ''}
         return JsonResponse({'table_html': table_html, 'first_animal': first_animal_data})
-    except Exception as e: print(f"!!! Error in ajax_get_latest_reviews: {e} !!!"); traceback.print_exc(); return JsonResponse({'error': '無法載入最新心得'}, status=500)
+    except Exception as e:
+        print(f"!!! Error in ajax_get_latest_reviews: {e} !!!"); traceback.print_exc()
+        logger.error("Error fetching latest reviews", exc_info=True)
+        return JsonResponse({'error': '無法載入最新心得'}, status=500)
 
 # --- AJAX View for Recommendations (修改調用) ---
 @require_GET
@@ -262,7 +299,10 @@ def ajax_get_recommendations(request):
             first_animal = recommended_animals_qs.first()
             first_animal_data = {'photo_url': first_animal.photo.url if first_animal.photo else '','name': first_animal.name or '','introduction': first_animal.introduction or ''}
         return JsonResponse({'table_html': table_html, 'first_animal': first_animal_data})
-    except Exception as e: print(f"!!! Error in ajax_get_recommendations: {e} !!!"); traceback.print_exc(); return JsonResponse({'error': '無法載入每日推薦'}, status=500)
+    except Exception as e:
+        print(f"!!! Error in ajax_get_recommendations: {e} !!!"); traceback.print_exc()
+        logger.error("Error fetching recommendations", exc_info=True)
+        return JsonResponse({'error': '無法載入每日推薦'}, status=500)
 
 # --- User Authentication Views (保持不變) ---
 def user_login(request):
@@ -303,7 +343,10 @@ def add_story_review(request):
         new_story = StoryReview.objects.create(animal=animal, user=user, age=age, looks=request.POST.get("looks") or None, face=','.join(face_list), temperament=','.join(temperament_list), physique=request.POST.get("physique") or None, cup=request.POST.get("cup") or None, cup_size=cup_size_value or None, skin_texture=request.POST.get("skin_texture") or None, skin_color=request.POST.get("skin_color") or None, music=request.POST.get("music") or None, music_price=request.POST.get("music_price") or None, sports=request.POST.get("sports") or None, sports_price=request.POST.get("sports_price") or None, scale=','.join(scale_list), content=content, approved=False, approved_at=None, expires_at=None )
         print(f"Story Review {new_story.id} created for {animal_id}. Needs approval.")
         return JsonResponse({"success": True, "message": "限時動態心得已提交，待審核後將顯示"})
-    except Exception as e: print(f"Error creating story review: {e}"); traceback.print_exc(); return JsonResponse({"success": False, "error": "儲存限時動態心得時發生內部錯誤"}, status=500)
+    except Exception as e:
+        print(f"Error creating story review: {e}"); traceback.print_exc()
+        logger.error("Error creating story review", exc_info=True)
+        return JsonResponse({"success": False, "error": "儲存限時動態心得時發生內部錯誤"}, status=500)
 
 # --- Add Regular Review View (修正 SyntaxError) ---
 @login_required
@@ -328,7 +371,10 @@ def add_review(request):
             new_review = Review.objects.create(animal=animal, user=user, age=age, looks=request.POST.get("looks") or None, face=','.join(face_list), temperament=','.join(temperament_list), physique=request.POST.get("physique") or None, cup=request.POST.get("cup") or None, cup_size=cup_size_value or None, skin_texture=request.POST.get("skin_texture") or None, skin_color=request.POST.get("skin_color") or None, music=request.POST.get("music") or None, music_price=request.POST.get("music_price") or None, sports=request.POST.get("sports") or None, sports_price=request.POST.get("sports_price") or None, scale=','.join(scale_list), content=content, approved=False)
             print(f"Review {new_review.id} created for {animal_id}.")
             return JsonResponse({"success": True, "message": "評論已提交，待審核後將顯示"})
-        except Exception as e: print(f"Error creating review: {e}"); traceback.print_exc(); return JsonResponse({"success": False, "error": "儲存心得時發生內部錯誤"}, status=500)
+        except Exception as e:
+            print(f"Error creating review: {e}"); traceback.print_exc()
+            logger.error("Error creating regular review", exc_info=True)
+            return JsonResponse({"success": False, "error": "儲存心得時發生內部錯誤"}, status=500)
 
     elif request.method == "GET": # Fetching reviews for modal
         animal_id = request.GET.get("animal_id")
@@ -346,14 +392,12 @@ def add_review(request):
         for r in reviews_qs:
             user_display_name = "匿名"; formatted_date = ""
             if hasattr(r, 'user') and r.user: user_display_name = r.user.first_name or r.user.username
-            # --- *** 修正 SyntaxError *** ---
             if r.created_at:
                 try:
                     formatted_date = timezone.localtime(r.created_at).strftime("%Y-%m-%d")
                 except Exception as date_err:
                     print(f"Error formatting date: {date_err}")
                     formatted_date = "日期錯誤"
-            # --- *** 修正結束 *** ---
             data.append({"id": r.id, "user": user_display_name, "totalCount": user_review_counts.get(r.user_id, 0), "age": r.age, "looks": r.looks, "face": r.face, "temperament": r.temperament, "physique": r.physique, "cup": r.cup, "cup_size": r.cup_size, "skin_texture": r.skin_texture, "skin_color": r.skin_color, "music": r.music, "music_price": r.music_price, "sports": r.sports, "sports_price": r.sports_price, "scale": r.scale, "content": r.content, "created_at": formatted_date})
         print(f"Returning {len(data)} reviews for animal {animal_id}.")
         return JsonResponse({"reviews": data})
@@ -376,6 +420,7 @@ def add_pending_appointment(request): # <--- 確認函數名稱已修正
         return JsonResponse({"success": True, "message": message, "pending_count": pending_count})
     except Exception as e:
         print(f"Error add pending: {e}"); traceback.print_exc()
+        logger.error("Error adding pending appointment", exc_info=True)
         pending_count = PendingAppointment.objects.filter(user=user).count()
         return JsonResponse({"success": False, "error": "加入待約時發生錯誤", "pending_count": pending_count}, status=500)
 
@@ -410,6 +455,7 @@ def remove_pending(request):
         return JsonResponse({"success": False, "error": str(ve), "pending_count": count}, status=400)
     except Exception as e:
         print(f"Error remove pending: {e}"); traceback.print_exc()
+        logger.error("Error removing pending appointment", exc_info=True)
         count = PendingAppointment.objects.filter(user=user).count()
         return JsonResponse({"success": False, "error": "移除待約時發生錯誤", "pending_count": count}, status=500)
 
@@ -433,7 +479,10 @@ def add_note(request):
         message = "筆記已新增" if created else "筆記已更新"
         print(f"Note for {animal_id} by {user.username}: {'Created' if created else 'Updated'}.")
         return JsonResponse({"success": True, "message": message, "note_id": note.id, "note_content": note.content, "animal_id": animal.id})
-    except Exception as e: print(f"Error add/update note: {e}"); traceback.print_exc(); return JsonResponse({"success": False, "error": "儲存筆記時發生錯誤"}, status=500)
+    except Exception as e:
+        print(f"Error add/update note: {e}"); traceback.print_exc()
+        logger.error("Error adding/updating note", exc_info=True)
+        return JsonResponse({"success": False, "error": "儲存筆記時發生錯誤"}, status=500)
 
 @require_POST
 @login_required
@@ -448,7 +497,10 @@ def delete_note(request):
         print(f"Note {note_id_int} deleted for {animal_id}."); return JsonResponse({"success": True, "message": "筆記已刪除", "animal_id": animal_id})
     except Http404: return JsonResponse({"success": False, "error": "筆記不存在或無權限"}, status=404)
     except ValueError as ve: return JsonResponse({"success": False, "error": str(ve)}, status=400)
-    except Exception as e: print(f"Error deleting note: {e}"); traceback.print_exc(); return JsonResponse({"success": False, "error": "刪除筆記時發生錯誤"}, status=500)
+    except Exception as e:
+        print(f"Error deleting note: {e}"); traceback.print_exc()
+        logger.error("Error deleting note", exc_info=True)
+        return JsonResponse({"success": False, "error": "刪除筆記時發生錯誤"}, status=500)
 
 @require_POST
 @login_required
@@ -463,7 +515,10 @@ def update_note(request):
         print(f"Note {note_id_int} updated for {animal.id}."); return JsonResponse({"success": True, "message": "筆記已更新", "note_id": note.id, "note_content": note.content, "animal_id": animal.id})
     except Http404: return JsonResponse({"success": False, "error": "筆記不存在或無權限"}, status=404)
     except ValueError as ve: return JsonResponse({"success": False, "error": str(ve)}, status=400)
-    except Exception as e: print(f"Error updating note: {e}"); traceback.print_exc(); return JsonResponse({"success": False, "error": "更新筆記時發生錯誤"}, status=500)
+    except Exception as e:
+        print(f"Error updating note: {e}"); traceback.print_exc()
+        logger.error("Error updating note", exc_info=True)
+        return JsonResponse({"success": False, "error": "更新筆記時發生錯誤"}, status=500)
 
 # --- AJAX View for Active Stories (保持不變) ---
 @require_GET
@@ -474,7 +529,10 @@ def ajax_get_active_stories(request):
         active_stories_qs = StoryReview.objects.filter(Q(animal__hall__isnull=True) | Q(animal__hall__is_active=True), approved=True, expires_at__gt=now, animal__is_active=True).select_related('animal', 'animal__hall', 'user').order_by('-approved_at')
         stories_data = [{'id': s.id, 'animal_id': s.animal_id, 'animal_name': s.animal.name, 'animal_photo_url': s.animal.photo.url if s.animal.photo else None, 'hall_name': s.animal.hall.name if s.animal.hall else '未知館別', 'user_name': s.user.first_name or s.user.username, 'remaining_time': s.remaining_time_display} for s in active_stories_qs]
         return JsonResponse({'stories': stories_data})
-    except Exception as e: print(f"!!! Error in ajax_get_active_stories: {e} !!!"); traceback.print_exc(); return JsonResponse({'error': '無法載入限時動態'}, status=500)
+    except Exception as e:
+        print(f"!!! Error in ajax_get_active_stories: {e} !!!"); traceback.print_exc()
+        logger.error("Error fetching active stories", exc_info=True)
+        return JsonResponse({'error': '無法載入限時動態'}, status=500)
 
 # --- AJAX View for Story Detail (保持不變) ---
 @require_GET
@@ -486,7 +544,10 @@ def ajax_get_story_detail(request, story_id):
         story_data = {'id': story.id, 'animal_id': animal.id, 'animal_name': animal.name, 'animal_photo_url': animal.photo.url if animal.photo else None, 'hall_name': animal.hall.name if animal.hall else '未知館別', 'user_name': user.first_name or user.username, 'remaining_time': story.remaining_time_display, 'approved_at_display': approved_at_display, 'age': story.age, 'looks': story.looks, 'face': story.face, 'temperament': story.temperament, 'physique': story.physique, 'cup': story.cup, 'cup_size': story.cup_size, 'skin_texture': story.skin_texture, 'skin_color': story.skin_color, 'music': story.music, 'music_price': story.music_price, 'sports': story.sports, 'sports_price': story.sports_price, 'scale': story.scale, 'content': story.content}
         print(f"    Returning details for story {story_id}."); return JsonResponse({'success': True, 'story': story_data})
     except Http404: print(f"    Story {story_id} not found/inactive."); return JsonResponse({'success': False, 'error': '找不到動態'}, status=404)
-    except Exception as e: print(f"!!! Error in ajax_get_story_detail for ID {story_id}: {e} !!!"); traceback.print_exc(); return JsonResponse({'success': False, 'error': '無法載入動態詳情'}, status=500)
+    except Exception as e:
+        print(f"!!! Error in ajax_get_story_detail for ID {story_id}: {e} !!!"); traceback.print_exc()
+        logger.error(f"Error fetching story detail for ID {story_id}", exc_info=True)
+        return JsonResponse({'success': False, 'error': '無法載入動態詳情'}, status=500)
 
 # --- AJAX View for Weekly Schedule Images (修正 SyntaxError) ---
 @require_GET
@@ -512,11 +573,13 @@ def ajax_get_weekly_schedule(request):
             return JsonResponse({'success': False, 'schedule_urls': [], 'hall_name': hall_name, 'message': f'{hall_name} 不存在'}, status=404)
         except Exception as inner_e:
              print(f"    Error fetching hall name after Http404: {inner_e}")
+             logger.error(f"Error fetching hall name after Http404 for ID {hall_id_int}", exc_info=True)
              return JsonResponse({'success': False, 'error': '獲取館別信息時出錯'}, status=500)
     # --- *** 修正結束 *** ---
     except Exception as e:
          print(f"!!! Error getting Hall: {e} !!!")
          traceback.print_exc()
+         logger.error(f"Error getting Hall object for ID {hall_id}", exc_info=True)
          return JsonResponse({'success': False, 'error': '獲取館別信息時發生錯誤'}, status=500)
 
     # 如果成功獲取到活動的 Hall，繼續執行
@@ -531,6 +594,7 @@ def ajax_get_weekly_schedule(request):
             return JsonResponse({'success': False, 'schedule_urls': [], 'hall_name': hall_name, 'message': f'{hall_name} 未上傳班表圖片'})
     except Exception as e:
         print(f"!!! Error fetch weekly schedule: {e} !!!"); traceback.print_exc()
+        logger.error(f"Error fetching weekly schedule for Hall ID {hall_id}", exc_info=True)
         return JsonResponse({'success': False, 'error': '載入每週班表出錯'}, status=500)
 
 # --- AJAX View for Hall of Fame (保持不變) ---
@@ -541,6 +605,9 @@ def ajax_get_hall_of_fame(request):
         top_users = Review.objects.filter(approved=True).values('user', 'user__username', 'user__first_name').annotate(review_count=Count('id')).order_by('-review_count')[:10]
         data = [{'rank': r+1, 'user_name': (d.get('user__first_name') or d.get('user__username') or f"用戶_{d.get('user','N/A')}") , 'review_count': d.get('review_count',0)} for r,d in enumerate(top_users)]
         print(f"    Returning {len(data)} users."); return JsonResponse({'users': data})
-    except Exception as e: print(f"!!! Error in ajax_get_hall_of_fame: {e} !!!"); traceback.print_exc(); return JsonResponse({'error': '無法載入名人堂'}, status=500)
+    except Exception as e:
+        print(f"!!! Error in ajax_get_hall_of_fame: {e} !!!"); traceback.print_exc()
+        logger.error("Error fetching Hall of Fame", exc_info=True)
+        return JsonResponse({'error': '無法載入名人堂'}, status=500)
 
 # --- views.py 文件結束 ---

@@ -1234,13 +1234,28 @@
       const isLoggedIn = document.querySelector('.header-actions form button[type="submit"]') !== null;
 
       // --- Helper function to normalize newlines ---
-      function normalizeNewlines(text) {
-          if (typeof text !== 'string') {
-              return text; // Return non-strings as is
+      // function normalizeNewlines(text) {
+      //     if (typeof text !== 'string') {
+      //         return text; // Return non-strings as is
+      //     }
+      //     // Replace literal \u000D\u000A, CRLF, CR, or LF with a single LF (\n)
+      //     return text.replace(/\\u000D\\u000A|\r\n|\r|\n/g, '\n');
+      // }
+      // --- *** 修改後的 normalizeNewlines (僅用於顯示，處理 \\uXXXX 轉義) *** ---
+      function decodeUnicodeEscapes(text) {
+          if (typeof text !== 'string') { return text; }
+          try {
+              // 處理 \\uXXXX 形式的轉義序列
+              return text.replace(/\\u([\dA-Fa-f]{4})/g, (match, hex) => {
+                  return String.fromCharCode(parseInt(hex, 16));
+              });
+              // 注意：這個函數不再處理 \r\n, \r, \n，因為 white-space: pre-wrap 會處理
+          } catch (e) {
+              console.error("Error decoding unicode escapes:", e);
+              return text; // 出錯時返回原始文本
           }
-          // Replace literal \u000D\u000A, CRLF, CR, or LF with a single LF (\n)
-          return text.replace(/\\u000D\\u000A|\r\n|\r|\n/g, '\n');
       }
+      // --- *** ---
 
       function updateRowsByAnimalId(animalId, updateCallback) {
         // console.log(`Updating data attributes for animal ID: ${animalId}`);
@@ -1514,15 +1529,19 @@
         animalIdInput.value = animalId;
         deleteBtn.setAttribute('data-animal-id', animalId);
         form.reset();
-        const normalizedNoteContent = normalizeNewlines(noteContent || ''); // Normalize here
-        textarea.value = normalizedNoteContent; // Set normalized content to textarea
+        // --- *** 使用新的 decodeUnicodeEscapes 處理 noteContent *** ---
+        const decodedNoteContent = decodeUnicodeEscapes(noteContent || '');
+        textarea.value = decodedNoteContent; // 設定解碼後的內容給 textarea
+        // --- *** ---
 
         // Scroll body to top
         modalBody.scrollTop = 0;
 
         if (noteId) {
             title.textContent = "查看/修改筆記"; noteIdInput.value = noteId;
-            viewContent.textContent = normalizedNoteContent; // Display normalized content
+            // --- *** 在查看模式下也使用解碼後的內容 *** ---
+            viewContent.textContent = decodedNoteContent; // Display decoded content
+             // --- *** ---
             viewSection.style.display = 'flex'; /* Ensure flex for flex-grow */ form.style.display = 'none';
             saveBtn.style.display = 'none'; viewButtons.style.display = 'block';
         } else {
@@ -1546,11 +1565,15 @@
         .then(data => {
             if (data.success) {
                 const currentAnimalId = data.animal_id || animalId;
-                const normalizedNoteContent = normalizeNewlines(data.note_content || ''); // Normalize received content
+                // --- *** 後端返回的 note_content 理論上不應包含 \uXXXX，但保險起見還是處理 *** ---
+                const decodedNoteContent = decodeUnicodeEscapes(data.note_content || '');
+                // --- *** ---
                 updateRowsByAnimalId(currentAnimalId, (r) => {
                     if (!r.classList.contains('note-row')) {
                          r.setAttribute('data-note-id', data.note_id);
-                         r.setAttribute('data-note-content', normalizedNoteContent); // Store normalized content
+                         // --- *** 將解碼後的內容存回 data attribute *** ---
+                         r.setAttribute('data-note-content', decodedNoteContent); // Store decoded content
+                          // --- *** ---
                     }
                 });
                 // Reload content in any open modals that show notes/pending/etc.
@@ -1654,33 +1677,46 @@
               areaElement.appendChild(img);
           } else { areaElement.innerHTML = '<p style="color:#888;font-size:0.9rem;">無照片</p>'; }
       }
+      // --- *** 修改 updateIntroArea 以正確顯示換行和特殊字符 *** ---
       function updateIntroArea(introElement, introText) {
           if (!introElement) { return; }
           const pElement = introElement.querySelector('.intro-top p');
-          const normalizedIntroText = normalizeNewlines(introText || '無介紹'); // Normalize here
+          const introDisplay = introText || '無介紹'; // 處理 null 或 undefined
+
+          // 1. 解碼 Unicode 轉義序列 (例如 \u000A, \u0026)
+          const decodedIntro = decodeUnicodeEscapes(introDisplay);
+
+          // 2. 使用 textContent 設置，瀏覽器會正確處理換行符 \n
+          //    同時也能防止潛在的 XSS (因為不會解析 HTML 標籤)
           if (pElement) {
-              pElement.textContent = normalizedIntroText; // Use textContent for safety
+              pElement.textContent = decodedIntro; // <-- 使用 textContent
           } else {
-              // Ensure the structure is created if missing
-              introElement.innerHTML = `<div class="intro-top"><p>${normalizedIntroText}</p></div>`;
+              // 如果 pElement 不存在，創建它並設置 textContent
+              introElement.innerHTML = `<div class="intro-top"><p></p></div>`;
+              const newPElement = introElement.querySelector('.intro-top p');
+              if (newPElement) { newPElement.textContent = decodedIntro; }
           }
-          // Reset scroll position
+          // --- *** 修改結束 *** ---
+
+          // Reset scroll position (保持不變)
           const scrollContainer = introElement.querySelector('.intro-top');
           if (scrollContainer) { scrollContainer.scrollTop = 0; }
-          else { introElement.scrollTop = 0; } // Fallback if structure is different
+          else { introElement.scrollTop = 0; }
       }
+      // --- *** ---
       function updateTopSectionFromRow(photoArea, introArea, row) {
           if (!photoArea || !introArea || !row) return;
           const photoUrl = row.dataset.photoUrl || '';
-          const introText = row.dataset.introduction || '無介紹';
-          const nameElement = row.querySelector('.name'); // Target the name span directly
+          const introText = row.dataset.introduction || '無介紹'; // introText 來自 escapejs 處理過的 data attribute
+          const nameElement = row.querySelector('.name');
           const animalName = nameElement ? nameElement.textContent.trim() : '美容師';
           updatePhotoArea(photoArea, photoUrl, animalName);
-          updateIntroArea(introArea, introText);
+          updateIntroArea(introArea, introText); // 將包含 \uXXXX 的字串傳遞給 updateIntroArea
       }
       function updateTopSectionFromData(photoArea, introArea, animalData) {
            if (!photoArea || !introArea || !animalData) return;
            updatePhotoArea(photoArea, animalData.photo_url || '', animalData.name || '美容師');
+           // 後端直接返回的 introduction 通常不需要 escapejs 處理，直接傳遞
            updateIntroArea(introArea, animalData.introduction || '無介紹');
       }
 
@@ -1721,14 +1757,11 @@
                            }
 
                           const valueSpan = document.createElement('span'); valueSpan.className = 'review-value';
-                          // Normalize newlines before displaying, especially for multi-line content
-                          const normalizedDisplayValue = normalizeNewlines(displayValue);
-                          // Use innerHTML only for '心得' to render line breaks, textContent otherwise
-                          if (label === '心得' && typeof normalizedDisplayValue === 'string') {
-                              valueSpan.innerHTML = normalizedDisplayValue.replace(/\n/g, '<br>');
-                          } else {
-                              valueSpan.textContent = normalizedDisplayValue;
-                          }
+                          // --- *** 在 Review Modal 中顯示時，使用 decodeUnicodeEscapes *** ---
+                          const decodedDisplayValue = decodeUnicodeEscapes(displayValue);
+                          // 使用 textContent 更安全，並依賴 white-space: pre-wrap 來處理換行
+                          valueSpan.textContent = decodedDisplayValue;
+                          // --- *** ---
 
                           // Construct the line HTML
                           return `<div class="review-line"><span class="review-label">${label}:</span>${valueSpan.outerHTML}</div>`;
@@ -2157,29 +2190,20 @@
           contentDiv.innerHTML = '<div class="story-loading-message">載入動態內容中...</div>';
           openModal('storyDetailModal'); // Open the modal first (will also scroll body top)
 
-          // NOTE: This fetch URL was NOT requested to be changed in the original prompt,
-          // and it exists in your provided urls.py, so it remains as is.
+          // NOTE: This fetch URL exists in your urls.py, no need to change prefix
           fetch(`/ajax/story_detail/${storyId}/`, {
               headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
           })
           .then(response => {
               if (!response.ok) {
-                  // Try to parse error json, fallback to status text
-                  return response.json().catch(() => null).then(errData => {
-                      throw new Error(errData?.error || `HTTP error ${response.status}`);
-                  });
+                  return response.json().catch(() => null).then(errData => { throw new Error(errData?.error || `HTTP error ${response.status}`); });
               }
-              const contentType = response.headers.get("content-type");
-              if (!contentType?.includes("application/json")) {
-                  throw new TypeError("伺服器未返回有效的 JSON");
-              }
+              const contentType = response.headers.get("content-type"); if (!contentType?.includes("application/json")) { throw new TypeError("伺服器未返回有效的 JSON"); }
               return response.json();
           })
           .then(data => {
               if (data.success && data.story) {
                   const story = data.story;
-
-                  // --- Populate Header ---
                   headerDiv.innerHTML = `
                       <div class="story-detail-header-info">
                           ${story.animal_photo_url ? `<img src="${story.animal_photo_url}" alt="${story.animal_name}">` : '<span class="placeholder" style="font-size: 2.5rem; color:#ccc;">👤</span>'}
@@ -2192,30 +2216,23 @@
                           </div>
                       </div>
                   `;
-
-                  // --- Populate Content (like a review card) ---
-                  // Helper function (similar to loadReviews, adapted for single story object)
                   const createDetailLine = (label, value) => {
                       if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) return '';
                       let displayValue = value;
                       if (['臉蛋', '氣質', '尺度'].includes(label) && typeof value === 'string') { displayValue = value.split(',').map(s => s.trim()).filter(s => s).join(', '); }
                       if (label === '罩杯' && typeof value === 'object') { displayValue = `${value.cup || ''}${value.cup && value.cup_size ? ' - ' : ''}${value.cup_size || ''}`.trim(); if (!displayValue) return ''; }
                       if ((label === '音樂' || label === '體育') && typeof value === 'object') { displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim(); if (!displayValue) return ''; }
-
                       const valueSpan = document.createElement('span'); valueSpan.className = 'review-value';
-                      const normalizedDisplayValue = normalizeNewlines(displayValue);
-                      if (label === '心得' && typeof normalizedDisplayValue === 'string') { valueSpan.innerHTML = normalizedDisplayValue.replace(/\n/g, '<br>'); }
-                      else { valueSpan.textContent = normalizedDisplayValue; }
+                      // --- *** Use decodeUnicodeEscapes for display *** ---
+                      const decodedDisplayValue = decodeUnicodeEscapes(displayValue);
+                      valueSpan.textContent = decodedDisplayValue; // Rely on pre-wrap
+                      // --- *** ---
                       return `<div class="review-line"><span class="review-label">${label}:</span>${valueSpan.outerHTML}</div>`;
                   };
-
                   contentDiv.innerHTML = `
                       <div class="review-card">
                           <div class="review-header">
-                               <div class="review-user-info">
-                                   <span class="review-user">${story.user_name || '匿名用戶'}</span>
-                                   {# Maybe add total story count for user later? #}
-                               </div>
+                               <div class="review-user-info"><span class="review-user">${story.user_name || '匿名用戶'}</span></div>
                                <span class="review-date">發布於 ${story.approved_at_display || '不久前'}</span>
                           </div>
                           <div class="review-body">
@@ -2228,14 +2245,11 @@
                           </div>
                       </div>
                   `;
-
-              } else {
-                  throw new Error(data.error || '無法獲取動態詳情');
-              }
+              } else { throw new Error(data.error || '無法獲取動態詳情'); }
           })
           .catch(error => {
               console.error("Error loading story detail:", error);
-              headerDiv.innerHTML = `<div class="story-loading-message">錯誤</div>`; // Clear header on error
+              headerDiv.innerHTML = `<div class="story-loading-message">錯誤</div>`;
               contentDiv.innerHTML = `<div class="story-loading-message">無法載入動態內容: ${error.message}</div>`;
           });
       }
@@ -2246,10 +2260,7 @@
        function loadHallOfFameData() {
            const listElement = document.getElementById('hallOfFameList');
            if (!listElement) { console.error("Hall of Fame list element (#hallOfFameList) not found."); return; }
-
-           // Use the new loading message style
            listElement.innerHTML = '<li class="loading-message">載入中...</li>';
-
            fetch("{% url 'myapp:ajax_get_hall_of_fame' %}", { // MODIFIED
                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
            })
@@ -2259,45 +2270,27 @@
                return response.json();
            })
            .then(data => {
-               listElement.innerHTML = ''; // Clear loading/previous content
+               listElement.innerHTML = '';
                if (data.users && data.users.length > 0) {
                    data.users.forEach(user => {
                        const li = document.createElement('li');
-                       // Add rank class for styling top 3
-                       if (user.rank >= 1 && user.rank <= 3) {
-                           li.classList.add(`rank-${user.rank}`);
-                       }
-
-                       // Determine the correct icon based on rank
-                       let iconClass = 'fas fa-trophy'; // Default icon for rank 4+
+                       if (user.rank >= 1 && user.rank <= 3) { li.classList.add(`rank-${user.rank}`); }
+                       let iconClass = 'fas fa-trophy';
                        if (user.rank === 1) iconClass = 'fas fa-medal';
                        else if (user.rank === 2) iconClass = 'fas fa-award';
                        else if (user.rank === 3) iconClass = 'fas fa-star';
-
-                       // Build the inner HTML using new structure and classes
                        li.innerHTML = `
-                           <span class="rank">
-                               <i class="${iconClass}"></i> #${user.rank}
-                           </span>
+                           <span class="rank"><i class="${iconClass}"></i> #${user.rank}</span>
                            <span class="user-name">${user.user_name}</span>
-                           <span class="review-count">${user.review_count} 心得</span>
-                       `;
-                       // Apply flex display directly via style for simplicity here
-                       li.style.display = 'flex';
-                       li.style.alignItems = 'center';
-                       li.style.justifyContent = 'space-between';
-
+                           <span class="review-count">${user.review_count} 心得</span>`;
+                       li.style.display = 'flex'; li.style.alignItems = 'center'; li.style.justifyContent = 'space-between';
                        listElement.appendChild(li);
                    });
-               } else {
-                   // Use the new empty message style
-                   listElement.innerHTML = '<li class="empty-message">目前尚無心得排行</li>';
-               }
+               } else { listElement.innerHTML = '<li class="empty-message">目前尚無心得排行</li>'; }
            })
            .catch(error => {
                console.error("Error loading Hall of Fame:", error);
-               // Use the new error message style
-               listElement.innerHTML = `<li class="empty-message" style="color: #ff8a8a;">無法載入名人堂: ${error.message}</li>`; // Use a subtle error color
+               listElement.innerHTML = `<li class="empty-message" style="color: #ff8a8a;">無法載入名人堂: ${error.message}</li>`;
            });
        }
        // --- END: MODIFIED Function to Load Hall of Fame Data ---
@@ -2306,39 +2299,15 @@
       // --- Event Listener Setup (using event delegation on document) ---
       document.addEventListener('click', function(e) {
           const target = e.target;
-          // Helper to find closest ancestor matching selector
           const targetClosest = (selector) => target.closest(selector);
 
-          // --- START: Modified Story Item Click Handler ---
+          // Story Item Click
           const storyItem = targetClosest('.story-item');
-          if (storyItem) {
-              const storyId = storyItem.dataset.storyId;
-              console.log(`Clicked story item: Story ID ${storyId}`);
-              if (storyId) {
-                  showStoryDetail(storyId); // Call the new function
-              } else {
-                  console.warn("Clicked story item missing story ID");
-              }
-              return; // Prevent other actions
-          }
-          // --- END: Modified Story Item Click Handler ---
+          if (storyItem) { const storyId = storyItem.dataset.storyId; if (storyId) { showStoryDetail(storyId); } else { console.warn("Clicked story item missing story ID"); } return; }
 
-          // --- START: Weekly Schedule Button Click Handler ---
-          if (targetClosest('#btnWeeklyScheduleHeader')) {
-              openModal('weeklyScheduleModal');
-              return; // Prevent other actions
-          }
-          // --- END: Weekly Schedule Button Click Handler ---
-
-          // --- START: Hall of Fame Button Click Handler ---
-          if (targetClosest('#btnHallOfFameHeader')) {
-              openModal('hallOfFameModal'); // This already calls loadHallOfFameData inside
-              return;
-          }
-          // --- END: Hall of Fame Button Click Handler ---
-
-
-          // Modal Opening Buttons (Header)
+          // Header Buttons
+          if (targetClosest('#btnWeeklyScheduleHeader')) { openModal('weeklyScheduleModal'); return; }
+          if (targetClosest('#btnHallOfFameHeader')) { openModal('hallOfFameModal'); return; }
           if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
           if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
           if (targetClosest('#btnDailyRecommendationHeader')) { openModal('dailyRecommendationModal'); return; }
@@ -2346,147 +2315,27 @@
           if (targetClosest('#myNotesBtnHeader')) { if (isLoggedIn) { openModal('myNotesModal'); } else { openModal('loginModal'); } return; }
           if (targetClosest('#loginBtnHeader')) { openModal('loginModal'); return; }
 
-          // Row Action Buttons (+ Menu and Review Count)
+          // Row Action Buttons
           const plusBtn = targetClosest('.plus-menu-btn'); if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; }
-          // Make sure review count button still works for regular reviews
           const reviewBtn = targetClosest('.review-count-btn'); if (reviewBtn) { e.stopPropagation(); const animalId = reviewBtn.dataset.animalId; if (animalId) { loadReviews(animalId); openModal('reviewModal'); } return; }
 
-          // Hall Menu Click Handlers
-          const dailyHallLink = targetClosest('#dailyHallMenu a');
-          if (dailyHallLink) { e.preventDefault(); const menu = dailyHallLink.closest('#dailyHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); dailyHallLink.classList.add('active'); const hallId = dailyHallLink.dataset.hallId; loadFilteredDailySchedule(hallId); return; }
-          const notesHallLink = targetClosest('#myNotesHallMenu a');
-          if (notesHallLink) { e.preventDefault(); const menu = notesHallLink.closest('#myNotesHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); notesHallLink.classList.add('active'); const hallId = notesHallLink.dataset.hallId; loadFilteredNotes(hallId); return; }
+          // Hall Menu Clicks
+          const dailyHallLink = targetClosest('#dailyHallMenu a'); if (dailyHallLink) { e.preventDefault(); const menu = dailyHallLink.closest('#dailyHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); dailyHallLink.classList.add('active'); loadFilteredDailySchedule(dailyHallLink.dataset.hallId); return; }
+          const notesHallLink = targetClosest('#myNotesHallMenu a'); if (notesHallLink) { e.preventDefault(); const menu = notesHallLink.closest('#myNotesHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); notesHallLink.classList.add('active'); loadFilteredNotes(notesHallLink.dataset.hallId); return; }
+          const weeklyHallLink = targetClosest('#weeklyHallMenu a'); if (weeklyHallLink) { e.preventDefault(); const menu = weeklyHallLink.closest('#weeklyHallMenu'); const hallId = weeklyHallLink.dataset.hallId; const imageArea = document.getElementById('weeklyScheduleImageArea'); if (!hallId || !imageArea) return; menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); weeklyHallLink.classList.add('active'); imageArea.innerHTML = '<p>載入中...</p>'; fetch(`/ajax/weekly_schedule/?hall_id=${hallId}`, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(d => { imageArea.innerHTML = ''; if (d.success && d.schedule_urls?.length > 0) { d.schedule_urls.forEach((url, i) => { const img = document.createElement('img'); img.src = url; img.alt = `${d.hall_name || '館別'} 班表 ${i + 1}`; imageArea.appendChild(img); }); } else { imageArea.innerHTML = `<p>${d.message || d.error || '無法載入班表'}</p>`; } }).catch(err => { imageArea.innerHTML = `<p style="color: red;">無法連接: ${err.message}</p>`; }); return; }
 
-          // --- START: Weekly Schedule Hall Menu Click Handler (MODIFIED) ---
-          const weeklyHallLink = targetClosest('#weeklyHallMenu a');
-          if (weeklyHallLink) {
-              e.preventDefault();
-              const menu = weeklyHallLink.closest('#weeklyHallMenu');
-              const hallId = weeklyHallLink.dataset.hallId;
-              const imageArea = document.getElementById('weeklyScheduleImageArea');
+          // Image Clicks (Weekly Schedule & Profile Photo)
+          const scheduleImage = targetClosest('#weeklyScheduleImageArea img'); const profileImage = targetClosest('.photo-area img');
+          if (scheduleImage || profileImage) { const imageToShow = scheduleImage || profileImage; const lightbox = document.getElementById('imageLightbox'); const lightboxImg = document.getElementById('lightboxImage'); if (lightbox && lightboxImg) { lightboxImg.src = imageToShow.src; lightboxImg.alt = imageToShow.alt || "放大圖片"; lightbox.style.display = 'flex'; document.body.style.overflow = 'hidden'; } else { console.error("Lightbox elements missing!"); } return; }
 
-              if (!hallId || !imageArea) { console.error("Weekly schedule hall link or image area missing."); return; }
-
-              // Update active state
-              menu.querySelectorAll('a').forEach(item => item.classList.remove('active'));
-              weeklyHallLink.classList.add('active');
-
-              // Set loading state
-              imageArea.innerHTML = '<p>載入中...</p>';
-
-              // Fetch the schedule image URLs (plural)
-              // NOTE: This fetch URL exists in your urls.py and wasn't requested to change, so it remains.
-              fetch(`/ajax/weekly_schedule/?hall_id=${hallId}`, {
-                  headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-              })
-              .then(response => {
-                  if (!response.ok) { return response.json().catch(() => null).then(errData => { throw new Error(errData?.error || `HTTP error ${response.status}`); }); }
-                  const contentType = response.headers.get("content-type"); if (!contentType?.includes("application/json")) { throw new TypeError("伺服器未返回有效的 JSON"); }
-                  return response.json();
-              })
-              .then(data => {
-                  imageArea.innerHTML = ''; // Clear loading/previous content
-                  if (data.success && data.schedule_urls && data.schedule_urls.length > 0) {
-                      // *** Loop through the URLs and create images ***
-                      data.schedule_urls.forEach((url, index) => {
-                          const img = document.createElement('img');
-                          img.src = url;
-                          img.alt = `${data.hall_name || '館別'} 每週班表 (圖片 ${index + 1})`;
-                          // CSS handles styling (max-width, margin, etc.)
-                          imageArea.appendChild(img);
-                      });
-                  } else if (data.success && (!data.schedule_urls || data.schedule_urls.length === 0)) {
-                      // Schedules might exist, but no images are associated or returned
-                      imageArea.innerHTML = `<p>${data.message || '此館別班表紀錄中未找到有效圖片'}</p>`;
-                  } else if (!data.success && data.message) {
-                      // Specific message from backend when no schedules are found at all
-                      imageArea.innerHTML = `<p>${data.message}</p>`;
-                  } else {
-                      // General error case
-                      imageArea.innerHTML = `<p>錯誤: ${data.error || '無法載入班表'}</p>`;
-                  }
-              })
-              .catch(error => {
-                  console.error("Error fetching weekly schedule:", error);
-                  imageArea.innerHTML = `<p style="color: red;">無法連接伺服器: ${error.message}</p>`;
-                  // imageArea.innerHTML = ''; // Clear image area on error too? Maybe keep error message
-              });
-              return; // Prevent other actions
-          }
-          // --- END: Weekly Schedule Hall Menu Click Handler (MODIFIED) ---
-
-          // --- START: MODIFICATION - Weekly Schedule Image Click Handler ---
-          const weeklyScheduleImage = targetClosest('#weeklyScheduleImageArea img');
-          if (weeklyScheduleImage) {
-              const lightbox = document.getElementById('imageLightbox');
-              const lightboxImg = document.getElementById('lightboxImage');
-              if (lightbox && lightboxImg) {
-                  lightboxImg.src = weeklyScheduleImage.src;
-                  lightboxImg.alt = weeklyScheduleImage.alt || "放大班表圖片"; // Use original alt or default
-                  lightbox.style.display = 'flex'; // Use flex for centering from CSS
-                  document.body.style.overflow = 'hidden'; // Prevent background scroll
-                  console.log("Showing lightbox for schedule image:", weeklyScheduleImage.src);
-              } else {
-                  console.error("Lightbox elements (#imageLightbox or #lightboxImage) not found!");
-              }
-              return; // Prevent other click handlers like closing the modal
-          }
-          // --- END: MODIFICATION - Weekly Schedule Image Click Handler ---
-
-
-          // Row Click for Top Section Update (in table modals)
-          const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
-          if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn, a, button, input, select, textarea, .photo-area img, #weeklyScheduleImageArea img')) { // Added #weeklyScheduleImageArea img exclusion
-              const modal = tableRow.closest('.modal');
-              if(modal?.querySelector('.modal-body[data-layout="table"] .top-section')){
-                  const photoArea = modal.querySelector('.photo-area');
-                  const introArea = modal.querySelector('.intro-area');
-                  if (photoArea && introArea) {
-                      updateTopSectionFromRow(photoArea, introArea, tableRow);
-                  }
-              }
-              return;
-          }
-
-          // Lightbox Click Handling (Profile Photo)
-          const photoAreaImage = targetClosest('.photo-area img');
-          if (photoAreaImage) {
-              const lightbox = document.getElementById('imageLightbox');
-              const lightboxImg = document.getElementById('lightboxImage');
-              if (lightbox && lightboxImg) {
-                  lightboxImg.src = photoAreaImage.src;
-                  lightboxImg.alt = photoAreaImage.alt || "放大圖片";
-                  lightbox.style.display = 'flex';
-                  document.body.style.overflow = 'hidden';
-                  console.log("Showing lightbox for profile image:", photoAreaImage.src);
-              } else {
-                   console.error("Lightbox elements (#imageLightbox or #lightboxImage) not found!");
-              }
-              return;
-          }
-
-          // Lightbox Closing Logic (Handles closing for BOTH profile and schedule images)
+          // Lightbox Closing
           const lightbox = document.getElementById('imageLightbox');
-          if (lightbox && lightbox.style.display === 'flex') { // Check if lightbox is open
-              if (target.id === 'closeLightbox' || target.id === 'imageLightbox') { // Click on close button or background
-                  lightbox.style.display = 'none';
-                  const lightboxImg = document.getElementById('lightboxImage');
-                  if (lightboxImg) lightboxImg.src = ''; // Clear src
-                  // Restore body scroll ONLY if no other modals are open
-                  const anyModalOpen = document.querySelector('.modal[style*="display: block"]');
-                  if (!anyModalOpen) {
-                      document.body.style.overflow = '';
-                  }
-                  console.log("Lightbox closed.");
-                  return; // Prevent other handlers
-              }
-              // If click is inside the image itself, do nothing (don't close)
-              if (target.id === 'lightboxImage') {
-                   console.log("Clicked inside lightbox image.");
-                   return;
-              }
-          }
+          if (lightbox && lightbox.style.display === 'flex' && (target.id === 'closeLightbox' || target.id === 'imageLightbox')) { lightbox.style.display = 'none'; const lightboxImg = document.getElementById('lightboxImage'); if (lightboxImg) lightboxImg.src = ''; const anyModalOpen = document.querySelector('.modal[style*="display: block"]'); if (!anyModalOpen) { document.body.style.overflow = ''; } return; }
+          if (target.id === 'lightboxImage') return; // Click inside image doesn't close
 
+          // Row Click for Top Section Update
+          const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
+          if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn, a, button, input, select, textarea')) { const modal = tableRow.closest('.modal'); if(modal?.querySelector('.modal-body[data-layout="table"] .top-section')){ const photoArea = modal.querySelector('.photo-area'); const introArea = modal.querySelector('.intro-area'); if (photoArea && introArea) { updateTopSectionFromRow(photoArea, introArea, tableRow); } } return; }
 
           // Close Modal Actions
           const closeBtn = targetClosest('.close-modal'); if (closeBtn) { closeModal(targetClosest('.modal')); return; }
@@ -2498,171 +2347,39 @@
 
       // --- START: Function to Load and Display Active Stories ---
       function loadActiveStories() {
-          const storyPanel = document.getElementById('storyReviewPanel');
-          if (!storyPanel) return;
-
-          // Show loading message initially or while fetching
-          // storyPanel.innerHTML = '<div class="story-loading-message">載入限時動態中...</div>'; // Can comment out if prefer empty panel during load
-
-          fetch("{% url 'myapp:ajax_get_active_stories' %}", { // MODIFIED
-              headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-          })
-          .then(response => {
-              if (!response.ok) { throw new Error(`HTTP error ${response.status}`); }
-              const ct = response.headers.get('content-type');
-              if (!ct?.includes('application/json')) { throw new TypeError('伺服器未返回 JSON'); }
-              return response.json();
-          })
+          const storyPanel = document.getElementById('storyReviewPanel'); if (!storyPanel) return;
+          fetch("{% url 'myapp:ajax_get_active_stories' %}", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } }) // MODIFIED
+          .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
           .then(data => {
-              storyPanel.innerHTML = ''; // Clear loading/previous content
-              if (data.stories && data.stories.length > 0) {
+              storyPanel.innerHTML = ''; // Clear first
+              if (data.stories?.length > 0) {
                   data.stories.forEach(story => {
-                      const itemDiv = document.createElement('div');
-                      itemDiv.className = 'story-item';
-                      itemDiv.dataset.storyId = story.id; // Store story ID
-                      itemDiv.dataset.animalId = story.animal_id; // Store animal ID
-
-                      const photoDiv = document.createElement('div');
-                      photoDiv.className = 'story-item-photo';
-                      if (story.animal_photo_url) {
-                          const img = document.createElement('img');
-                          img.src = story.animal_photo_url;
-                          img.alt = story.animal_name;
-                          photoDiv.appendChild(img);
-                      } else {
-                          // Placeholder if no photo
-                          const placeholder = document.createElement('span');
-                          placeholder.className = 'placeholder';
-                          placeholder.textContent = '👤'; // Or some icon/initial
-                          photoDiv.appendChild(placeholder);
-                      }
-
-                      const nameSpan = document.createElement('span');
-                      nameSpan.className = 'story-item-name';
-                      nameSpan.textContent = story.animal_name;
-
-                      const hallSpan = document.createElement('span');
-                      hallSpan.className = 'story-item-hall';
-                      hallSpan.textContent = story.hall_name;
-
-                      const timeSpan = document.createElement('span');
-                      timeSpan.className = 'story-item-time';
-                      timeSpan.textContent = story.remaining_time;
-
-                      itemDiv.appendChild(photoDiv);
-                      itemDiv.appendChild(nameSpan);
-                      itemDiv.appendChild(hallSpan);
-                      itemDiv.appendChild(timeSpan);
+                      const itemDiv = document.createElement('div'); itemDiv.className = 'story-item'; itemDiv.dataset.storyId = story.id; itemDiv.dataset.animalId = story.animal_id;
+                      const photoDiv = document.createElement('div'); photoDiv.className = 'story-item-photo';
+                      if (story.animal_photo_url) { const img = document.createElement('img'); img.src = story.animal_photo_url; img.alt = story.animal_name; photoDiv.appendChild(img); }
+                      else { const p = document.createElement('span'); p.className = 'placeholder'; p.textContent = '👤'; photoDiv.appendChild(p); }
+                      const nameSpan = document.createElement('span'); nameSpan.className = 'story-item-name'; nameSpan.textContent = story.animal_name;
+                      const hallSpan = document.createElement('span'); hallSpan.className = 'story-item-hall'; hallSpan.textContent = story.hall_name;
+                      const timeSpan = document.createElement('span'); timeSpan.className = 'story-item-time'; timeSpan.textContent = story.remaining_time;
+                      itemDiv.appendChild(photoDiv); itemDiv.appendChild(nameSpan); itemDiv.appendChild(hallSpan); itemDiv.appendChild(timeSpan);
                       storyPanel.appendChild(itemDiv);
                   });
-              } else {
-                  // No active stories
-                  storyPanel.innerHTML = '<div class="story-loading-message">目前沒有限時動態</div>';
-              }
-          })
-          .catch(error => {
-              console.error("Error loading active stories:", error);
-              storyPanel.innerHTML = `<div class="story-loading-message">無法載入限時動態: ${error.message}</div>`;
-          });
+              } else { storyPanel.innerHTML = '<div class="story-loading-message">目前沒有限時動態</div>'; }
+          }).catch(error => { console.error("Error loading stories:", error); storyPanel.innerHTML = `<div class="story-loading-message">無法載入: ${error.message}</div>`; });
       }
       // --- END: Function to Load and Display Active Stories ---
 
       // --- Initializations ---
-      // Initialize Choices.js for select elements in the review form
-      ['looks', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
-          const el = document.getElementById(id); if (!el) return; // Skip if element doesn't exist
-          // Prevent re-initialization if already done or is part of Choices internal structure
-          if (!el.choicesInstance && !el.hasAttribute('data-choice') && !el.classList.contains('choices__input')) {
-              try {
-                  // Determine if the first option is a placeholder (value="")
-                  const firstOptionValue = el.options[0]?.value;
-                  const placeholder = firstOptionValue === "";
-                  el.choicesInstance = new Choices(el, { searchEnabled: false, itemSelectText: '', allowHTML: false, shouldSort: false, placeholder: placeholder, placeholderValue: placeholder ? el.options[0].text : null });
-              } catch (e) { console.error(`Choices.js init error for #${id}:`, e); }
-          }
-      });
-
-      // Function to toggle visibility of price input based on select value ('可加值')
-      function togglePriceInput(selectId, priceInputId) {
-          const sel = document.getElementById(selectId); const inp = document.getElementById(priceInputId);
-          if (!sel || !inp) { return; } // Exit if elements not found
-          const toggle = () => { // Define the toggle logic
-              const selectValue = sel.value;
-              inp.style.display = (selectValue === '可加值') ? 'block' : 'none';
-              if (selectValue !== '可加值') inp.value = ''; // Clear price if not '可加值'
-          };
-          // Ensure event listener isn't added multiple times (though DOMContentLoaded runs once)
-          sel.removeEventListener('change', toggle); sel.addEventListener('change', toggle);
-          // Call toggle initially after a short delay to ensure Choices.js might have initialized
-          setTimeout(toggle, 150); // Delay might be needed if Choices changes the select value programmatically initially
-      }
-      // Setup toggling for music and sports price inputs
-      togglePriceInput('music', 'music_price');
-      togglePriceInput('sports', 'sports_price');
-
-      // Auto-hide login error message after a delay
-      const loginErrorMsg = document.getElementById('login-error-message');
-      if (loginErrorMsg) { setTimeout(() => { loginErrorMsg.style.transition = 'opacity 0.5s ease'; loginErrorMsg.style.opacity = '0'; setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500); }, 4000); }
-
-      // Function to limit checkbox selections within a group
-      function limitCheckboxSelection(groupId, maxCount) {
-          const group = document.getElementById(groupId);
-          if (!group) { console.error(`Checkbox group ID '${groupId}' not found.`); return; }
-          const checkboxes = group.querySelectorAll('input[type="checkbox"]');
-          const checkLimit = () => { // Define the checking logic
-              const checkedCount = group.querySelectorAll('input[type="checkbox"]:checked').length;
-              const limitReached = checkedCount >= maxCount;
-              checkboxes.forEach(cb => { // Update disabled state and label style for each checkbox
-                  const label = cb.closest('label');
-                  cb.disabled = !cb.checked && limitReached; // Disable unchecked boxes if limit reached
-                  if (label) label.classList.toggle('label-disabled', cb.disabled); // Apply/remove disabled style to label
-              });
-          };
-          // Add event listener to each checkbox in the group
-          checkboxes.forEach(checkbox => {
-              checkbox.removeEventListener('change', checkLimit); // Prevent duplicate listeners
-              checkbox.addEventListener('change', checkLimit);
-          });
-          checkLimit(); // Run once initially to set the state
-      }
-      // Apply limits to face and temperament checkbox groups
-      limitCheckboxSelection('faceCheckboxes', 3);
-      limitCheckboxSelection('temperamentCheckboxes', 3);
-
-      // --- Notes Checkbox Change Handler ---
-      function handleNoteCheckboxChange() {
-          if (this.disabled) return; // Do nothing if checkbox is disabled
-          const tableId = this.dataset.tableId;
-          const modal = this.closest('.modal'); // Find the parent modal of the checkbox
-          if (!modal) { console.error(`Notes Checkbox Change: Could not find parent modal.`); return; }
-          const tbody = modal.querySelector(`#${tableId} tbody`); // Find the tbody within that modal
-          if (!tbody) { console.error(`Notes Checkbox Change: Could not find tbody for table ID: ${tableId} within its modal.`); return; }
-          const shouldShow = this.checked; // Get the new checked state
-          applyNoteVisibility(tbody, shouldShow); // Apply the visibility change
-      }
-      // Attach the change handler to all note toggle checkboxes
-      document.querySelectorAll('.toggle-notes-checkbox').forEach(checkbox => {
-          checkbox.removeEventListener('change', handleNoteCheckboxChange); // Prevent duplicates
-          checkbox.addEventListener('change', handleNoteCheckboxChange);
-      });
-
-      // Initial Sync on Page Load (after a slight delay to allow content rendering)
-      // This ensures checkboxes are correctly enabled/disabled based on initial content
-      setTimeout(() => {
-           document.querySelectorAll('.toggle-notes-checkbox').forEach(checkbox => {
-                const tableId = checkbox.dataset.tableId;
-                const modal = checkbox.closest('.modal'); // Find parent modal
-                if (tableId && modal) { // If checkbox is inside a modal
-                    const tbody = modal.querySelector(`#${tableId} tbody`);
-                    if (tbody) { syncCheckboxState(checkbox, tbody); } // Sync state for that specific table
-                }
-           });
-      }, 100); // Short delay
-
-      // --- Load active stories on page load ---
-      loadActiveStories();
-      // Optional: Set an interval to refresh stories periodically (e.g., every minute)
-      setInterval(loadActiveStories, 60 * 1000); // 60000 ms = 1 minute
+      ['looks', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => { const el = document.getElementById(id); if (el && !el.choicesInstance && !el.hasAttribute('data-choice') && !el.classList.contains('choices__input')) { try { const ph = el.options[0]?.value === ""; el.choicesInstance = new Choices(el, { searchEnabled: false, itemSelectText: '', allowHTML: false, shouldSort: false, placeholder: ph, placeholderValue: ph ? el.options[0].text : null }); } catch (e) { console.error(`Choices init error #${id}:`, e); } } });
+      function togglePriceInput(selectId, priceInputId) { const sel = document.getElementById(selectId); const inp = document.getElementById(priceInputId); if (!sel || !inp) return; const t = () => { inp.style.display = (sel.value === '可加值') ? 'block' : 'none'; if (sel.value !== '可加值') inp.value = ''; }; sel.removeEventListener('change', t); sel.addEventListener('change', t); setTimeout(t, 150); }
+      togglePriceInput('music', 'music_price'); togglePriceInput('sports', 'sports_price');
+      const loginErrorMsg = document.getElementById('login-error-message'); if (loginErrorMsg) { setTimeout(() => { loginErrorMsg.style.transition = 'opacity 0.5s ease'; loginErrorMsg.style.opacity = '0'; setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500); }, 4000); }
+      function limitCheckboxSelection(groupId, maxCount) { const group = document.getElementById(groupId); if (!group) return; const cbs = group.querySelectorAll('input[type="checkbox"]'); const cl = () => { const cc = group.querySelectorAll('input:checked').length; cbs.forEach(cb => { const l = cb.closest('label'); cb.disabled = !cb.checked && cc >= maxCount; if (l) l.classList.toggle('label-disabled', cb.disabled); }); }; cbs.forEach(cb => { cb.removeEventListener('change', cl); cb.addEventListener('change', cl); }); cl(); }
+      limitCheckboxSelection('faceCheckboxes', 3); limitCheckboxSelection('temperamentCheckboxes', 3);
+      function handleNoteCheckboxChange() { if (this.disabled) return; const tableId = this.dataset.tableId; const modal = this.closest('.modal'); if (!modal) return; const tbody = modal.querySelector(`#${tableId} tbody`); if (!tbody) return; applyNoteVisibility(tbody, this.checked); }
+      document.querySelectorAll('.toggle-notes-checkbox').forEach(cb => { cb.removeEventListener('change', handleNoteCheckboxChange); cb.addEventListener('change', handleNoteCheckboxChange); });
+      setTimeout(() => { document.querySelectorAll('.toggle-notes-checkbox').forEach(cb => { const tid = cb.dataset.tableId; const m = cb.closest('.modal'); if (tid && m) { const tb = m.querySelector(`#${tid} tbody`); if (tb) syncCheckboxState(cb, tb); } }); }, 100);
+      loadActiveStories(); setInterval(loadActiveStories, 60000);
       // --- End Initializations ---
 
     }); // End DOMContentLoaded
