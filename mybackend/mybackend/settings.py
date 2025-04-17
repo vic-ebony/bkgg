@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'myapp',           # 你的應用程式
     'rest_framework',  # Django REST Framework
+    'schedule_parser',
 ]
 
 MIDDLEWARE = [

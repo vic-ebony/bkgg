@@ -1,0 +1,71 @@
+{# D:\bkgg\mybackend\myapp\templates\myapp\partials\_animal_table_rows.html #}
+{% load schedule_filters %} {# <--- Load custom filter for time slots #}
+{% comment %}
+Context variables expected:
+- animal: Animal object (potentially with annotated review_count)
+- today_slots: String representing today's time slots (e.g., "14.15.25", "預約滿")
+- user: Current logged-in user object
+- is_pending: Boolean, true if the animal is in the user's pending list
+- note: Note object for this user and animal, or None
+- review_count: Integer, approved review count for the animal
+{% endcomment %}
+
+{% with animal_id_str=animal.id|stringformat:"s" %}
+  {# Main row for the animal #}
+  <tr data-photo-url="{% if animal.photo %}{{ animal.photo.url }}{% endif %}"
+      data-introduction="{% if animal.introduction %}{{ animal.introduction|escapejs }}{% endif %}"
+      data-animal-id="{{ animal.id }}"
+      data-hall="{{ animal.hall.name|default:'' }}"
+      data-review-count="{{ review_count|default:0 }}" {# Use provided review_count #}
+      data-pending="{% if is_pending %}true{% else %}false{% endif %}" {# CORRECTED: Use {% if %} tag #}
+      {% if user.is_authenticated and note %}
+        data-note-id="{{ note.id }}"
+        data-note-content="{{ note.content|escapejs }}"
+      {% endif %}
+      >
+    <td>
+      {# Action button #}
+      <button class="circle-btn plus-menu-btn" aria-label="更多選項">+</button>
+    </td>
+    <td>
+      {# Beautician info (Name, Labels, Size) - Uses 'animal' object #}
+      <div class="beautician-cell">
+        <div class="labels">
+          {% if animal.is_newcomer %}<span class="label newcomer">新人</span>{% endif %}
+          {% if animal.is_hot %}<span class="label hot">熱門</span>{% endif %}
+          {% if animal.is_exclusive %}<span class="label exclusive">獨家</span>{% endif %}
+          {% if animal.is_hidden_edition %}<span class="label hidden-edition">隱藏版</span>{% endif %}
+        </div>
+        <div class="beautician-text">
+          <div class="name-container"><span class="name">{{ animal.name }}</span></div>
+          <div class="size-container"><span class="size">{{ animal.size_display|default:"" }}</span></div>
+        </div>
+      </div>
+    </td>
+    {# --- MODIFIED: Display Today's Time Slot --- #}
+    <td class="time-cell">
+        {{ today_slots|format_slots|safe }} {# Use filter and mark safe as it returns HTML #}
+    </td>
+    {# ------------------------------------------ #}
+    <td class="fee-cell">
+      {# Fee and Hall Name - Uses 'animal' object #}
+      {% if animal.fee %}{{ animal.fee }}{% else %}--{% endif %}
+      <span class="hall-name">{{ animal.hall.name|default:'' }}</span>
+    </td>
+    <td class="review-count-cell">
+      {# Review count button - Uses provided 'review_count' #}
+      <button class="review-count-btn" data-animal-id="{{ animal.id }}">{{ review_count|default:0 }}</button>
+    </td>
+  </tr>
+
+  {# --- Note Row (Logic unchanged, uses 'note' object) --- #}
+  {% if user.is_authenticated and note %}
+  <tr class="note-row" data-animal-id="{{ animal.id }}" style="display: none;">
+    <td></td> {# Empty cell for alignment #}
+    {# --- Ensure colspan matches your table structure (5 columns total in example) --- #}
+    <td colspan="4">
+      <div class="note-box">{{ note.content }}</div>
+    </td>
+  </tr>
+  {% endif %}
+{% endwith %}
