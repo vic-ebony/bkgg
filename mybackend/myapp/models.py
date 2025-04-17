@@ -8,7 +8,7 @@ from django.dispatch import receiver
 from datetime import timedelta
 from django.db.models import Q
 from django.core.exceptions import ValidationError
-# from django.db.models import JSONField # <--- 如果你的 Django 版本需要顯式導入
+# from django.db.models import JSONField # <--- 如果你的 Django 版本 < 3.1，取消註釋
 
 class Hall(models.Model):
     name = models.CharField("館別名稱", max_length=100)
@@ -21,8 +21,26 @@ class Hall(models.Model):
         help_text="勾選此項，該館別按鈕才會顯示在前端頁面。取消勾選可隱藏按鈕，但不影響後台操作或資料關聯。"
     )
 
+    # --- *** 新增的字段：用於區分班表格式 *** ---
+    SCHEDULE_FORMAT_CHOICES = [
+        ('format_a', '格式A (舊LINE格式)'),
+        ('chatanghui', '茶湯會格式'),
+        # 在這裡添加更多格式選項，例如：
+        # ('format_c', '格式C (XX店)')
+    ]
+    schedule_format_type = models.CharField(
+        "班表格式類型",
+        max_length=20,
+        choices=SCHEDULE_FORMAT_CHOICES,
+        default='format_a', # 設置一個合理的預設值，例如舊格式
+        help_text="指定此館別使用的班表文字格式，以便系統選擇正確的解析器"
+    )
+    # --- *** 新增字段結束 *** ---
+
     class Meta:
         ordering = ['-is_active', 'order', 'name']
+        verbose_name = "館別"
+        verbose_name_plural = "館別"
 
     def __str__(self):
         status_parts = []
@@ -32,6 +50,9 @@ class Hall(models.Model):
                 status_parts.append("前端隱藏")
         else:
             status_parts.append("停用")
+        # 可以在 __str__ 中也顯示格式類型，方便後台查看
+        format_display = self.get_schedule_format_type_display() # 獲取 choice 的顯示名稱
+        status_parts.append(f"格式: {format_display}")
         status_str = ", ".join(status_parts)
         return f"{self.name} ({status_str})"
 
@@ -44,7 +65,7 @@ class Hall(models.Model):
         super().save(*args, **kwargs)
 
 class Animal(models.Model):
-    name = models.CharField("姓名", max_length=100, db_index=True) # 允許同名，所以移除 unique=True
+    name = models.CharField("姓名", max_length=100, db_index=True)
     hall = models.ForeignKey(
         Hall,
         verbose_name="目前館別",
@@ -52,41 +73,34 @@ class Animal(models.Model):
         null=True, blank=True,
         related_name='animals'
     )
-    # --- 確保這些欄位允許空值 ---
     height = models.IntegerField("身高", blank=True, null=True)
     weight = models.IntegerField("體重", blank=True, null=True)
-    cup_size = models.CharField("罩杯", max_length=10, blank=True, null=True) # 加長
+    cup_size = models.CharField("罩杯", max_length=10, blank=True, null=True)
     fee = models.IntegerField("台費", blank=True, null=True) # 單位：元
     introduction = models.TextField("介紹", blank=True, null=True)
     photo = models.ImageField("照片", upload_to='animal_photos/', blank=True, null=True)
-    # --- 新增 aliases 欄位 ---
     aliases = models.JSONField(
         "別名/曾用名",
-        default=list,       # 預設為空列表
-        blank=True,         # 允許後台為空
+        default=list, blank=True,
         help_text='儲存可能的暱稱或舊名列表 (例如 ["小花", "小花@A店"])'
     )
-    # --- 舊的 time_slot 標示用途 ---
     time_slot = models.CharField(
-        "預設時段(舊)", # 修改名稱
-        max_length=200,
-        blank=True,
-        help_text="此欄位不再用於顯示每日班表，僅供參考。" # 修改 help_text
+        "預設時段(舊)", max_length=200, blank=True,
+        help_text="此欄位不再用於顯示每日班表，僅供參考。"
     )
-    # --- 其他欄位 ---
     is_active = models.BooleanField("啟用中", default=True, db_index=True)
-    order = models.PositiveIntegerField("排序", default=999) # 新增時預設值靠後
+    order = models.PositiveIntegerField("排序", default=999)
     is_newcomer = models.BooleanField("新人", default=False)
     is_hot = models.BooleanField("熱門", default=False)
     is_exclusive = models.BooleanField("獨家", default=False)
     is_hidden_edition = models.BooleanField("隱藏版", default=False)
     is_recommended = models.BooleanField("推薦", default=False)
-    created_at = models.DateTimeField("建立時間", auto_now_add=True, null=True, blank=True) # 允許 null 兼容舊數據
+    created_at = models.DateTimeField("建立時間", auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField("更新時間", auto_now=True, null=True, blank=True)
 
     class Meta:
         ordering = ['hall__order', 'order', 'name']
-        # unique_together = (('name', 'hall'),) # 如果希望同館姓名唯一
+        # unique_together = (('name', 'hall'),)
 
     def __str__(self):
         hall_name = self.hall.name if self.hall else '未分館'
@@ -108,7 +122,6 @@ class Animal(models.Model):
 class Review(models.Model):
     animal = models.ForeignKey(Animal, related_name="reviews", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
-    # ... (其他字段和 Meta 不變)
     age = models.PositiveIntegerField("年紀", null=True, blank=True)
     LOOKS_CHOICES = [ ('S級 (一見難忘)', 'S級 (一見難忘)'), ('A級 (出眾)', 'A級 (出眾)'), ('B級 (優異)', 'B級 (優異)'), ('C級 (中上)', 'C級 (中上)'), ('D級 (大眾)', 'D級 (大眾)'), ('E級 (較平凡)', 'E級 (較平凡)'), ]
     looks = models.CharField("顏值", max_length=20, choices=LOOKS_CHOICES, blank=True, null=True)
@@ -136,6 +149,8 @@ class Review(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name = "心得評論" # 修正名稱
+        verbose_name_plural = "心得評論"
 
     def __str__(self):
         animal_name = self.animal.name if self.animal else "未知動物"
@@ -152,6 +167,8 @@ class PendingAppointment(models.Model):
     class Meta:
         unique_together = ('user', 'animal')
         ordering = ['-added_at']
+        verbose_name = "待約項目" # 修正名稱
+        verbose_name_plural = "待約項目"
 
     def __str__(self):
         animal_name = self.animal.name if self.animal else "未知動物"
@@ -169,6 +186,8 @@ class Note(models.Model):
     class Meta:
         unique_together = (("user", "animal"),)
         ordering = ['-updated_at']
+        verbose_name = "用戶筆記" # 修正名稱
+        verbose_name_plural = "用戶筆記"
 
     def __str__(self):
         animal_name = self.animal.name if self.animal else "未知動物"
@@ -195,7 +214,6 @@ class Announcement(models.Model):
 class StoryReview(models.Model):
     animal = models.ForeignKey(Animal, related_name="story_reviews", on_delete=models.CASCADE, verbose_name="動物")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='story_reviews', verbose_name="用戶")
-    # ... (其他字段和 Meta, property, signal receiver 保持不變)
     age = models.PositiveIntegerField("年紀", null=True, blank=True)
     looks = models.CharField("顏值", max_length=20, choices=Review.LOOKS_CHOICES, blank=True, null=True)
     face = models.CharField("臉蛋", max_length=100, blank=True, null=True)
@@ -253,36 +271,16 @@ def set_story_approval_times(sender, instance, **kwargs):
         approved_changed = instance.approved
 
     if instance.approved and approved_changed:
-        if not instance.approved_at:
-            instance.approved_at = timezone.now()
-        # 只有在 approved_at 被設置且 expires_at 為空時才計算過期時間
-        if instance.approved_at and not instance.expires_at:
-             instance.expires_at = instance.approved_at + timedelta(hours=24)
+        if not instance.approved_at: instance.approved_at = timezone.now()
+        if instance.approved_at and not instance.expires_at: instance.expires_at = instance.approved_at + timedelta(hours=24)
     elif not instance.approved and approved_changed:
-        # 如果取消審核，清除審核和過期時間
-        instance.approved_at = None
-        instance.expires_at = None
-    # 如果只是修改其他字段而非審核狀態，保持時間不變
-
+        instance.approved_at = None; instance.expires_at = None
 
 # --- WeeklySchedule Model (圖片班表，保持不變) ---
 class WeeklySchedule(models.Model):
-    hall = models.ForeignKey(
-        Hall,
-        on_delete=models.CASCADE,
-        verbose_name="館別",
-        related_name='weekly_schedules'
-    )
-    schedule_image = models.ImageField(
-        "班表圖片",
-        upload_to='weekly_schedules/',
-        help_text="請上傳班表圖片",
-    )
-    order = models.PositiveIntegerField(
-        "排序",
-        default=0,
-        help_text="用於排序同一個館別的多張班表圖片，數字越小越前面"
-    )
+    hall = models.ForeignKey(Hall, on_delete=models.CASCADE, verbose_name="館別", related_name='weekly_schedules')
+    schedule_image = models.ImageField("班表圖片", upload_to='weekly_schedules/', help_text="請上傳班表圖片",)
+    order = models.PositiveIntegerField("排序", default=0, help_text="數字越小越前面")
     updated_at = models.DateTimeField("最後更新時間", auto_now=True)
 
     class Meta:
@@ -295,6 +293,5 @@ class WeeklySchedule(models.Model):
         local_time_str = timezone.localtime(self.updated_at).strftime('%Y-%m-%d %H:%M') if self.updated_at else '未知時間'
         image_name = self.schedule_image.name.split('/')[-1] if self.schedule_image else '無圖片'
         hall_status = ""
-        if self.hall and not self.hall.is_active:
-             hall_status = " (館別停用)"
+        if self.hall and not self.hall.is_active: hall_status = " (館別停用)"
         return f"{hall_name}{hall_status} - 班表 {self.order} ({image_name}) - 更新於 {local_time_str}"

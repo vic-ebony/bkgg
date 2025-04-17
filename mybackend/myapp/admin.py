@@ -8,11 +8,27 @@ from .models import Hall, Animal, Review, PendingAppointment, Note, Announcement
 
 @admin.register(Hall)
 class HallAdmin(admin.ModelAdmin):
-    list_display = ('name', 'order', 'is_active', 'is_visible')
-    list_filter = ('is_active', 'is_visible')
+    # --- *** 修改：添加 schedule_format_type *** ---
+    list_display = ('name', 'order', 'is_active', 'is_visible', 'schedule_format_type') # <-- 添加到列表顯示
+    list_filter = ('is_active', 'is_visible', 'schedule_format_type') # <-- 添加到篩選器
     list_editable = ('order', 'is_active', 'is_visible')
     search_fields = ('name',)
-    fields = ('name', 'order', 'is_active', 'is_visible')
+    # --- *** 修改：使用 fieldsets 並添加新字段 *** ---
+    # fields = ('name', 'order', 'is_active', 'is_visible') # 原來的 fields，現在用 fieldsets 代替
+    fieldsets = (
+        (None, { # 第一個分組，無標題
+            'fields': ('name', 'order')
+        }),
+        ('狀態與可見性', {
+            'fields': ('is_active', 'is_visible')
+        }),
+        # --- *** 將新字段添加到這裡 *** ---
+        ('班表與解析', { # 新增一個分組
+            'fields': ('schedule_format_type',) # <-- 添加新字段
+        }),
+        # --- *** ---
+    )
+    # --- *** 修改結束 *** ---
 
 @admin.register(Animal)
 class AnimalAdmin(admin.ModelAdmin):
@@ -150,3 +166,12 @@ class WeeklyScheduleAdmin(admin.ModelAdmin):
         if obj.schedule_image:
             return format_html('<img src="{}" style="max-height: 100px; max-width: 100px;" />', obj.schedule_image.url)
         return "無圖片"
+
+# --- 如果 DailyScheduleAdmin 在這裡定義，也保持不變 ---
+# @admin.register(DailySchedule)
+# class DailyScheduleAdmin(admin.ModelAdmin):
+#     list_display = ('hall', 'animal', 'time_slots', 'updated_at')
+#     list_filter = ('hall__is_active', 'hall', 'animal')
+#     search_fields = ('hall__name', 'animal__name', 'time_slots')
+#     list_select_related = ('hall', 'animal')
+#     readonly_fields = ('updated_at',)
