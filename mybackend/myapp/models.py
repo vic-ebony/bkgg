@@ -25,7 +25,14 @@ class Hall(models.Model):
     SCHEDULE_FORMAT_CHOICES = [
         ('format_a', '格式A (舊LINE格式)'),
         ('chatanghui', '茶湯會格式'),
-        ('xinyuan', '芯苑館格式'),
+        ('xinyuan', '芯苑格式'),
+        ('shouzhongqing', '手中情格式'),
+        ('pokemon', '寶可夢格式'),
+        ('aibao', '愛寶格式'),
+        ('hanxiang', '含香格式'),
+        ('pandora', '潘朵拉格式'),
+        ('wangfei', '王妃格式'),
+        ('lezuan', '樂鑽格式'),
         # 在這裡添加更多格式選項，例如：
         # ('format_c', '格式C (XX店)')
     ]
