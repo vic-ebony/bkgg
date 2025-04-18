@@ -25,6 +25,7 @@ class Hall(models.Model):
     SCHEDULE_FORMAT_CHOICES = [
         ('format_a', '格式A (舊LINE格式)'),
         ('chatanghui', '茶湯會格式'),
+        ('xinyuan', '芯苑館格式'),
         # 在這裡添加更多格式選項，例如：
         # ('format_c', '格式C (XX店)')
     ]
