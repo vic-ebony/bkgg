@@ -108,15 +108,25 @@ class Animal(models.Model):
 
     class Meta:
         ordering = ['hall__order', 'order', 'name']
-        # unique_together = (('name', 'hall'),)
+        # unique_together = (('name', 'hall'),) # 考慮是否需要唯一性約束
 
+    # --- *** 修改後的 __str__ 方法 *** ---
     def __str__(self):
         hall_name = self.hall.name if self.hall else '未分館'
         status = "" if self.is_active else " (停用)"
         hall_status = ""
         if self.hall and not self.hall.is_active:
             hall_status = " (館別停用)"
-        return f"{hall_name}{hall_status} - {self.name}{status}"
+
+        # 使用 size_display 屬性獲取身材信息
+        size_info = self.size_display
+        # 獲取台費信息，如果為空則顯示 '未填'
+        fee_info = f"{self.fee}元" if self.fee is not None else "未填"
+
+        # 組裝最終字符串，包含館別、姓名、身材、台費和 ID
+        # 保留 ID 作為最終的唯一標識符
+        return f"{hall_name}{hall_status} - {self.name} (身材:{size_info} | 台費:{fee_info} | ID:{self.pk}){status}"
+    # --- *** 修改結束 *** ---
 
     @property
     def size_display(self):
@@ -124,7 +134,8 @@ class Animal(models.Model):
         if self.height: parts.append(str(self.height))
         if self.weight: parts.append(str(self.weight))
         if self.cup_size: parts.append(self.cup_size)
-        return ".".join(parts) if parts else ""
+        # 如果所有部分都為空，返回 '未填'
+        return ".".join(parts) if parts else "未填"
 
 # --- Review Model (保持不變) ---
 class Review(models.Model):
@@ -139,7 +150,7 @@ class Review(models.Model):
     physique = models.CharField("體態", max_length=20, choices=PHYSIQUE_CHOICES, blank=True, null=True)
     CUP_CHOICES = [ ('天然', '天然'), ('醫美', '醫美'), ('自體醫美', '自體醫美'), ('不確定', '不確定'), ]
     cup = models.CharField("罩杯類型", max_length=20, choices=CUP_CHOICES, blank=True, null=True)
-    cup_size = models.CharField("罩杯大小", max_length=5, blank=True, null=True)
+    cup_size = models.CharField("罩杯大小", max_length=5, blank=True, null=True) # 注意：這個 cup_size 和 Animal 模型的不一樣，Review裡是評價者填寫的
     SKIN_TEXTURE_CHOICES = [ ('絲滑', '絲滑'), ('還不錯', '還不錯'), ('正常', '正常'), ('普通', '普通'), ]
     skin_texture = models.CharField("膚質", max_length=20, choices=SKIN_TEXTURE_CHOICES, blank=True, null=True)
     SKIN_COLOR_CHOICES = [ ('白皙', '白皙'), ('偏白', '偏白'), ('正常黃', '正常黃'), ('偏黃', '偏黃'), ('健康黑', '健康黑'), ]
@@ -157,7 +168,7 @@ class Review(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        verbose_name = "心得評論" # 修正名稱
+        verbose_name = "心得評論"
         verbose_name_plural = "心得評論"
 
     def __str__(self):
@@ -175,7 +186,7 @@ class PendingAppointment(models.Model):
     class Meta:
         unique_together = ('user', 'animal')
         ordering = ['-added_at']
-        verbose_name = "待約項目" # 修正名稱
+        verbose_name = "待約項目"
         verbose_name_plural = "待約項目"
 
     def __str__(self):
@@ -194,7 +205,7 @@ class Note(models.Model):
     class Meta:
         unique_together = (("user", "animal"),)
         ordering = ['-updated_at']
-        verbose_name = "用戶筆記" # 修正名稱
+        verbose_name = "用戶筆記"
         verbose_name_plural = "用戶筆記"
 
     def __str__(self):
@@ -255,34 +266,51 @@ class StoryReview(models.Model):
 
     @property
     def is_active(self):
+        """Checks if the story is approved and not expired."""
         return self.approved and self.expires_at and timezone.now() < self.expires_at
 
     @property
     def remaining_time_display(self):
-        if not self.is_active: return "已過期"
+        """Returns a user-friendly remaining time string."""
+        if not self.is_active:
+            return "已過期"
         now = timezone.now()
         remaining = self.expires_at - now
         total_seconds = int(remaining.total_seconds())
         hours = total_seconds // 3600
         minutes = (total_seconds % 3600) // 60
-        if hours > 0: return f"{hours}小時"
-        elif minutes > 0: return f"{minutes}分鐘"
-        else: return "即將過期"
+        if hours > 0:
+            return f"{hours}小時"
+        elif minutes > 0:
+            return f"{minutes}分鐘"
+        else:
+            return "即將過期"
 
 # --- Signal for StoryReview (保持不變) ---
 @receiver(pre_save, sender=StoryReview)
 def set_story_approval_times(sender, instance, **kwargs):
+    """Set approval and expiration times when a story review is approved."""
     try:
+        # Get the original instance from the database if it exists
         original_instance = sender.objects.get(pk=instance.pk)
         approved_changed = original_instance.approved != instance.approved
     except sender.DoesNotExist:
-        approved_changed = instance.approved
+        # This is a new instance being created
+        approved_changed = instance.approved # Will be True if created as approved
 
     if instance.approved and approved_changed:
-        if not instance.approved_at: instance.approved_at = timezone.now()
-        if instance.approved_at and not instance.expires_at: instance.expires_at = instance.approved_at + timedelta(hours=24)
+        # If approved status is set to True AND it changed (or it's new and approved)
+        if not instance.approved_at:
+            instance.approved_at = timezone.now()
+        # Set expires_at only if approved_at is set (should always be true here)
+        # and expires_at is not already set (to avoid overriding)
+        if instance.approved_at and not instance.expires_at:
+            instance.expires_at = instance.approved_at + timedelta(hours=24)
     elif not instance.approved and approved_changed:
-        instance.approved_at = None; instance.expires_at = None
+        # If approved status changed to False, clear the timestamps
+        instance.approved_at = None
+        instance.expires_at = None
+    # If approved status didn't change, do nothing to the timestamps
 
 # --- WeeklySchedule Model (圖片班表，保持不變) ---
 class WeeklySchedule(models.Model):

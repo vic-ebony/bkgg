@@ -1,70 +1,63 @@
 # D:\bkgg\mybackend\myapp\admin.py
-from django.contrib import admin
-from django.utils.html import format_html # 用於圖片預覽
+from django.contrib import admin, messages
+from django.utils.html import format_html
+# --- *** 導入 path *** ---
+from django.urls import reverse, path
+# --- *** ---
+from django.http import HttpResponseRedirect
 # --- 從 .models 導入所有需要註冊的 model ---
 from .models import Hall, Animal, Review, PendingAppointment, Note, Announcement, StoryReview, WeeklySchedule
-# --- (如果 DailyScheduleAdmin 移到這裡，也要導入) ---
-# from schedule_parser.models import DailySchedule
+# --- *** 從 .views 導入合併視圖 *** ---
+from .views import merge_transfer_animal_view
+# --- *** ---
 
 @admin.register(Hall)
 class HallAdmin(admin.ModelAdmin):
-    # --- *** 修改：添加 schedule_format_type *** ---
-    list_display = ('name', 'order', 'is_active', 'is_visible', 'schedule_format_type') # <-- 添加到列表顯示
-    list_filter = ('is_active', 'is_visible', 'schedule_format_type') # <-- 添加到篩選器
+    list_display = ('name', 'order', 'is_active', 'is_visible', 'schedule_format_type')
+    list_filter = ('is_active', 'is_visible', 'schedule_format_type')
     list_editable = ('order', 'is_active', 'is_visible')
     search_fields = ('name',)
-    # --- *** 修改：使用 fieldsets 並添加新字段 *** ---
-    # fields = ('name', 'order', 'is_active', 'is_visible') # 原來的 fields，現在用 fieldsets 代替
     fieldsets = (
-        (None, { # 第一個分組，無標題
-            'fields': ('name', 'order')
-        }),
-        ('狀態與可見性', {
-            'fields': ('is_active', 'is_visible')
-        }),
-        # --- *** 將新字段添加到這裡 *** ---
-        ('班表與解析', { # 新增一個分組
-            'fields': ('schedule_format_type',) # <-- 添加新字段
-        }),
-        # --- *** ---
+        (None, {'fields': ('name', 'order')}),
+        ('狀態與可見性', {'fields': ('is_active', 'is_visible')}),
+        ('班表與解析', {'fields': ('schedule_format_type',)}),
     )
-    # --- *** 修改結束 *** ---
 
 @admin.register(Animal)
 class AnimalAdmin(admin.ModelAdmin):
-    list_display = ('name', 'hall_display', 'fee', 'is_active', 'aliases_display', 'order') # 加入 aliases_display
+    list_display = ('name', 'hall_display', 'fee', 'is_active', 'aliases_display', 'order')
     list_filter = ('hall__is_active', 'hall', 'is_active', 'is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer')
-    search_fields = ('name', 'introduction', 'hall__name', 'aliases') # 加入別名搜索
+    search_fields = ('name', 'introduction', 'hall__name', 'aliases')
     list_editable = ('is_active', 'order')
     fieldsets = (
-        (None, {
-            'fields': ('name', 'hall', 'is_active', 'order', 'photo')
-        }),
-        ('基本資料', {
-            'fields': ('height', 'weight', 'cup_size', 'fee'),
-            'classes': ('collapse',)
-        }),
-        ('標籤', {
-            'fields': ('is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer'),
-        }),
-        ('介紹與別名', { # aliases 在這裡編輯
-            'fields': ('introduction', 'aliases'),
-        }),
-        ('舊時段(參考)', { # 標示 time_slot 為舊的
-            'fields': ('time_slot',),
-            'classes': ('collapse',)
-        }),
-         ('時間戳', { # 顯示自動時間
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',),
-        }),
+        (None, {'fields': ('name', 'hall', 'is_active', 'order', 'photo')}),
+        ('基本資料', {'fields': ('height', 'weight', 'cup_size', 'fee'), 'classes': ('collapse',)}),
+        ('標籤', {'fields': ('is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer')}),
+        ('介紹與別名', {'fields': ('introduction', 'aliases')}),
+        ('舊時段(參考)', {'fields': ('time_slot',), 'classes': ('collapse',)}),
+        ('時間戳', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )
     autocomplete_fields = ['hall']
     list_select_related = ('hall',)
-    readonly_fields = ('created_at', 'updated_at') # 時間戳設為唯讀
+    readonly_fields = ('created_at', 'updated_at')
+    actions = ['merge_transfer_animal'] # 註冊合併/轉移操作
+
+    # --- *** 添加 get_urls 方法以註冊自定義 Admin URL *** ---
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                '<int:animal_id>/merge-transfer/', # 路徑相對於 /admin/myapp/animal/
+                self.admin_site.admin_view(merge_transfer_animal_view), # 使用 admin_view 包裹視圖
+                name='myapp_animal_merge_transfer' # URL 名稱，用於 reverse
+            )
+        ]
+        return custom_urls + urls
+    # --- *** ---
 
     @admin.display(description='館別', ordering='hall__name')
     def hall_display(self, obj):
+        # ... (保持不變) ...
         if obj.hall:
             status_parts = []
             if not obj.hall.is_active: status_parts.append("已停用")
@@ -75,20 +68,37 @@ class AnimalAdmin(admin.ModelAdmin):
 
     @admin.display(description='別名/曾用名')
     def aliases_display(self, obj):
-        # 處理 JSONField 列表或其他格式
-        if isinstance(obj.aliases, list):
-            # 只顯示前幾個，避免列表過長
-            display_aliases = [str(a) for a in obj.aliases[:3]] # 最多顯示3個
+        # ... (保持不變) ...
+         if isinstance(obj.aliases, list):
+            display_aliases = [str(a) for a in obj.aliases[:3]]
             suffix = '...' if len(obj.aliases) > 3 else ''
             return ", ".join(display_aliases) + suffix
-        elif isinstance(obj.aliases, str): # 兼容舊的 CharField 存儲
-             return obj.aliases[:30] + ('...' if len(obj.aliases) > 30 else '') # 截斷過長字串
-        return obj.aliases # 其他情況直接顯示
+         elif isinstance(obj.aliases, str):
+             return obj.aliases[:30] + ('...' if len(obj.aliases) > 30 else '')
+         return obj.aliases
 
+    # --- 合併/轉移操作 ---
+    @admin.action(description='合併/轉移選定的美容師資料')
+    def merge_transfer_animal(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(request, "請只選擇一位美容師進行合併/轉移操作。", messages.WARNING)
+            return HttpResponseRedirect(request.get_full_path())
 
+        selected_animal = queryset.first()
+        animal_id = selected_animal.id
+
+        try:
+            # --- *** 使用 Admin 命名空間反向解析在 get_urls 中定義的 URL *** ---
+            intermediate_url = reverse('admin:myapp_animal_merge_transfer', args=[animal_id])
+            # --- *** ---
+            return HttpResponseRedirect(intermediate_url)
+        except Exception as e:
+            self.message_user(request, f"無法導向合併頁面，請檢查URL配置或視圖導入: {e}", messages.ERROR)
+            return HttpResponseRedirect(request.get_full_path())
+
+# --- 其他 Admin 註冊 (保持不變) ---
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    # ... (保持不變或按需調整)
     list_filter = ('approved', 'animal__hall__is_active', 'animal__hall', 'animal', 'user')
     list_display = ('animal', 'user', 'created_at', 'approved')
     search_fields = ('content', 'user__username', 'animal__name', 'animal__hall__name')
@@ -99,16 +109,13 @@ class ReviewAdmin(admin.ModelAdmin):
 
 @admin.register(PendingAppointment)
 class PendingAppointmentAdmin(admin.ModelAdmin):
-    # ... (保持不變或按需調整)
     list_display = ('user', 'animal', 'added_at')
     list_filter = ('user', 'animal__hall__is_active', 'animal__hall', 'animal')
     search_fields = ('user__username', 'animal__name', 'animal__hall__name')
     list_select_related = ('user', 'animal', 'animal__hall')
 
-
 @admin.register(Note)
 class NoteAdmin(admin.ModelAdmin):
-    # ... (保持不變或按需調整)
     list_display = ('user', 'animal', 'updated_at')
     list_filter = ('user', 'animal__hall__is_active', 'animal__hall', 'animal')
     search_fields = ('content', 'user__username', 'animal__name', 'animal__hall__name')
@@ -117,7 +124,6 @@ class NoteAdmin(admin.ModelAdmin):
 
 @admin.register(Announcement)
 class AnnouncementAdmin(admin.ModelAdmin):
-    # ... (保持不變或按需調整)
     list_display = ('title', 'content_summary', 'is_active', 'updated_at')
     list_filter = ('is_active',)
     search_fields = ('title', 'content')
@@ -131,14 +137,13 @@ class AnnouncementAdmin(admin.ModelAdmin):
 
 @admin.register(StoryReview)
 class StoryReviewAdmin(admin.ModelAdmin):
-    # ... (保持不變或按需調整)
     list_display = ('animal', 'user', 'created_at', 'approved', 'approved_at', 'expires_at', 'is_story_active_display')
     list_filter = ('approved', 'animal__hall__is_active', 'animal__hall', 'animal', 'user')
     search_fields = ('content', 'user__username', 'animal__name', 'animal__hall__name')
     list_editable = ('approved',)
     list_select_related = ('animal', 'user', 'animal__hall')
     date_hierarchy = 'created_at'
-    readonly_fields = ('created_at', 'approved_at', 'expires_at') # 審核時間和過期時間應由信號控制
+    readonly_fields = ('created_at', 'approved_at', 'expires_at')
     fieldsets = (
         (None, {'fields': ('animal', 'user', 'approved')}),
         ('內容 (同心得)', {'fields': ('age', 'looks', 'face', 'temperament', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'music_price', 'sports', 'sports_price', 'scale', 'content')}),
@@ -151,7 +156,6 @@ class StoryReviewAdmin(admin.ModelAdmin):
 
 @admin.register(WeeklySchedule)
 class WeeklyScheduleAdmin(admin.ModelAdmin):
-    # ... (保持不變或按需調整)
     list_display = ('hall', 'order', 'schedule_image_preview', 'updated_at')
     list_filter = ('hall__is_active', 'hall',)
     search_fields = ('hall__name',)
@@ -168,10 +172,4 @@ class WeeklyScheduleAdmin(admin.ModelAdmin):
         return "無圖片"
 
 # --- 如果 DailyScheduleAdmin 在這裡定義，也保持不變 ---
-# @admin.register(DailySchedule)
-# class DailyScheduleAdmin(admin.ModelAdmin):
-#     list_display = ('hall', 'animal', 'time_slots', 'updated_at')
-#     list_filter = ('hall__is_active', 'hall', 'animal')
-#     search_fields = ('hall__name', 'animal__name', 'time_slots')
-#     list_select_related = ('hall', 'animal')
-#     readonly_fields = ('updated_at',)
+# ...

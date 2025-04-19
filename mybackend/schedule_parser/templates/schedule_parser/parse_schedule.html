@@ -29,17 +29,14 @@
     .preview-item h4 .original-text { font-weight: normal; font-size: 0.9em; color: #777; margin-left: 5px; }
     .parsed-info span { display: inline-block; margin-right: 12px; margin-bottom: 5px; font-size: 0.85em; color: #666; background: #f0f3f5; padding: 3px 6px; border-radius: 3px; border: 1px solid #e0e0e0; }
     .match-status { font-weight: bold; padding: 6px 10px; border-radius: 4px; font-size: 0.9em; display: inline-block; margin-bottom: 10px; }
-    .match-status.matched { background-color: #e0f2f7; color: #0d3c55; border: 1px solid #b3e0f2; }
+    .match-status.matched { background-color: #e0f2f7; color: #0d3c55; border: 1px solid #b3e0f2; } /* Kept for 'matched_exact' */
     .match-status.not-found { background-color: #fce8e6; color: #5c1a1e; border: 1px solid #f7d3cf; }
-    .match-status.multiple { background-color: #fff8e1; color: #614a00; border: 1px solid #ffecb3; }
     .match-status.error { background-color: #fce8e6; color: #5c1a1e; border: 1px solid #f7d3cf; }
     /* Action Options */
     .action-options { margin-top: 10px; margin-bottom: 10px; padding: 12px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; }
     .action-options legend { font-weight: 600; margin-bottom: 8px; font-size: 0.95em; color: #1f2937; }
     .action-options label { margin-right: 15px; font-size: 0.9em; display: inline-flex; align-items: center; margin-bottom: 8px; cursor: pointer;}
     .action-options input[type="radio"] { margin-right: 6px; height: 1em; width: 1em; }
-    .action-options select, .action-options input[type="text"] { display: inline-block; width: auto; margin-left: 8px; padding: 6px 10px; font-size: 0.9em; border: 1px solid #d1d5db; border-radius: 4px; }
-    .action-options select:disabled { background-color: #f3f4f6; cursor: not-allowed; opacity: 0.7; }
     /* Time Slot Input */
     .time-slot-input-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9em; }
     .time-slot-input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 4px; font-family: monospace; }
@@ -55,7 +52,7 @@
 {% block content %}
 <div id="content" class="parser-container colM">
     <h1>班表解析與更新</h1>
-    <p>將 LINE 的每日班表文字貼入下方，選擇對應館別後進行解析和儲存。</p>
+    <p>將 LINE 的每日班表文字貼入下方，選擇對應館別後進行解析和儲存。系統將只進行**精確姓名匹配**，未匹配到的項目可選擇忽略或新增。</p> {# Updated description #}
 
     <form id="scheduleParserForm" onsubmit="return false;">
         <fieldset class="module aligned">
@@ -102,12 +99,14 @@
 
 {# --- JavaScript Start --- #}
 <script>
+  // *** 將 getCookie 函數定義移到這裡，在 DOMContentLoaded 之前 ***
   function getCookie(name) {
       let cookieValue = null;
       if (document.cookie && document.cookie !== '') {
           const cookies = document.cookie.split(';');
           for (let i = 0; i < cookies.length; i++) {
               const cookie = cookies[i].trim();
+              // Does this cookie string begin with the name we want?
               if (cookie.substring(0, name.length + 1) === (name + '=')) {
                   cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                   break;
@@ -118,6 +117,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function() {
+      // 現在 csrfToken 可以正確呼叫 getCookie 了
       const csrfToken = getCookie('csrftoken');
       const hallSelect = document.getElementById('hallSelect');
       const scheduleText = document.getElementById('scheduleText');
@@ -128,6 +128,7 @@
       const loadingIndicator = document.getElementById('loadingIndicator');
       const messageArea = document.getElementById('messageArea');
 
+      // --- Utility Functions ---
       function clearMessage() {
           if (messageArea) {
               messageArea.textContent = '';
@@ -139,29 +140,30 @@
       function showMessage(msg, type = 'info') {
           if (messageArea) {
               messageArea.textContent = msg;
-              messageArea.className = 'message-area';
+              messageArea.className = 'message-area'; // Reset classes first
               if (type === 'success') { messageArea.classList.add('success-message'); }
               else if (type === 'error') { messageArea.classList.add('error-message'); }
-              else { messageArea.classList.add('info-message'); }
+              else { messageArea.classList.add('info-message'); } // Default or info
               messageArea.style.display = 'block';
           } else {
               console.error("Message area not found!");
           }
       }
 
-      function escapeHTML(str) {
+       function escapeHTML(str) {
           if (str === null || str === undefined) { return ''; }
-          const element = document.createElement('div');
-          element.textContent = str;
-          return element.innerHTML;
+          const p = document.createElement("p");
+          p.textContent = str;
+          return p.innerHTML; // Browser handles escaping
       }
 
+      // --- Render Preview Function (Simplified: No Association) ---
       function renderPreview(previewData) {
           const previewHeader = `
               <h2>預覽結果</h2>
               <p>請檢查以下匹配結果，並確認或修改操作與時段，然後點擊儲存。</p>
               <hr>`;
-          previewArea.innerHTML = previewHeader;
+          previewArea.innerHTML = previewHeader; // Clear previous preview
 
           if (!previewData || previewData.length === 0) {
               previewArea.innerHTML += '<p style="text-align: center; color: #666;">未解析到任何美容師信息，請檢查輸入的文字。</p>';
@@ -170,21 +172,25 @@
 
           previewData.forEach((item, index) => {
               const parsed = item.parsed || {};
-              const status = item.status;
+              const status = item.status; // Expected: 'matched_exact', 'not_found', 'error'
               const matchedInfo = item.matched_animal_info;
-              const possibleMatches = item.possible_matches || [];
-              const isMatched = status === 'matched_exact' || status === 'matched_alias_or_name';
-              const feeChanged = isMatched && parsed.parsed_fee !== null && matchedInfo && matchedInfo.fee !== parsed.parsed_fee;
+              // possibleMatches is no longer relevant here
+
+              const isMatchedExact = status === 'matched_exact';
+              // Check if fee needs update only on exact match
+              const feeChanged = isMatchedExact && parsed.parsed_fee !== null && matchedInfo && matchedInfo.fee !== parsed.parsed_fee;
 
               const itemDiv = document.createElement('div');
               itemDiv.className = 'preview-item';
               itemDiv.dataset.index = index;
+              // Store parsed data for submission if needed
               itemDiv.dataset.parsedData = JSON.stringify(parsed);
 
               let statusHTML = '';
               let actionOptionsHTML = '';
-              let defaultOperation = 'ignore';
+              let defaultOperation = 'ignore'; // Default operation
 
+              // Basic info display (Name, Original Text, Parsed Fee/Size/Intro)
               const introPreview = parsed.introduction ? escapeHTML(parsed.introduction.substring(0, 50)) + '...' : '無';
               const parsedFeeText = parsed.parsed_fee !== null ? `<span>費用: ${parsed.parsed_fee / 100}</span>` : '';
               const parsedSizeText = parsed.height ? `<span>身材: ${parsed.height}/${parsed.weight || '?'}/${parsed.cup || '?'}</span>` : '';
@@ -200,169 +206,277 @@
                   </div>
               `;
 
+              // Determine Status and Action Options based on backend result
               switch (status) {
                   case 'matched_exact':
-                  case 'matched_alias_or_name':
-                      const matchType = status === 'matched_exact' ? '精確匹配' : '別名/姓名匹配';
                       const matchedName = matchedInfo ? escapeHTML(matchedInfo.name) : '未知';
                       const matchedHall = matchedInfo ? escapeHTML(matchedInfo.hall_name || '未知館') : '未知館';
                       const matchedFee = matchedInfo ? matchedInfo.fee : null;
-                      statusHTML = `<div class="match-status matched">✔️ ${matchType}: ${matchedName} (${matchedHall})</div>`;
+                      statusHTML = `<div class="match-status matched">✔️ 精確匹配: ${matchedName} (${matchedHall})</div>`;
+                      // Add fee update notice if applicable
                       if (feeChanged) { statusHTML += `<div class="fee-update-notice">⚠️ 台費將從 ${matchedFee !== null ? matchedFee / 100 : '?'} 更新為 ${parsed.parsed_fee / 100}</div>`; }
-                      actionOptionsHTML = `<input type="hidden" name="operation_${index}" value="use_existing"><input type="hidden" name="animal_id_${index}" value="${matchedInfo ? matchedInfo.id : ''}"><input type="hidden" id="update_fee_flag_${index}" name="update_fee_${index}" value="${feeChanged ? '1' : '0'}">`;
-                      defaultOperation = 'use_existing';
+                      // No radio buttons needed, operation is implicitly 'use_existing'
+                      // Store necessary data in hidden fields for submission
+                      actionOptionsHTML = `
+                          <input type="hidden" name="operation_${index}" value="use_existing">
+                          <input type="hidden" name="animal_id_${index}" value="${matchedInfo ? matchedInfo.id : ''}">
+                          <input type="hidden" id="update_fee_flag_${index}" name="update_fee_${index}" value="${feeChanged ? '1' : '0'}">`;
+                      defaultOperation = 'use_existing'; // Set the internal default
                       break;
-                  case 'multiple_matches':
-                      statusHTML = `<div class="match-status multiple">❓ 多重匹配: 找到 ${possibleMatches.length} 位。請選擇一位或忽略。</div>`;
-                      actionOptionsHTML = `<fieldset class="action-options"><legend>選擇操作:</legend><label><input type="radio" name="operation_${index}" value="ignore" checked> 忽略此項</label><label><input type="radio" name="operation_${index}" value="associate"> 關聯到:<select name="animal_id_${index}" required disabled><option value="">-- 請選擇 --</option>${possibleMatches.map(match => `<option value="${match.id}">${escapeHTML(match.name)} (${escapeHTML(match.hall__name || '未知館')})</option>`).join('')}</select></label></fieldset>`;
-                      defaultOperation = 'ignore';
-                      break;
+
                   case 'not_found':
-                      statusHTML = `<div class="match-status not-found">❌ 未找到匹配美容師。請選擇操作。</div>`;
-                      actionOptionsHTML = `<fieldset class="action-options"><legend>選擇操作:</legend><label><input type="radio" name="operation_${index}" value="ignore" checked> 忽略此項</label><label title="將使用解析到的信息創建新的美容師記錄"><input type="radio" name="operation_${index}" value="add_new"> ✨ 新增美容師</label>${possibleMatches.length > 0 ? `<label><input type="radio" name="operation_${index}" value="associate"> 關聯到現有 (${hallSelect.options[hallSelect.selectedIndex].text}優先):<select name="animal_id_${index}" disabled><option value="">-- 請選擇 --</option>${possibleMatches.map(match => `<option value="${match.id}">${escapeHTML(match.name)}</option>`).join('')}</select></label>` : '<span style="font-size:0.9em; color:#888;"> (無建議的同館關聯對象)</span>'}</fieldset>`;
-                       defaultOperation = 'ignore';
-                       break;
-                  case 'error': default:
-                      statusHTML = `<div class="match-status error">⚠️ 匹配時發生錯誤。此項將被忽略。</div>`;
+                      statusHTML = `<div class="match-status not-found">❌ 未找到精確匹配。請選擇操作。</div>`;
+                      // Offer only Ignore or Add New
+                      actionOptionsHTML = `
+                          <fieldset class="action-options">
+                              <legend>選擇操作:</legend>
+                              <label><input type="radio" name="operation_${index}" value="ignore" checked> 忽略此項</label>
+                              <label title="將使用解析到的信息創建新的美容師記錄"><input type="radio" name="operation_${index}" value="add_new"> ✨ 新增美容師</label>
+                          </fieldset>`;
+                      defaultOperation = 'ignore'; // Default to ignore for 'not_found'
+                      break;
+
+                  case 'error': default: // Handles 'error' or any unexpected status
+                      statusHTML = `<div class="match-status error">⚠️ 處理時發生錯誤。此項將被忽略。</div>`;
+                      // Implicitly ignore, store 'ignore' operation
                       actionOptionsHTML = `<input type="hidden" name="operation_${index}" value="ignore">`;
                       defaultOperation = 'ignore';
                       break;
               }
 
-              const timeInputHTML = `<div class="form-group time-slot-input-group"><label for="time_slots_${index}">確認/修改時段:</label><input type="text" id="time_slots_${index}" name="time_slots_${index}" class="time-slot-input" value="${escapeHTML(parsed.time_slots || '')}" placeholder="輸入時段 (例如 14.15.16) 或 特殊狀態 (例如 預約滿)"></div>`;
+              // Input for Time Slots (always present)
+              const timeInputHTML = `
+                  <div class="form-group time-slot-input-group">
+                      <label for="time_slots_${index}">確認/修改時段:</label>
+                      <input type="text" id="time_slots_${index}" name="time_slots_${index}" class="time-slot-input"
+                             value="${escapeHTML(parsed.time_slots || '')}"
+                             placeholder="輸入時段 (例如 14.15.16) 或 特殊狀態 (例如 預約滿)">
+                  </div>`;
 
+              // Append generated HTML to the item container
               itemDiv.innerHTML += statusHTML + actionOptionsHTML + timeInputHTML;
-              itemDiv.dataset.defaultOperation = defaultOperation;
+              itemDiv.dataset.defaultOperation = defaultOperation; // Store default operation logic
               previewArea.appendChild(itemDiv);
-          });
 
-          previewArea.querySelectorAll('input[type="radio"][name^="operation_"]').forEach(radio => {
-              radio.addEventListener('change', function() {
-                  const itemDiv = this.closest('.preview-item'); if (!itemDiv) return;
-                  const index = itemDiv.dataset.index;
-                  const associateSelect = itemDiv.querySelector(`select[name="animal_id_${index}"]`);
-                  if (associateSelect) {
-                      const enableSelect = this.value === 'associate';
-                      associateSelect.disabled = !enableSelect;
-                      if (!enableSelect) { associateSelect.value = ''; }
-                  }
-              });
-              radio.dispatchEvent(new Event('change'));
-          });
+              // Set the default checked state for radio buttons if they exist
+              const radios = itemDiv.querySelectorAll(`input[type="radio"][name="operation_${index}"]`);
+              if (radios.length > 0) {
+                  radios.forEach(radio => { radio.checked = (radio.value === defaultOperation); });
+              }
+          }); // end forEach loop
+
       } // end renderPreview
 
       // --- Preview Button Click Handler ---
       if (previewBtn) {
           previewBtn.addEventListener('click', function() {
-              const hallId = hallSelect.value; const text = scheduleText.value; clearMessage();
+              const hallId = hallSelect.value;
+              const text = scheduleText.value;
+              clearMessage(); // Clear previous messages
+
+              // Basic client-side validation
               if (!hallId) { showMessage('錯誤：請先選擇館別。', 'error'); return; }
               if (!text.trim()) { showMessage('錯誤：請貼上有效的班表文字。', 'error'); return; }
-              loadingIndicator.style.display = 'block'; previewArea.innerHTML = ''; previewArea.style.display = 'none';
+
+              // UI updates for loading state
+              loadingIndicator.style.display = 'block';
+              previewArea.innerHTML = ''; // Clear previous preview
+              previewArea.style.display = 'none';
               if(saveBtnContainer) saveBtnContainer.style.display = 'none';
-              previewBtn.disabled = true; if(saveBtn) saveBtn.disabled = true;
+              previewBtn.disabled = true;
+              if(saveBtn) saveBtn.disabled = true;
 
-              const formData = new FormData(); formData.append('csrfmiddlewaretoken', csrfToken);
-              formData.append('action', 'preview'); formData.append('hall_id', hallId);
-              formData.append('schedule_text', text); // Preview also needs schedule_text
+              // Prepare form data
+              const formData = new FormData();
+              formData.append('csrfmiddlewaretoken', csrfToken); // Use the globally defined csrfToken
+              formData.append('action', 'preview');
+              formData.append('hall_id', hallId);
+              formData.append('schedule_text', text);
 
-              const previewUrl = "{% url 'schedule_parser:parse_schedule' %}";
-              console.log("Sending PREVIEW request to:", previewUrl); // Log URL
+              const previewUrl = "{% url 'schedule_parser:parse_schedule' %}"; // Get URL from Django template tag
+              console.log("Sending PREVIEW request (Exact Match Only) to:", previewUrl);
 
-              fetch(previewUrl, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' }})
-              .then(response => { const status = response.status; return response.json().then(data => ({ status, data })); })
-              .then(({ status, data }) => {
-                  loadingIndicator.style.display = 'none'; previewBtn.disabled = false;
-                  if (status >= 200 && status < 300 && data.preview_data) {
-                      renderPreview(data.preview_data); previewArea.style.display = 'block';
-                      if (saveBtnContainer) saveBtnContainer.style.display = 'block';
-                      if (saveBtn) saveBtn.disabled = false;
-                  } else {
-                      showMessage('預覽錯誤：' + (data.error || `伺服器錯誤 ${status}`), 'error');
-                      previewArea.style.display = 'none'; if (saveBtnContainer) saveBtnContainer.style.display = 'none';
+              // Perform the fetch request
+              fetch(previewUrl, {
+                  method: 'POST',
+                  body: formData,
+                  headers: { 'X-Requested-With': 'XMLHttpRequest' } // Important for Django request.is_ajax()
+              })
+              .then(response => { // Handle HTTP response status first
+                  if (!response.ok) {
+                     // Try to parse error JSON from backend, otherwise use status text
+                     return response.json().then(errData => {
+                         throw new Error(errData.error || `伺服器錯誤 ${response.status}: ${response.statusText}`);
+                     }).catch(() => { // If parsing JSON fails
+                         throw new Error(`伺服器錯誤 ${response.status}: ${response.statusText}`);
+                     });
+                  }
+                  return response.json(); // Parse JSON body if response is OK
+              })
+              .then(data => { // Process the successful JSON data
+                  loadingIndicator.style.display = 'none'; // Hide loading
+                  previewBtn.disabled = false; // Re-enable preview button
+
+                  if (data.preview_data) {
+                      renderPreview(data.preview_data); // Render the preview items
+                      previewArea.style.display = 'block'; // Show preview area
+                      if (saveBtnContainer) saveBtnContainer.style.display = 'block'; // Show save button container
+                      if (saveBtn) saveBtn.disabled = false; // Enable save button
+                  } else if (data.error) { // Handle application-level errors returned in JSON
+                      showMessage('預覽錯誤：' + data.error, 'error');
+                      previewArea.style.display = 'none';
+                      if (saveBtnContainer) saveBtnContainer.style.display = 'none';
                       if (saveBtn) saveBtn.disabled = true;
+                  } else { // Unexpected success response format
+                      throw new Error("收到未知的伺服器回應格式");
                   }
               })
-              .catch(error => {
-                  console.error('Preview Fetch Error:', error); loadingIndicator.style.display = 'none';
-                  previewBtn.disabled = false; if(saveBtn) saveBtn.disabled = true;
-                  showMessage('預覽請求失敗：' + error.message, 'error'); previewArea.style.display = 'none';
+              .catch(error => { // Handle fetch errors (network, CORS, parsing, thrown errors)
+                  console.error('Preview Fetch Error:', error);
+                  loadingIndicator.style.display = 'none'; // Hide loading
+                  previewBtn.disabled = false; // Re-enable preview button
+                  if(saveBtn) saveBtn.disabled = true; // Keep save disabled on error
+                  // Display error message from Error object or a generic one
+                  showMessage('預覽請求失敗：' + (error.message || '未知錯誤'), 'error');
+                  previewArea.style.display = 'none';
                   if (saveBtnContainer) saveBtnContainer.style.display = 'none';
               });
           }); // end previewBtn listener
       } else { console.error("Preview button (#previewBtn) not found!"); }
 
-      // --- Save Button Click Handler (Corrected to send schedule_text) ---
+      // --- Save Button Click Handler ---
       if (saveBtn) {
           saveBtn.addEventListener('click', function() {
               const hallId = hallSelect.value;
-              // --- *** Get scheduleText value again for saving *** ---
-              const currentScheduleText = scheduleText.value;
-              // ------------------------------------------------------
-              if (!hallId) { showMessage('錯誤：儲存前必須選擇館別。', 'error'); return; }
-              // --- *** Add check for scheduleText on save too *** ---
-              if (!currentScheduleText.trim()) { showMessage('錯誤：班表內容不能為空。', 'error'); return; }
-              // ----------------------------------------------------
+              const currentScheduleText = scheduleText.value; // Get text at time of saving
 
-              const finalData = []; const previewItems = previewArea.querySelectorAll('.preview-item');
-              let hasError = false;
+              // Basic validation
+              if (!hallId) { showMessage('錯誤：儲存前必須選擇館別。', 'error'); return; }
+              if (!currentScheduleText.trim()) { showMessage('錯誤：班表內容不能為空。', 'error'); return; }
+
+              // Collect final data from preview items
+              const finalData = [];
+              const previewItems = previewArea.querySelectorAll('.preview-item');
+              let hasClientError = false; // Flag for client-side issues (though less likely now)
 
               previewItems.forEach(itemDiv => {
-                  if (hasError) return;
-                  const index = itemDiv.dataset.index; const parsedData = JSON.parse(itemDiv.dataset.parsedData || '{}');
-                  const selectedOperationInput = itemDiv.querySelector(`input[name="operation_${index}"]:checked`);
-                  let operation = selectedOperationInput ? selectedOperationInput.value : itemDiv.dataset.defaultOperation;
+                  if (hasClientError) return; // Stop processing if an error occurred
+
+                  const index = itemDiv.dataset.index;
+                  const parsedData = JSON.parse(itemDiv.dataset.parsedData || '{}');
+                  let operation = 'ignore'; // Default to ignore
+                  let animalId = null;
+                  let updateFee = false;
+
+                  // Determine operation: Check hidden input first (for matched_exact)
+                  const hiddenOpInput = itemDiv.querySelector(`input[type="hidden"][name="operation_${index}"]`);
+                  if (hiddenOpInput) {
+                      operation = hiddenOpInput.value; // Should be 'use_existing' or 'ignore'
+                      if (operation === 'use_existing') {
+                           const hiddenAnimalIdInput = itemDiv.querySelector(`input[name="animal_id_${index}"]`);
+                           animalId = hiddenAnimalIdInput ? hiddenAnimalIdInput.value : null;
+                           const updateFeeFlagInput = itemDiv.querySelector(`#update_fee_flag_${index}`);
+                           if (updateFeeFlagInput && updateFeeFlagInput.value === '1') { updateFee = true; }
+                           if (!animalId) { // Safety check
+                               console.warn(`Save: 'use_existing' op missing id for index ${index}. Ignoring.`);
+                               operation = 'ignore';
+                           }
+                      }
+                  } else {
+                      // If no hidden input, check radio buttons (for not_found)
+                      const selectedRadio = itemDiv.querySelector(`input[type="radio"][name="operation_${index}"]:checked`);
+                      if (selectedRadio) {
+                          operation = selectedRadio.value; // Should be 'ignore' or 'add_new'
+                      }
+                  }
+
+                  // Get final time slots
                   const finalSlotsInput = itemDiv.querySelector(`input[name="time_slots_${index}"]`);
                   const finalSlots = finalSlotsInput ? finalSlotsInput.value.trim() : '';
-                  let animalId = null; let updateFee = false;
-                  const statusDiv = itemDiv.querySelector('.match-status');
-                  if (statusDiv && (statusDiv.classList.contains('matched'))) { operation = 'use_existing'; }
-                  if (operation === 'ignore') { return; }
-                  else if (operation === 'use_existing') {
-                      const hiddenAnimalIdInput = itemDiv.querySelector(`input[name="animal_id_${index}"]`);
-                      animalId = hiddenAnimalIdInput ? hiddenAnimalIdInput.value : null;
-                      const updateFeeFlagInput = itemDiv.querySelector(`#update_fee_flag_${index}`);
-                      if (updateFeeFlagInput && updateFeeFlagInput.value === '1') { updateFee = true; }
-                      if (!animalId) { operation = 'ignore'; console.warn(`Op 'use_existing' missing id idx ${index}`); }
-                  } else if (operation === 'associate') {
-                      const selectElement = itemDiv.querySelector(`select[name="animal_id_${index}"]`);
-                      animalId = selectElement ? selectElement.value : null;
-                       if (!animalId) { showMessage(`錯誤：請為 "${escapeHTML(parsedData.name)}" 選擇關聯。`, 'error'); hasError = true; return; }
-                  } else if (operation === 'add_new') { animalId = null; }
-                  else { operation = 'ignore'; }
-                  if (operation !== 'ignore') { finalData.push({ operation: operation, animal_id: animalId, final_slots: finalSlots, parsed_data: parsedData, update_fee: updateFee }); }
-              }); // end forEach
 
-              if (hasError) { if(previewBtn) previewBtn.disabled = false; if(saveBtn) saveBtn.disabled = false; return; } // Re-enable buttons if client-side validation fails
-              if (finalData.length === 0) { showMessage('提示：沒有有效的班表項需要儲存。', 'info'); return; }
+                  // Add to finalData array if operation is not 'ignore'
+                  if (operation !== 'ignore') {
+                      finalData.push({
+                          operation: operation,
+                          animal_id: animalId, // Will be null for 'add_new'
+                          final_slots: finalSlots,
+                          parsed_data: parsedData, // Include parsed data for 'add_new'
+                          update_fee: updateFee    // Include fee update flag for 'use_existing'
+                      });
+                  }
+              }); // end forEach previewItems
 
-              console.log("Final data to send:", JSON.stringify(finalData));
+              if (hasClientError) { // Should be less likely now
+                  if(previewBtn) previewBtn.disabled = false;
+                  if(saveBtn) saveBtn.disabled = false;
+                  return;
+              }
+              // Check if there's anything to save
+              if (finalData.length === 0) {
+                  showMessage('提示：沒有有效的班表項需要儲存。', 'info');
+                  return;
+              }
 
-              loadingIndicator.style.display = 'block'; saveBtn.disabled = true; if (previewBtn) previewBtn.disabled = true; clearMessage();
+              console.log("Final data to send (No Association):", JSON.stringify(finalData));
 
-              const formData = new FormData(); formData.append('csrfmiddlewaretoken', csrfToken);
-              formData.append('action', 'save'); formData.append('hall_id', hallId);
+              // UI updates for loading state
+              loadingIndicator.style.display = 'block';
+              saveBtn.disabled = true;
+              if (previewBtn) previewBtn.disabled = true;
+              clearMessage(); // Clear previous messages
+
+              // Prepare form data for saving
+              const formData = new FormData();
+              formData.append('csrfmiddlewaretoken', csrfToken); // Use the globally defined csrfToken
+              formData.append('action', 'save');
+              formData.append('hall_id', hallId);
               formData.append('final_data', JSON.stringify(finalData));
-              // --- *** Ensure schedule_text is sent with the save request *** ---
-              formData.append('schedule_text', currentScheduleText);
-              // ---------------------------------------------------------------
+              formData.append('schedule_text', currentScheduleText); // Send the original text too
 
-              const saveUrl = "{% url 'schedule_parser:parse_schedule' %}";
-              console.log("Sending SAVE request to:", saveUrl);
+              const saveUrl = "{% url 'schedule_parser:parse_schedule' %}"; // Get URL
+              console.log("Sending SAVE request (No Association) to:", saveUrl);
 
-              fetch(saveUrl, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-              .then(response => { const status = response.status; return response.json().then(data => ({ status, data })); })
-              .then(({ status, data }) => {
-                    loadingIndicator.style.display = 'none'; saveBtn.disabled = false; if (previewBtn) previewBtn.disabled = false;
-                    if (status >= 200 && status < 300 && data.success) { showMessage(data.message || '班表儲存成功！', 'success'); }
-                    else { showMessage('儲存失敗：' + (data.error || `伺服器錯誤 ${status}`), 'error'); }
-                })
-              .catch(error => {
-                  console.error('Save Fetch Error:', error); loadingIndicator.style.display = 'none';
-                  saveBtn.disabled = false; if (previewBtn) previewBtn.disabled = false;
-                  showMessage('儲存請求失敗：' + error.message, 'error');
+              // Perform the fetch request
+              fetch(saveUrl, {
+                  method: 'POST',
+                  body: formData,
+                  headers: { 'X-Requested-With': 'XMLHttpRequest' }
+              })
+              .then(response => { // Handle HTTP response status first
+                  if (!response.ok) {
+                     return response.json().then(errData => {
+                         throw new Error(errData.error || `伺服器錯誤 ${response.status}: ${response.statusText}`);
+                     }).catch(() => {
+                         throw new Error(`伺服器錯誤 ${response.status}: ${response.statusText}`);
+                     });
+                  }
+                  return response.json(); // Parse JSON body if response is OK
+              })
+              .then(data => { // Process the successful JSON data
+                  loadingIndicator.style.display = 'none'; // Hide loading
+                  saveBtn.disabled = false; // Re-enable buttons
+                  if (previewBtn) previewBtn.disabled = false;
+
+                  if (data.success) { // Check for success property from backend
+                      showMessage(data.message || '班表儲存成功！', 'success');
+                      // Optionally clear the form or reset preview area after successful save
+                      // previewArea.innerHTML = '';
+                      // previewArea.style.display = 'none';
+                      // if(saveBtnContainer) saveBtnContainer.style.display = 'none';
+                      // scheduleText.value = ''; // Clear textarea?
+                  } else { // Handle application-level errors returned in JSON
+                      showMessage('儲存失敗：' + (data.error || '未知錯誤，但請求成功'), 'error');
+                  }
+              })
+              .catch(error => { // Handle fetch errors
+                  console.error('Save Fetch Error:', error);
+                  loadingIndicator.style.display = 'none'; // Hide loading
+                  saveBtn.disabled = false; // Re-enable buttons
+                  if (previewBtn) previewBtn.disabled = false;
+                  showMessage('儲存請求失敗：' + (error.message || '未知錯誤'), 'error');
               });
           }); // end saveBtn listener
-      } else { console.error("Save button (#saveBtn) not found!"); } // end if saveBtn
+      } else { console.error("Save button (#saveBtn) not found!"); }
 
   }); // End DOMContentLoaded
 </script>
