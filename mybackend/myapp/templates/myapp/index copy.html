@@ -1,4 +1,4 @@
-{# templates/myapp/index.html (或其他你的模板路徑) #}
+{# templates/myapp/index.html #}
 {% load static %}
 {% load my_filters %} {# Ensure filters are loaded #}
 <!DOCTYPE html>
@@ -95,12 +95,11 @@
         flex-grow: 1; /* Ensure these still grow */
     }
     /* Make Hall of Fame modal body scrollable */
-    /*#hallOfFameModal .modal-body {
+    #hallOfFameModal .modal-body {
         overflow-y: auto;
-        flex-grow: 1;
-        padding: 0;
-    }*/ /* <<<< Original HoF body style, now handled by container */
-
+        flex-grow: 1; /* Ensure it grows */
+        padding: 0; /* Remove default padding */
+    }
 
     .modal-footer {
         padding: 1rem 1.25rem;
@@ -223,7 +222,7 @@
         .modal-body[data-layout="table"] .body-wrapper { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px); }
         #reviewModal .modal-body { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px); }
         #noteModal .modal-body { padding-bottom: 0.75rem; }
-        /*#hallOfFameModal .modal-body { }*/ /* <<<< Removed unnecessary override */
+        #profileModal .modal-body { padding: 1rem; }
         .modal-header .header-toggle-notes { padding-right: 0.5rem; }
         .modal-header .header-toggle-notes label { font-size: 0.8rem;}
         .note-box { padding: 0.5rem 0.6rem 0.5rem 0.8rem; margin: 0.4rem 0.2rem; max-width: calc(100% - 0.4rem); }
@@ -237,7 +236,6 @@
         #hallOfFameModal .modal-body .rank .fas { margin-right: 6px; font-size: 1.1em; width: 18px; }
         #hallOfFameModal .modal-body .user-name { font-size: 0.9em; margin: 0 8px; white-space: normal; flex-wrap: wrap; gap: 0.3em;}
         #hallOfFameModal .modal-body .review-count { flex-basis: 70px; font-size: 0.8em; }
-        #profileModal .modal-body { padding: 1rem; }
     }
     @media (min-width: 769px) { .header-promo { display: block; } }
 
@@ -315,17 +313,7 @@
     #hallOfFameModal .modal-header h2 .fa-crown { margin-right: 10px; opacity: 0.9; vertical-align: middle; }
     #hallOfFameModal .close-modal { position: absolute; top: 15px; right: 20px; z-index: 10; color: #aaa; opacity: 0.7; transition: opacity 0.3s ease, color 0.3s ease; background: none; border: none; padding: 5px; line-height: 0.8; font-size: 2rem; font-weight: bold; cursor: pointer; margin-left: 0; flex-shrink: 0; }
     #hallOfFameModal .close-modal:hover { color: #FFD700; opacity: 1; }
-    /* --- *** HOF Tabs & List Container CSS *** --- */
-    #hallOfFameModal .modal-body { padding: 0; display: flex; flex-direction: column; } /* Body is flex container, no padding */
-    .hof-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 1rem 1rem 0.5rem 1rem; background-color: rgba(255, 215, 0, 0.05); border-bottom: 1px solid rgba(255, 215, 0, 0.3); flex-shrink: 0; }
-    .hof-tab { background: none; border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: all 0.3s ease; opacity: 0.8; }
-    .hof-tab:hover:not(:disabled) { background-color: rgba(255, 215, 0, 0.1); border-color: rgba(255, 215, 0, 0.4); color: #FFD700; opacity: 1; }
-    .hof-tab.active { background-color: rgba(255, 215, 0, 0.2); border-color: #FFD700; color: #FFD700; font-weight: bold; opacity: 1; cursor: default; }
-    .hof-tab:disabled { opacity: 0.5; cursor: not-allowed; }
-    .hof-tab .fas { margin-right: 0.4em; }
-    .hof-list-container { flex-grow: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; } /* This container scrolls */
-    #hallOfFameModal .modal-body ol#hallOfFameList { list-style: none; padding: 10px 5px 0 5px; margin: 0; } /* List itself doesn't scroll */
-    /* --- *** End HOF Tabs & List Container CSS *** --- */
+    #hallOfFameModal .modal-body ol#hallOfFameList { list-style: none; padding: 0; margin: 10px 0 0 0; }
     #hallOfFameModal .modal-body li { padding: 15px 5px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); transition: background-color 0.3s ease, transform 0.2s ease; cursor: default; display: flex; align-items: center; justify-content: space-between; }
     #hallOfFameModal .modal-body li:last-child { border-bottom: none; }
     #hallOfFameModal .modal-body li:hover { background-color: rgba(255, 215, 0, 0.08); transform: scale(1.015); border-radius: 8px; border-bottom-color: transparent; }
@@ -342,9 +330,11 @@
     #hallOfFameModal .modal-body li.loading-message::before { content: "\f110"; font-family: "Font Awesome 6 Free"; font-weight: 900; margin-right: 8px; display: inline-block; animation: fa-spin 1.5s infinite linear; color: #FFD700; font-size: 1.1em; }
     @keyframes fa-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+    /* --- 使用者稱號樣式 --- */
     .review-user-title { display: inline-block; margin-left: 0.5em; font-size: 0.75rem; font-weight: bold; padding: 0.1em 0.5em; border-radius: 10px; background-color: #e0f7fa; color: #007bff; border: 1px solid #bce8f1; vertical-align: middle; line-height: 1.2; }
     .hof-user-title { display: inline-block; margin-left: 0.4em; font-size: 0.7rem; font-weight: normal; padding: 0.1em 0.4em; border-radius: 8px; background-color: rgba(255, 215, 0, 0.15); color: #FFD700; border: 1px solid rgba(255, 215, 0, 0.3); vertical-align: middle; line-height: 1.1; white-space: nowrap; }
 
+    /* --- 心得回饋按鈕樣式 --- */
     .review-feedback-buttons { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #eee; display: flex; gap: 0.75rem; justify-content: flex-start; align-items: center; }
     .feedback-btn { display: inline-flex; align-items: center; gap: 0.3em; padding: 0.25rem 0.6rem; font-size: 0.85rem; border-radius: 15px; border: 1px solid #ccc; background-color: #f8f9fa; color: #555; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.1s, opacity 0.2s; white-space: nowrap; }
     .feedback-btn:hover:not(:disabled) { background-color: #e9ecef; border-color: #adb5bd; color: #333; }
@@ -354,11 +344,12 @@
     .feedback-btn .fas { font-size: 0.9em; }
     .feedback-count { font-size: 0.8rem; color: #777; margin-left: 0.2em; }
 
+    /* --- *** 新增/修改：個人檔案 Modal 樣式 *** --- */
     #profileModal .modal-body {
-        padding: 1.5rem;
-        overflow-y: auto;
+        padding: 1.5rem; /* Add padding back for non-table layout */
+        overflow-y: auto; /* Allow scrolling if content exceeds height */
     }
-    .profile-modal-header {
+    .profile-modal-header { /* Style for the header inside the modal body */
         text-align: center;
         margin-bottom: 1.5rem;
         padding-bottom: 1rem;
@@ -369,7 +360,7 @@
         color: #333;
         font-size: 1.4rem;
     }
-    .profile-modal-title-badge {
+    .profile-modal-title-badge { /* Style for the title badge */
         display: inline-block;
         margin-top: 0.3rem;
         font-size: 0.85rem;
@@ -382,33 +373,33 @@
     }
     .profile-modal-stats {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Adjust minmax for better fit */
+        gap: 1rem; /* Slightly reduce gap */
     }
     .profile-stat-item {
         background-color: #f8f9fa;
-        padding: 0.8rem;
+        padding: 0.8rem; /* Adjust padding */
         border-radius: 8px;
         text-align: center;
         border: 1px solid #e9ecef;
     }
     .profile-stat-item strong {
         display: block;
-        font-size: 1.4rem;
-        color: #333;
+        font-size: 1.4rem; /* Adjust size */
+        color: #333; /* Darker color for numbers */
         margin-bottom: 0.2rem;
     }
     .profile-stat-item span {
-        font-size: 0.85rem;
+        font-size: 0.85rem; /* Adjust size */
         color: #6c757d;
-        display: flex;
+        display: flex; /* Use flex for icon alignment */
         align-items: center;
         justify-content: center;
         gap: 0.3em;
     }
-     .profile-stat-item span .fas {
+     .profile-stat-item span .fas { /* Icon styling */
         font-size: 0.9em;
-        color: #6c757d;
+        color: #6c757d; /* Grey icon color */
      }
     .profile-loading, .profile-error {
         text-align: center;
@@ -421,6 +412,7 @@
         font-style: normal;
         font-weight: bold;
     }
+    /* --- *** --- */
 
   </style>
 </head>
@@ -503,37 +495,7 @@
              <div id="dailyScheduleModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content"> <div class="modal-header"> <h2>每日班表</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="dailyAnimalTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="dailyPhotoArea"><p style="color:#888;font-size:0.9rem;">請點擊下方館別載入班表</p></div> <div class="intro-area" id="dailyIntroArea"><div class="intro-top"><p id="dailyIntroductionContent">點擊下方館別載入介紹</p></div></div> </section> <nav class="hall-menu" id="dailyHallMenu"> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} </nav> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="dailyAnimalTable"> <tbody><tr class="empty-table-message"><td colspan="5">請點擊上方館別載入班表</td></tr></tbody> </table> </div> </div> </div> </div> </div>
              <div id="dailyRecommendationModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content"> <div class="modal-header"> <h2>每日推薦</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="recommendationTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="recommendationPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="recommendationIntroArea"><div class="intro-top"><p id="recommendationIntroductionContent">載入中...</p></div></div> </section> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="recommendationTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
             <div id="weeklyScheduleModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content"> <div class="modal-header"> <h2>每週班表</h2> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body"> <nav class="hall-menu" id="weeklyHallMenu"> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} {% if not halls %} <p style="color:#666; padding: 0.5rem 0.75rem;">沒有可選的館別</p> {% endif %} </nav> <div id="weeklyScheduleImageArea" class="schedule-image-container"> <p>請點擊上方館別查看班表</p> </div> </div> </div> </div>
-            <!-- *** 修改後：名人堂 Modal 結構 (加入 Tabs) *** -->
-            <div id="hallOfFameModal" class="modal" role="dialog" aria-modal="true">
-                <div class="modal-content">
-                    <button class="close-modal" aria-label="關閉">×</button>
-                    <div class="modal-header">
-                        <h2><i class="fas fa-crown"></i> 紓壓名人堂</h2>
-                    </div>
-                    <div class="modal-body"> {# Modal body 不捲動 #}
-                        <div class="hof-tabs">
-                             <button class="hof-tab active" data-rank-type="reviews" aria-selected="true">
-                                 <i class="fas fa-comments"></i> 一般心得
-                             </button>
-                             <button class="hof-tab" data-rank-type="stories" aria-selected="false">
-                                 <i class="fas fa-bolt"></i> 限時動態
-                             </button>
-                             <button class="hof-tab" data-rank-type="good_looking" aria-selected="false">
-                                 <i class="fas fa-thumbs-up"></i> 人帥真好
-                             </button>
-                             <button class="hof-tab" data-rank-type="good_to_have_you" aria-selected="false">
-                                 <i class="fas fa-heart"></i> 有你真好
-                             </button>
-                        </div>
-                        <div class="hof-list-container"> {# 這個 div 會捲動 #}
-                            <ol id="hallOfFameList">
-                                <li class="loading-message">載入中...</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- *** 修改結束 *** -->
+            <div id="hallOfFameModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content"> <button class="close-modal" aria-label="關閉">×</button> <div class="modal-header"> <h2><i class="fas fa-crown"></i> 紓壓名人堂 (Top 10)</h2> </div> <div class="modal-body"> <ol id="hallOfFameList"> <li class="loading-message">載入中...</li> </ol> </div> </div> </div>
             <!-- *** 個人檔案 Modal 結構 (保持不變) *** -->
             <div id="profileModal" class="modal" role="dialog" aria-modal="true">
                 <div class="modal-content">
@@ -797,7 +759,7 @@
             else if (modalId === 'dailyScheduleModal') { const firstHallLink = modal.querySelector('#dailyHallMenu a:first-of-type'); const tbody = modal.querySelector('#dailyAnimalTable tbody'); const photoArea = modal.querySelector('#dailyPhotoArea'); const introArea = modal.querySelector('#dailyIntroArea'); const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]'); if (tbody && photoArea && introArea) { tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請點擊下方館別載入班表</td></tr>'; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '點擊下方館別載入介紹'); if (checkbox) { syncCheckboxState(checkbox, tbody); } modal.querySelectorAll('#dailyHallMenu a').forEach(link => link.classList.remove('active')); if (firstHallLink) { setTimeout(() => { firstHallLink.classList.add('active'); loadFilteredDailySchedule(firstHallLink.dataset.hallId); }, 50); } else { tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">目前沒有任何館別可顯示</td></tr>'; updatePhotoArea(photoArea, null, '無館別'); updateIntroArea(introArea, '目前沒有任何館別可顯示'); if (checkbox) syncCheckboxState(checkbox, tbody); } } else { console.error("Daily schedule elements missing on open"); } }
             else if (modalId === 'myNotesModal') { const hallMenu = modal.querySelector('#myNotesHallMenu'); if (hallMenu) { hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active')); const allLink = hallMenu.querySelector('a[data-hall-id="all"]'); if (allLink) allLink.classList.add('active'); } loadFilteredNotes('all'); }
             else if (modalId === 'weeklyScheduleModal') { const firstHallLink = modal.querySelector('#weeklyHallMenu a:first-of-type'); if (firstHallLink) { setTimeout(() => { firstHallLink.click(); }, 50); } else { const imageArea = document.getElementById('weeklyScheduleImageArea'); if (imageArea) imageArea.innerHTML = '<p>目前沒有任何館別可顯示</p>'; } }
-            else if (modalId === 'hallOfFameModal') { loadHallOfFameData(); } // <<< Modified to call new HOF load function
+            else if (modalId === 'hallOfFameModal') { loadHallOfFameData(); }
             else if (modalId === 'profileModal') { if (isLoggedIn) { loadProfileData(); } else { const profileBody = document.getElementById('profileModalBody'); if (profileBody) profileBody.innerHTML = '<div class="profile-error">請先登入以查看個人檔案。</div>'; } }
             if (modalId === 'reviewSubmitModal' && !document.getElementById('plusDropdown')?.classList.contains('open')) { const modalTitle = document.getElementById('reviewSubmitModalTitle'); const hiddenTypeInput = document.getElementById('submissionType'); if(modalTitle) modalTitle.textContent = "填寫心得"; if(hiddenTypeInput) hiddenTypeInput.value = "review"; }
             return true;
@@ -822,89 +784,25 @@
             .catch(error => { console.error("Error loading story detail:", error); headerDiv.innerHTML = `<div class="story-loading-message">錯誤</div>`; contentDiv.innerHTML = `<div class="story-loading-message">無法載入動態內容: ${error.message}</div>`; });
         }
 
-        // --- *** 修改後的 Hall of Fame 函數 *** ---
-        let hallOfFameDataStore = {}; // 用於儲存所有排行的數據
-
-        function displayRanking(rankType) {
-            const listElement = document.getElementById('hallOfFameList');
-            if (!listElement) return;
-
-            const rankings = hallOfFameDataStore[rankType]; // 從儲存的數據中獲取特定排行
-            listElement.innerHTML = ''; // 清空列表
-
-            if (rankings && rankings.length > 0) {
-                rankings.forEach(user => {
-                    const li = document.createElement('li');
-                    if (user.rank >= 1 && user.rank <= 3) { li.classList.add(`rank-${user.rank}`); }
-                    let iconClass = 'fas fa-trophy';
-                    if (user.rank === 1) iconClass = 'fas fa-medal';
-                    else if (user.rank === 2) iconClass = 'fas fa-award';
-                    else if (user.rank === 3) iconClass = 'fas fa-star';
-
-                    const userTitleSpan = user.user_title ? `<span class="hof-user-title">${user.user_title}</span>` : '';
-                    // 根據 rankType 決定顯示的數量標籤
-                    let countLabel = "次"; // Default
-                    if (rankType === 'reviews') countLabel = "篇心得";
-                    else if (rankType === 'stories') countLabel = "篇動態";
-                    else if (rankType === 'good_looking') countLabel = "次人帥";
-                    else if (rankType === 'good_to_have_you') countLabel = "次真好";
-
-                    li.innerHTML = `
-                        <span class="rank"><i class="${iconClass}"></i> #${user.rank}</span>
-                        <span class="user-name">${user.user_name} ${userTitleSpan}</span>
-                        <span class="review-count">${user.count || 0} ${countLabel}</span>
-                    `;
-                    listElement.appendChild(li);
-                });
-            } else {
-                listElement.innerHTML = '<li class="empty-message">此排行暫無數據</li>';
-            }
-        }
-
-        function loadHallOfFameData() {
-            const listElement = document.getElementById('hallOfFameList');
-            const tabsContainer = document.querySelector('#hallOfFameModal .hof-tabs');
-            if (!listElement || !tabsContainer) {
-                console.error("Hall of Fame list or tabs container not found.");
-                return;
-            }
-            listElement.innerHTML = '<li class="loading-message">載入中...</li>';
-            tabsContainer.querySelectorAll('.hof-tab').forEach(tab => tab.disabled = true); // 禁用 tabs 直到數據載入
-
-            fetch("{% url 'myapp:ajax_get_hall_of_fame' %}", {
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-            })
-            .then(response => {
-                if (!response.ok) { return response.json().catch(() => ({ error: `HTTP error ${response.status}` })).then(errData => { throw new Error(errData.error || `HTTP error ${response.status}`); }); }
-                const contentType = response.headers.get("content-type"); if (!contentType?.includes("application/json")) { throw new TypeError("伺服器未返回有效的 JSON"); }
-                return response.json();
-            })
-            .then(data => {
-                tabsContainer.querySelectorAll('.hof-tab').forEach(tab => tab.disabled = false); // 啟用 tabs
-                if (data.success && data.rankings) {
-                    hallOfFameDataStore = data.rankings;
-                    const defaultRankType = 'reviews'; // 預設顯示一般心得排行
-                    const activeTab = tabsContainer.querySelector(`.hof-tab[data-rank-type="${defaultRankType}"]`);
-                    tabsContainer.querySelectorAll('.hof-tab').forEach(tab => {
-                        tab.classList.remove('active');
-                        tab.setAttribute('aria-selected', 'false');
-                    });
-                    if (activeTab) {
-                        activeTab.classList.add('active');
-                        activeTab.setAttribute('aria-selected', 'true');
-                    }
-                    displayRanking(defaultRankType);
-                } else {
-                    throw new Error(data.error || "無法獲取排行數據");
-                }
-            })
-            .catch(error => {
-                console.error("Error loading Hall of Fame:", error);
-                listElement.innerHTML = `<li class="empty-message" style="color: #ff8a8a;">無法載入名人堂: ${error.message}</li>`;
-                // Keep tabs disabled on error
-            });
-        }
-        // --- *** Hall of Fame 函數修改結束 *** ---
+        // --- loadHallOfFameData function (保持不變) ---
+         function loadHallOfFameData() {
+             const listElement = document.getElementById('hallOfFameList'); if (!listElement) { console.error("Hall of Fame list element (#hallOfFameList) not found."); return; }
+             listElement.innerHTML = '<li class="loading-message">載入中...</li>';
+             fetch("{% url 'myapp:ajax_get_hall_of_fame' %}", { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+             .then(response => { if (!response.ok) { return response.json().catch(() => ({ error: `HTTP error ${response.status}` })).then(errData => { throw new Error(errData.error || `HTTP error ${response.status}`); }); } const contentType = response.headers.get("content-type"); if (!contentType?.includes("application/json")) { throw new TypeError("伺服器未返回有效的 JSON"); } return response.json(); })
+             .then(data => {
+                 listElement.innerHTML = '';
+                 if (data.users && data.users.length > 0) {
+                     data.users.forEach(user => {
+                         const li = document.createElement('li'); if (user.rank >= 1 && user.rank <= 3) { li.classList.add(`rank-${user.rank}`); } let iconClass = 'fas fa-trophy'; if (user.rank === 1) iconClass = 'fas fa-medal'; else if (user.rank === 2) iconClass = 'fas fa-award'; else if (user.rank === 3) iconClass = 'fas fa-star';
+                         const userTitleSpan = user.user_title ? `<span class="hof-user-title">${user.user_title}</span>` : '';
+                         li.innerHTML = ` <span class="rank"><i class="${iconClass}"></i> #${user.rank}</span> <span class="user-name">${user.user_name} ${userTitleSpan}</span> <span class="review-count">${user.review_count} 心得</span>`;
+                         listElement.appendChild(li);
+                     });
+                 } else { listElement.innerHTML = '<li class="empty-message">目前尚無心得排行</li>'; }
+             })
+             .catch(error => { console.error("Error loading Hall of Fame:", error); listElement.innerHTML = `<li class="empty-message" style="color: #ff8a8a;">無法載入名人堂: ${error.message}</li>`; });
+         }
 
         // --- handleFeedbackClick function (保持不變) ---
         function handleFeedbackClick(button) {
@@ -923,11 +821,11 @@
             .catch(error => { if (error.message !== 'Already Voted') { console.error("Feedback Click Error:", error); alert(`處理回饋時發生錯誤: ${error.message}`); button.disabled = false; button.style.opacity = 1; } });
         }
 
-        // --- *** 修改後的 loadProfileData 函數 (移除總心得) *** ---
+        // --- *** 修改後的 loadProfileData 函數 (僅移除總心得) *** ---
         function loadProfileData() {
             const profileBody = document.getElementById('profileModalBody');
             if (!profileBody) return;
-            profileBody.innerHTML = '<div class="profile-loading">載入個人檔案中...</div>'; // Ensure loading state
+            profileBody.innerHTML = '<div class="profile-loading">載入個人檔案中...</div>';
 
             fetch("{% url 'myapp:ajax_get_profile_data' %}", {
                  headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
@@ -950,7 +848,7 @@
                         ? `${p.notes_count} / ${p.notes_limit}`
                         : (p.notes_count !== undefined ? p.notes_count : '?');
 
-                    // --- *** 移除 "總心得數" 的 HTML 區塊 *** ---
+                    // --- *** 修改這裡：移除了總心得數的 div *** ---
                     profileBody.innerHTML = `
                         <div class="profile-modal-header">
                             <h3>${p.first_name || p.username}</h3>
@@ -984,7 +882,7 @@
                             </div>
                         </div>
                     `;
-                     // --- *** 移除結束 *** ---
+                     // --- *** 修改結束 *** ---
                 } else {
                     throw new Error(data.error || '無法載入個人檔案資料');
                 }
@@ -996,35 +894,11 @@
         }
         // --- *** loadProfileData 函數修改結束 *** ---
 
-        // --- Event Listener Setup (保持不變, 但加入 HOF Tab 監聽) ---
+        // --- Event Listener Setup (保持不變) ---
         document.addEventListener('click', function(e) {
             const target = e.target; const targetClosest = (selector) => target.closest(selector);
-
-            // --- Handle HOF Tab Click ---
-            const hofTab = targetClosest('.hof-tab');
-            if (hofTab) {
-                e.preventDefault(); // Prevent default button behavior if any
-                const rankType = hofTab.dataset.rankType;
-                const tabsContainer = hofTab.closest('.hof-tabs');
-                if (rankType && tabsContainer && !hofTab.classList.contains('active')) {
-                    tabsContainer.querySelectorAll('.hof-tab').forEach(tab => {
-                        tab.classList.remove('active');
-                        tab.setAttribute('aria-selected', 'false');
-                    });
-                    hofTab.classList.add('active');
-                    hofTab.setAttribute('aria-selected', 'true');
-                    displayRanking(rankType); // Display the corresponding ranking
-                }
-                return; // Stop further processing for tab clicks
-            }
-            // --- End Handle HOF Tab Click ---
-
-            // --- Handle Profile Button Click ---
             if (targetClosest('#btnProfileHeader')) { if (isLoggedIn) { openModal('profileModal'); } else { openModal('loginModal'); } return; }
-
-            // Handle Feedback Button Click FIRST
             const feedbackBtn = targetClosest('.feedback-btn'); if (feedbackBtn) { e.preventDefault(); handleFeedbackClick(feedbackBtn); return; }
-            // Then handle other clicks
             const storyItem = targetClosest('.story-item'); if (storyItem) { const storyId = storyItem.dataset.storyId; if (storyId) { showStoryDetail(storyId); } else { console.warn("Clicked story item missing story ID"); } return; }
             if (targetClosest('#btnHallOfFameHeader')) { openModal('hallOfFameModal'); return; } if (targetClosest('#btnWeeklyScheduleHeader')) { openModal('weeklyScheduleModal'); return; } if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; } if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; } if (targetClosest('#btnDailyRecommendationHeader')) { openModal('dailyRecommendationModal'); return; } if (targetClosest('#pendingListBtnHeader')) { if (isLoggedIn) { openModal('pendingListModal'); } else { openModal('loginModal'); } return; } if (targetClosest('#myNotesBtnHeader')) { if (isLoggedIn) { openModal('myNotesModal'); } else { openModal('loginModal'); } return; } if (targetClosest('#loginBtnHeader')) { openModal('loginModal'); return; }
             const plusBtn = targetClosest('.plus-menu-btn'); if (plusBtn) { e.stopPropagation(); showPlusDropdown(plusBtn); return; } const reviewBtn = targetClosest('.review-count-btn'); if (reviewBtn) { e.stopPropagation(); const animalId = reviewBtn.dataset.animalId; if (animalId) { loadReviews(animalId); openModal('reviewModal'); } return; }
