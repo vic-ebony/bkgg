@@ -5,14 +5,18 @@ from django.utils.dateformat import format as format_date
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.http import JsonResponse, Http404
 from django.contrib.auth.decorators import login_required
+# --- 確保導入了所有需要的模塊 ---
 from django.db.models import Count, Q, Prefetch, Max, F, OuterRef, Subquery, Value, CharField, Case, When
 from django.db.models.functions import Coalesce
 from django.db import transaction
+from django.core.exceptions import ValidationError # <<< 導入 ValidationError
+# --- ---
 from django.views.decorators.http import require_POST, require_GET
 from django.template.loader import render_to_string
 from .models import (
     Animal, Hall, Review, PendingAppointment, Note, Announcement,
-    StoryReview, WeeklySchedule, ReviewFeedback, UserTitleRule, UserProfile
+    StoryReview, WeeklySchedule, ReviewFeedback, UserTitleRule, UserProfile,
+    SiteConfiguration # <<< 導入 SiteConfiguration
 )
 import traceback
 import html
@@ -22,7 +26,7 @@ from django.urls import reverse
 from django.contrib import messages
 from .forms import MergeTransferForm
 from .utils import get_user_title_from_count
-from collections import defaultdict # <<< Keep defaultdict
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -94,6 +98,7 @@ def render_animal_rows(request, animals_qs, fetch_daily_slots=False):
             rendered_rows_html_list.append(f'<tr><td colspan="5" style="color:red; font-style:italic;">渲染錯誤: {animal_instance.name} (ID: {animal_instance.id})</td></tr>')
 
     return "".join(rendered_rows_html_list)
+
 
 # --- Home View (保持不變) ---
 def home(request):
@@ -193,22 +198,37 @@ def home(request):
             logger.error(f"Error fetching announcement: {e}")
             context['announcement'] = None
 
+        featured_animal = None
+        site_logo_url = None
+
         try:
-             first_animal_for_promo = Animal.objects.filter(
+            featured_animal = Animal.objects.select_related('hall').annotate(
+                 approved_review_count=Count('reviews', filter=Q(reviews__approved=True))
+            ).filter(
+                 is_featured=True,
                  is_active=True,
                  photo__isnull=False
-             ).exclude(
-                 photo=''
-             ).filter(
-                 Q(hall__isnull=True) | Q(hall__is_active=True)
-             ).order_by('?').first()
-
-             context['promo_photo_url'] = first_animal_for_promo.photo.url if first_animal_for_promo else None
-             context['promo_animal_name'] = first_animal_for_promo.name if first_animal_for_promo else None
+             ).exclude(photo='').order_by('order', 'name').first()
+            if featured_animal:
+                logger.debug(f"Featured animal found: {featured_animal.name}")
+            else:
+                 logger.debug("No featured animal found.")
         except Exception as e:
-             logger.error(f"Error fetching promo photo: {e}")
-             context['promo_photo_url'] = None
-             context['promo_animal_name'] = None
+             logger.error(f"Error fetching featured animal: {e}", exc_info=True)
+
+        try:
+            site_config = SiteConfiguration.get_solo()
+            site_logo_url = site_config.site_logo.url if site_config.site_logo else None
+            logger.debug(f"Site logo URL: {site_logo_url}")
+        except SiteConfiguration.DoesNotExist:
+            logger.warning("SiteConfiguration object does not exist.")
+        except AttributeError:
+             logger.warning("SiteConfiguration.get_solo() not found. Assuming django-solo is not used or SiteConfiguration is not a SingletonModel.")
+        except Exception as e:
+             logger.error(f"Error fetching site configuration/logo: {e}", exc_info=True)
+
+        context['featured_animal'] = featured_animal
+        context['site_logo_url'] = site_logo_url
 
         login_error = request.session.pop('login_error', None)
         if login_error:
@@ -223,6 +243,7 @@ def home(request):
         except Exception as e:
             logger.critical(f"CRITICAL ERROR rendering main template {template_path}: {e}", exc_info=True)
             raise
+
 
 # --- AJAX Views (Pending, Notes, Latest Reviews, Recommendations) (保持不變) ---
 @login_required
@@ -501,9 +522,8 @@ def add_story_review(request):
         logger.error(f"Error creating story review for animal {animal_id} by user {user.username}: {e}", exc_info=True)
         return JsonResponse({"success": False, "error": "儲存限時動態心得時發生內部錯誤"}, status=500)
 
-# --- add_review 函數 (GET 部分已修改) ---
+# --- add_review 函數 (GET 部分已修改, POST 保持不變) ---
 def add_review(request):
-    # --- Handle POST Request (保持不變) ---
     if request.method == "POST":
         if not request.user.is_authenticated:
             logger.warning("Anonymous user attempted to post a review.")
@@ -564,7 +584,7 @@ def add_review(request):
                 scale=','.join(filter(None, scale_list)),
                 content=content,
                 approved=False,
-                approved_at=None, # 新增時 approved_at 為 None
+                approved_at=None,
                 reward_granted=False
             )
             logger.info(f"Review {new_review.id} created for animal {animal_id} by user {user.username}. Needs approval.")
@@ -573,7 +593,6 @@ def add_review(request):
             logger.error(f"Error creating review for animal {animal_id} by user {user.username}: {e}", exc_info=True)
             return JsonResponse({"success": False, "error": "儲存心得時發生內部錯誤"}, status=500)
 
-    # --- Handle GET Request (Fetching Reviews for an Animal) ---
     elif request.method == "GET":
         animal_id = request.GET.get("animal_id")
         logger.debug(f"Fetching reviews for animal_id: {animal_id}")
@@ -599,7 +618,7 @@ def add_review(request):
         ).select_related('user').annotate(
             good_to_have_you_count=Count('feedback', filter=Q(feedback__feedback_type='good_to_have_you')),
             good_looking_count=Count('feedback', filter=Q(feedback__feedback_type='good_looking'))
-        ).order_by("-approved_at", "-created_at") # 按審核時間排序
+        ).order_by("-approved_at", "-created_at")
 
         user_ids = list(reviews_qs.values_list('user_id', flat=True).distinct())
         user_total_counts = {}
@@ -652,7 +671,7 @@ def add_review(request):
                 "music": r.music, "music_price": r.music_price,
                 "sports": r.sports, "sports_price": r.sports_price,
                 "scale": r.scale, "content": r.content,
-                "display_date": display_date, # <<< 使用新的日期鍵
+                "display_date": display_date, # 使用 display_date
                 "good_to_have_you_count": r.good_to_have_you_count,
                 "good_looking_count": r.good_looking_count,
             })
@@ -662,71 +681,108 @@ def add_review(request):
     return JsonResponse({"error": "請求方法不支援"}, status=405)
 
 
-# --- Pending Appointment & Note Handling Views (保持不變) ---
-# ... (add_pending_appointment, remove_pending, add_note, delete_note, update_note 函數代碼) ...
+# --- *** 修改 add_pending_appointment 函數 (修正上限邏輯) *** ---
 @require_POST
 @login_required
 def add_pending_appointment(request):
     animal_id = request.POST.get("animal_id")
     user = request.user
     logger.info(f"User {user.username} attempting to add pending appointment for animal ID: {animal_id}")
+
     if not animal_id:
         logger.warning("Add pending failed: Missing animal ID.")
         return JsonResponse({"success": False, "error": "缺少動物 ID"}, status=400)
+
+    created = False
+    message = ""
+    final_limit = '未知' # 代表上限
+    animal = None
+    current_count = 0 # 代表當前已使用數量
+
     try:
-        animal = get_object_or_404(Animal, id=animal_id)
-        profile = UserProfile.objects.select_for_update().get(user=user)
-        logger.debug(f"User {user.username} profile locked. Current pending limit: {profile.pending_list_limit}")
-        if profile.pending_list_limit <= 0:
-            logger.warning(f"User {user.username} failed to add pending: Limit reached ({profile.pending_list_limit}).")
-            return JsonResponse({"success": False, "error": "待約次數不足，請分享心得獲取更多次數！"}, status=403)
         with transaction.atomic():
+            animal = get_object_or_404(Animal, id=animal_id)
+            profile = UserProfile.objects.select_for_update().get(user=user)
+            logger.debug(f"User {user.username} profile locked. Current pending limit (max): {profile.pending_list_limit}")
+
+            # --- 獲取當前已有的待約數量 ---
+            current_count = PendingAppointment.objects.filter(user=user).count()
+
+            # --- 檢查是否已達上限 ---
+            if current_count >= profile.pending_list_limit:
+                logger.warning(f"User {user.username} failed to add pending: Limit reached ({current_count} >= {profile.pending_list_limit}).")
+                return JsonResponse({
+                    "success": False,
+                    "error": f"待約清單已達上限 ({profile.pending_list_limit})！",
+                    "pending_count": current_count, # 返回當前數量
+                    "remaining_limit": profile.pending_list_limit # 返回上限
+                }, status=403)
+
+            # 嘗試創建，如果已存在則不做任何事
             obj, created = PendingAppointment.objects.get_or_create(user=user, animal=animal)
+
             if created:
-                profile.pending_list_limit = F('pending_list_limit') - 1
-                profile.save(update_fields=['pending_list_limit'])
-                profile.refresh_from_db(fields=['pending_list_limit'])
-                logger.info(f"Pending appointment CREATED for animal {animal_id} by user {user.username}. Limit decremented. New limit: {profile.pending_list_limit}")
-                message = f"{animal.name} 已加入待約清單 (剩餘 {profile.pending_list_limit} 次)"
+                logger.info(f"Pending appointment CREATED for animal {animal_id} by user {user.username}.")
+                message = f"{animal.name} 已加入待約清單"
                 success_status = True
+                current_count += 1 # 更新計數
             else:
-                logger.info(f"Pending appointment for animal {animal_id} by user {user.username} already exists. Limit not changed.")
+                logger.info(f"Pending appointment for animal {animal_id} by user {user.username} already exists.")
                 message = f"{animal.name} 已在待約清單中"
                 success_status = True
-            pending_count = PendingAppointment.objects.filter(user=user).count()
-            return JsonResponse({
-                "success": success_status, "message": message,
-                "pending_count": pending_count, "remaining_limit": profile.pending_list_limit
-            })
+                # 計數不變
+
+            # 獲取最終上限值
+            final_limit = profile.pending_list_limit
+
+        # --- 事務外部 ---
+        # current_count 和 final_limit 在事務內已確定
+
+        return JsonResponse({
+            "success": success_status,
+            "message": message,
+            "pending_count": current_count, # 回傳最新的已使用數量
+            "remaining_limit": final_limit  # 回傳上限值
+        })
+
     except UserProfile.DoesNotExist:
-         logger.error(f"UserProfile not found for user {user.username} (ID: {user.id}) during add_pending")
+         logger.error(f"UserProfile not found for user {user.username} (ID: {user.id}) during add_pending (initial fetch)")
          return JsonResponse({"success": False, "error": "找不到使用者設定檔，無法檢查次數"}, status=500)
     except Http404:
         logger.warning(f"Add pending failed: Animal ID {animal_id} not found.")
-        return JsonResponse({"success": False, "error": "找不到該美容師"}, status=404)
+        animal_name_fallback = f"美容師 #{animal_id}" if animal_id else "未知美容師"
+        return JsonResponse({"success": False, "error": f"找不到 {animal_name_fallback}"}, status=404)
     except (ValueError, TypeError):
         logger.warning(f"Add pending failed: Invalid animal ID format: {animal_id}.")
         return JsonResponse({"success": False, "error": "無效的美容師 ID"}, status=400)
     except Exception as e:
+        # 處理 unique constraint 的 fallback
         if 'unique constraint' in str(e) and 'myapp_pendingappointment' in str(e).lower():
             logger.warning(f"Unique constraint violation during add_pending for user {user.username}, animal {animal_id}. Assuming already exists.")
             try:
                 pending_count = PendingAppointment.objects.filter(user=user).count()
                 current_limit = UserProfile.objects.get(user=user).pending_list_limit
+                try: animal_name = Animal.objects.get(id=animal_id).name
+                except Animal.DoesNotExist: animal_name = f"美容師 #{animal_id}"
+                except (ValueError, TypeError): animal_name = "未知美容師"
+
                 return JsonResponse({
-                    "success": True, "message": f"{animal.name} 已在待約清單中",
+                    "success": True, "message": f"{animal_name} 已在待約清單中",
                     "pending_count": pending_count, "remaining_limit": current_limit
                 })
             except UserProfile.DoesNotExist:
                  logger.error(f"UserProfile not found for user {user.username} during add_pending unique constraint fallback.")
                  return JsonResponse({"success": False, "error": "檢查待約狀態時發生錯誤"}, status=500)
             except Exception as fallback_e:
-                 logger.error(f"Error in add_pending unique constraint fallback: {fallback_e}", exc_info=True)
-                 return JsonResponse({"success": False, "error": "加入待約時發生未知錯誤"}, status=500)
+                  logger.error(f"Error in add_pending unique constraint fallback: {fallback_e}", exc_info=True)
+                  return JsonResponse({"success": False, "error": "加入待約時發生未知錯誤"}, status=500)
         else:
             logger.error(f"Error adding pending appointment for user {user.username}, animal {animal_id}: {e}", exc_info=True)
             return JsonResponse({"success": False, "error": "加入待約時發生錯誤"}, status=500)
+# --- *** add_pending_appointment 函數修改結束 *** ---
 
+
+# --- remove_pending (保持不變) ---
 @require_POST
 @login_required
 def remove_pending(request):
@@ -742,7 +798,7 @@ def remove_pending(request):
             logger.warning(f"Remove pending failed: Invalid animal ID format: {animal_id}")
             raise ValueError("無效的美容師 ID 格式")
         deleted_count, _ = PendingAppointment.objects.filter(user=user, animal_id=animal_id_int).delete()
-        pending_count = PendingAppointment.objects.filter(user=user).count()
+        pending_count = PendingAppointment.objects.filter(user=user).count() # 獲取刪除後的數量
         if deleted_count == 0:
             animal_exists = Animal.objects.filter(id=animal_id_int).exists()
             if not animal_exists:
@@ -754,13 +810,15 @@ def remove_pending(request):
         animal_name = Animal.objects.filter(id=animal_id_int).values_list('name', flat=True).first() or "該美容師"
         logger.info(f"Pending appointment removed for animal ID {animal_id_int} by user {user.username}. New count: {pending_count}")
         try:
-            remaining_limit = UserProfile.objects.get(user=user).pending_list_limit
+            remaining_limit = UserProfile.objects.get(user=user).pending_list_limit # 獲取上限值
         except UserProfile.DoesNotExist:
             logger.error(f"UserProfile not found for user {user.username} when getting limit after remove_pending.")
             remaining_limit = '未知'
         return JsonResponse({
             "success": True, "message": f"{animal_name} 待約項目已移除",
-            "pending_count": pending_count, "animal_id": animal_id_int, "remaining_limit": remaining_limit
+            "pending_count": pending_count, # 返回刪除後的數量
+            "animal_id": animal_id_int,
+            "remaining_limit": remaining_limit # 返回上限值
         })
     except ValueError as ve:
         count = PendingAppointment.objects.filter(user=user).count()
@@ -774,6 +832,8 @@ def remove_pending(request):
         count = PendingAppointment.objects.filter(user=user).count()
         return JsonResponse({"success": False, "error": "移除待約時發生錯誤", "pending_count": count}, status=500)
 
+
+# --- *** 修改 add_note 函數 (修正上限邏輯) *** ---
 @require_POST
 @login_required
 def add_note(request):
@@ -781,49 +841,77 @@ def add_note(request):
     content = request.POST.get("content", "").strip()
     user = request.user
     logger.info(f"User {user.username} attempting to add/update note for animal ID: {animal_id}")
+
     if not animal_id:
         logger.warning("Add/Update note failed: Missing animal ID.")
         return JsonResponse({"success": False, "error": "缺少動物 ID"}, status=400)
     if not content:
         logger.warning("Add/Update note failed: Content is empty.")
         return JsonResponse({"success": False, "error": "筆記內容不能為空"}, status=400)
+
+    note_instance = None
+    created = False
+    message = ""
+    final_limit = '未知' # 代表上限
+    final_notes_count = 0 # 代表已用數量
+
     try:
-        animal = get_object_or_404(Animal, id=animal_id)
-        profile = UserProfile.objects.select_for_update().get(user=user)
-        logger.debug(f"User {user.username} profile locked. Current notes limit: {profile.notes_limit}")
-        note = None; created = False; limit_checked = False
         with transaction.atomic():
+            animal = get_object_or_404(Animal, id=animal_id)
+            profile = UserProfile.objects.select_for_update().get(user=user)
+            logger.debug(f"User {user.username} profile locked. Current notes limit (max): {profile.notes_limit}")
+
             existing_note = Note.objects.filter(user=user, animal=animal).first()
+            current_notes_count = Note.objects.filter(user=user).count() # 計算不包含當前筆記的數量
+
             if not existing_note:
+                # --- 創建新筆記 ---
                 logger.debug("Attempting to create a new note.")
-                if profile.notes_limit <= 0:
-                    logger.warning(f"User {user.username} failed to create note: Limit reached ({profile.notes_limit}).")
-                    return JsonResponse({"success": False, "error": "筆記次數不足，請分享心得獲取更多次數！"}, status=403)
-                limit_checked = True
-                note = Note.objects.create(user=user, animal=animal, content=content)
+                # --- *** 檢查是否已達上限 *** ---
+                if current_notes_count >= profile.notes_limit:
+                     logger.warning(f"User {user.username} failed to create note: Limit reached ({current_notes_count} >= {profile.notes_limit}).")
+                     raise ValidationError(f"筆記數量已達上限 ({profile.notes_limit})！")
+                # --- *** 修改結束 *** ---
+
+                note_instance = Note.objects.create(user=user, animal=animal, content=content)
                 created = True
-                logger.info(f"Note CREATED (ID: {note.id}) for animal {animal_id} by user {user.username}.")
-                profile.notes_limit = F('notes_limit') - 1
-                profile.save(update_fields=['notes_limit'])
-                logger.info(f"Notes limit decremented for user {user.username}. New limit pending refresh.")
+                logger.info(f"Note CREATED (ID: {note_instance.id}) for animal {animal_id} by user {user.username}.")
+
+                # --- *** 修改：不再減少上限 *** ---
+                # profile.notes_limit = F('notes_limit') - 1 # <--- 移除
+                # profile.save(update_fields=['notes_limit']) # <--- 移除
+                # --- *** 修改結束 *** ---
+                message = "筆記已新增"
+                final_notes_count = current_notes_count + 1
             else:
+                # --- 更新現有筆記 ---
                 logger.debug(f"Updating existing note (ID: {existing_note.id}).")
-                note = existing_note
-                note.content = content
-                note.save(update_fields=['content', 'updated_at'])
+                note_instance = existing_note
+                note_instance.content = content
+                note_instance.save(update_fields=['content', 'updated_at'])
                 created = False
-                logger.info(f"Note UPDATED (ID: {note.id}) for animal {animal_id} by user {user.username}.")
-        profile.refresh_from_db(fields=['notes_limit'])
-        message = ""
-        if created: message = f"筆記已新增 (剩餘 {profile.notes_limit} 次)"
-        else: message = "筆記已更新"
+                logger.info(f"Note UPDATED (ID: {note_instance.id}) for animal {animal_id} by user {user.username}.")
+                message = "筆記已更新"
+                final_notes_count = current_notes_count # 更新時數量不變
+
+            # 讀取最終上限值
+            final_limit = profile.notes_limit
+
+        # --- 事務外部 ---
+        # final_notes_count 和 final_limit 已確定
+
         return JsonResponse({
-            "success": True, "message": message, "note_id": note.id,
-            "note_content": note.content, "animal_id": animal.id,
-            "remaining_limit": profile.notes_limit
+            "success": True,
+            "message": message,
+            "note_id": note_instance.id,
+            "note_content": note_instance.content,
+            "animal_id": animal.id,
+            "notes_count": final_notes_count, # 回傳最新的已用數量
+            "remaining_limit": final_limit    # 回傳上限值
         })
+
     except UserProfile.DoesNotExist:
-         logger.error(f"UserProfile not found for user {user.username} (ID: {user.id}) during add_note")
+         logger.error(f"UserProfile not found for user {user.username} (ID: {user.id}) during add_note (initial fetch)")
          return JsonResponse({"success": False, "error": "找不到使用者設定檔，無法執行操作"}, status=500)
     except Http404:
         logger.warning(f"Add/Update note failed: Animal ID {animal_id} not found.")
@@ -831,6 +919,20 @@ def add_note(request):
     except (ValueError, TypeError):
         logger.warning(f"Add/Update note failed: Invalid animal ID format: {animal_id}.")
         return JsonResponse({"success": False, "error": "無效的美容師 ID"}, status=400)
+    except ValidationError as ve: # 捕獲上限檢查的錯誤
+         logger.warning(f"Add note failed for user {user.username}: {ve.message}")
+         # 在事務外獲取當前計數和上限以顯示
+         current_notes_count_fallback = Note.objects.filter(user=user).count()
+         try:
+             limit_fallback = UserProfile.objects.get(user=user).notes_limit
+         except UserProfile.DoesNotExist:
+             limit_fallback = '未知'
+         return JsonResponse({
+             "success": False,
+             "error": ve.message,
+             "notes_count": current_notes_count_fallback, # 返回當前數量
+             "remaining_limit": limit_fallback          # 返回當前上限
+             }, status=403)
     except Exception as e:
         if 'unique constraint' in str(e) and 'myapp_note' in str(e).lower():
              logger.warning(f"Unique constraint violation during add_note for user {user.username}, animal {animal_id}. Assuming update.")
@@ -839,10 +941,11 @@ def add_note(request):
                  existing_note.content = content
                  existing_note.save(update_fields=['content', 'updated_at'])
                  current_limit = UserProfile.objects.get(user=user).notes_limit
+                 notes_count = Note.objects.filter(user=user).count()
                  return JsonResponse({
                      "success": True, "message": "筆記已更新", "note_id": existing_note.id,
                      "note_content": existing_note.content, "animal_id": animal.id,
-                     "remaining_limit": current_limit
+                     "notes_count": notes_count, "remaining_limit": current_limit
                  })
              except Note.DoesNotExist:
                  logger.error("Note not found after unique constraint error in add_note.")
@@ -856,7 +959,10 @@ def add_note(request):
         else:
             logger.error(f"Error adding/updating note for user {user.username}, animal {animal_id}: {e}", exc_info=True)
             return JsonResponse({"success": False, "error": "儲存筆記時發生錯誤"}, status=500)
+# --- *** add_note 函數修改結束 *** ---
 
+
+# --- delete_note (保持不變，但回傳值稍作調整) ---
 @require_POST
 @login_required
 def delete_note(request):
@@ -879,7 +985,18 @@ def delete_note(request):
             return JsonResponse({"success": False, "error": "刪除失敗，筆記可能已被移除"})
         else:
             logger.info(f"Note {note_id_int} deleted successfully for animal {animal_id} by user {user.username}.")
-            return JsonResponse({"success": True, "message": "筆記已刪除", "animal_id": animal_id})
+            # 獲取刪除後的計數和上限
+            notes_count = Note.objects.filter(user=user).count()
+            try:
+                limit = UserProfile.objects.get(user=user).notes_limit
+            except UserProfile.DoesNotExist:
+                limit = '未知'
+            return JsonResponse({
+                "success": True, "message": "筆記已刪除",
+                "animal_id": animal_id,
+                "notes_count": notes_count, # 返回最新的已用數量
+                "remaining_limit": limit # 返回上限
+                })
     except Http404:
         logger.warning(f"Delete note failed: Note ID {note_id} not found or does not belong to user {user.username}.")
         return JsonResponse({"success": False, "error": "筆記不存在或無權限刪除"}, status=404)
@@ -889,6 +1006,7 @@ def delete_note(request):
         logger.error(f"Error deleting note ID {note_id} for user {user.username}: {e}", exc_info=True)
         return JsonResponse({"success": False, "error": "刪除筆記時發生錯誤"}, status=500)
 
+# --- update_note (保持不變，但回傳值稍作調整) ---
 @require_POST
 @login_required
 def update_note(request):
@@ -913,14 +1031,17 @@ def update_note(request):
         note.save(update_fields=['content', 'updated_at'])
         logger.info(f"Note {note_id_int} updated successfully by user {user.username}.")
         try:
-            remaining_limit = UserProfile.objects.get(user=user).notes_limit
+            limit = UserProfile.objects.get(user=user).notes_limit
         except UserProfile.DoesNotExist:
              logger.error(f"UserProfile not found for user {user.username} when getting limit after update_note.")
-             remaining_limit = '未知'
+             limit = '未知'
+        # 獲取更新後的計數
+        notes_count = Note.objects.filter(user=user).count()
         return JsonResponse({
             "success": True, "message": "筆記已更新", "note_id": note.id,
             "note_content": note.content, "animal_id": animal.id,
-            "remaining_limit": remaining_limit
+            "notes_count": notes_count, # 返回已用數量
+            "remaining_limit": limit # 返回上限
             })
     except Http404:
         logger.warning(f"Update note failed: Note ID {note_id} not found or does not belong to user {user.username}.")
@@ -1063,16 +1184,15 @@ def ajax_get_weekly_schedule(request):
         return JsonResponse({'success': False, 'error': '載入每週班表圖片出錯'}, status=500)
 
 
-# --- *** 修改後的 Hall of Fame View (計算所有用戶稱號) *** ---
+# --- Hall of Fame View (保持不變) ---
 @require_GET
 def ajax_get_hall_of_fame(request):
     logger.info("Fetching Hall of Fame data (multi-category).")
     rankings = {}
     top_n = 10
-    all_top_user_ids = set() # 收集所有上榜用戶ID
+    all_top_user_ids = set()
 
     try:
-        # 1. 一般心得排行數據
         logger.debug("Calculating Review ranking...")
         review_ranks_qs = Review.objects.filter(approved=True, user__isnull=False) \
             .values('user') \
@@ -1083,7 +1203,6 @@ def ajax_get_hall_of_fame(request):
         all_top_user_ids.update(r['user'] for r in review_ranks)
         logger.debug(f"Review ranking calculated: {len(review_ranks)} users.")
 
-        # 2. 限時動態心得排行數據
         logger.debug("Calculating StoryReview ranking...")
         story_ranks_qs = StoryReview.objects.filter(approved=True, user__isnull=False) \
             .values('user') \
@@ -1094,7 +1213,6 @@ def ajax_get_hall_of_fame(request):
         all_top_user_ids.update(s['user'] for s in story_ranks)
         logger.debug(f"StoryReview ranking calculated: {len(story_ranks)} users.")
 
-        # 3 & 4. Feedback Rankings 數據
         feedback_ranks_data = {}
         feedback_types = ['good_looking', 'good_to_have_you']
         for fb_type in feedback_types:
@@ -1112,11 +1230,9 @@ def ajax_get_hall_of_fame(request):
             all_top_user_ids.update(f['recipient_id'] for f in feedback_ranks_list)
             logger.debug(f"{fb_type} feedback ranking calculated: {len(feedback_ranks_list)} users.")
 
-        # --- 一次性獲取所有上榜用戶的資料和稱號 ---
         logger.debug(f"Fetching details and titles for {len(all_top_user_ids)} unique top users.")
         all_user_details = {u.id: u for u in User.objects.filter(id__in=all_top_user_ids)}
 
-        # 計算總心得數 (優化：可以考慮一次性聚合)
         user_total_counts = defaultdict(int)
         review_counts_all = Review.objects.filter(user_id__in=all_top_user_ids, approved=True).values('user_id').annotate(count=Count('id'))
         story_counts_all = StoryReview.objects.filter(user_id__in=all_top_user_ids, approved=True).values('user_id').annotate(count=Count('id'))
@@ -1131,53 +1247,47 @@ def ajax_get_hall_of_fame(request):
         }
         logger.debug("User titles calculated.")
 
-        # --- 格式化最終輸出 ---
-        # 格式化一般心得
         rankings['reviews'] = [
             {
                 'rank': i + 1,
                 'user_name': all_user_details[r['user']].first_name or all_user_details[r['user']].username,
-                'user_title': all_user_titles.get(r['user']), # <<< 使用預先計算的稱號
+                'user_title': all_user_titles.get(r['user']),
                 'count': r['count'],
                 'user_id': r['user']
             }
             for i, r in enumerate(review_ranks) if r['user'] in all_user_details
         ]
-        # 格式化限時動態
         rankings['stories'] = [
             {
                 'rank': i + 1,
                 'user_name': all_user_details[s['user']].first_name or all_user_details[s['user']].username,
-                'user_title': all_user_titles.get(s['user']), # <<< 使用預先計算的稱號
+                'user_title': all_user_titles.get(s['user']),
                 'count': s['count'],
                  'user_id': s['user']
             }
             for i, s in enumerate(story_ranks) if s['user'] in all_user_details
         ]
-        # 格式化 Feedback
         for fb_type, ranks_list in feedback_ranks_data.items():
             rankings[fb_type] = [
                 {
                     'rank': i + 1,
                     'user_name': all_user_details[f['recipient_id']].first_name or all_user_details[f['recipient_id']].username,
-                    'user_title': all_user_titles.get(f['recipient_id']), # <<< 使用預先計算的稱號
+                    'user_title': all_user_titles.get(f['recipient_id']),
                     'count': f['count'],
                     'user_id': f['recipient_id']
                 }
                 for i, f in enumerate(ranks_list) if f['recipient_id'] in all_user_details
             ]
 
-        logger.debug(f"Final rankings data prepared: {rankings.keys()}")
+        logger.debug(f"Final rankings data prepared: {list(rankings.keys())}")
         return JsonResponse({'success': True, 'rankings': rankings})
 
     except Exception as e:
         logger.error(f"Error in ajax_get_hall_of_fame: {e}", exc_info=True)
         return JsonResponse({'success': False, 'error': '無法載入名人堂數據'}, status=500)
-# --- *** Hall of Fame View 修改結束 *** ---
 
 
 # --- View for adding feedback (保持不變) ---
-# ... (add_review_feedback 函數代碼) ...
 @login_required
 @require_POST
 def add_review_feedback(request):
@@ -1234,7 +1344,6 @@ def add_review_feedback(request):
         return JsonResponse({'success': False, 'error': '處理回饋時發生內部錯誤'}, status=500)
 
 # --- View for fetching profile data (保持不變) ---
-# ... (ajax_get_profile_data 函數代碼) ...
 @login_required
 @require_GET
 def ajax_get_profile_data(request):
@@ -1273,7 +1382,6 @@ def ajax_get_profile_data(request):
         return JsonResponse({'success': False, 'error': '讀取個人檔案資料時發生錯誤'}, status=500)
 
 # --- Admin Merge/Transfer View (保持不變) ---
-# ... (merge_transfer_animal_view and _get_merge_view_context 函數代碼) ...
 @staff_member_required
 def merge_transfer_animal_view(request, animal_id):
     animal_original = get_object_or_404(Animal, pk=animal_id)
@@ -1316,7 +1424,7 @@ def merge_transfer_animal_view(request, animal_id):
                     if duplicate_animal.height is not None: animal_original.height = duplicate_animal.height
                     if duplicate_animal.weight is not None: animal_original.weight = duplicate_animal.weight
                     if duplicate_animal.cup_size: animal_original.cup_size = duplicate_animal.cup_size
-                    tag_fields_to_copy = ['is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer']
+                    tag_fields_to_copy = ['is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer', 'is_featured']
                     for field_name in tag_fields_to_copy:
                         if hasattr(animal_original, field_name) and hasattr(duplicate_animal, field_name):
                             duplicate_value = getattr(duplicate_animal, field_name)

@@ -1,3 +1,4 @@
+# D:\bkgg\mybackend\settings.py
 from pathlib import Path
 
 # 建立專案根目錄
@@ -17,6 +18,7 @@ INSTALLED_APPS = [
     'myapp',           # 你的應用程式
     'rest_framework',  # Django REST Framework
     'schedule_parser',
+    'solo',            # <<<--- 加入 django-solo
 ]
 
 MIDDLEWARE = [
@@ -85,7 +87,9 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
+# --- MEDIA 設定 (你已經有了，很好！) ---
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+# --- ---
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

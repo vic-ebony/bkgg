@@ -2,12 +2,23 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, pre_delete
 from django.dispatch import receiver
-from datetime import timedelta
-from django.db.models import Q, Count, F
+from django.db import transaction
+from django.db.models import Q, Count, F, Case, When, Value
 from django.core.exceptions import ValidationError
+from datetime import timedelta
 import logging
+
+# --- 假設你已安裝 django-solo 來管理單例模型 ---
+try:
+    from solo.models import SingletonModel
+    DJANGO_SOLO_INSTALLED = True
+except ImportError:
+    SingletonModel = models.Model # Fallback if solo is not installed
+    DJANGO_SOLO_INSTALLED = False
+    print("WARNING: django-solo not installed. SiteConfiguration will not be a singleton.")
+# --- ---
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +79,7 @@ class Hall(models.Model):
         self.clean()
         super().save(*args, **kwargs)
 
-# --- Animal Model (保持不變) ---
+# --- *** 修改 Animal Model *** ---
 class Animal(models.Model):
     name = models.CharField("姓名", max_length=100, db_index=True)
     hall = models.ForeignKey(
@@ -100,6 +111,7 @@ class Animal(models.Model):
     is_exclusive = models.BooleanField("獨家", default=False)
     is_hidden_edition = models.BooleanField("隱藏版", default=False)
     is_recommended = models.BooleanField("推薦", default=False)
+    is_featured = models.BooleanField("設為主打", default=False, db_index=True, help_text="勾選此項，將此美容師顯示在首頁主打區塊（建議只勾選一位）") # <<< 新增欄位
     created_at = models.DateTimeField("建立時間", auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField("更新時間", auto_now=True, null=True, blank=True)
 
@@ -116,7 +128,8 @@ class Animal(models.Model):
             hall_status = " (館別停用)"
         size_info = self.size_display
         fee_info = f"{self.fee}元" if self.fee is not None else "未填"
-        return f"{hall_name}{hall_status} - {self.name} (身材:{size_info} | 台費:{fee_info} | ID:{self.pk}){status}"
+        featured_status = " [主打]" if self.is_featured else "" # <<< 加入主打狀態顯示
+        return f"{hall_name}{hall_status} - {self.name}{featured_status} (身材:{size_info} | 台費:{fee_info} | ID:{self.pk}){status}"
 
     @property
     def size_display(self):
@@ -125,9 +138,9 @@ class Animal(models.Model):
         if self.weight: parts.append(str(self.weight))
         if self.cup_size: parts.append(self.cup_size)
         return ".".join(parts) if parts else "未填"
+# --- *** Animal Model 修改結束 *** ---
 
-
-# --- *** 修改 Review Model *** ---
+# --- Review Model (加入 approved_at) (保持不變) ---
 class Review(models.Model):
     animal = models.ForeignKey(Animal, related_name="reviews", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
@@ -155,11 +168,11 @@ class Review(models.Model):
     content = models.TextField("心得", blank=True, null=True)
     created_at = models.DateTimeField("建立時間", default=timezone.now)
     approved = models.BooleanField("已審核", default=False, db_index=True)
-    approved_at = models.DateTimeField("審核時間", null=True, blank=True, db_index=True) # <<< 新增欄位
+    approved_at = models.DateTimeField("審核時間", null=True, blank=True, db_index=True)
     reward_granted = models.BooleanField("已獎勵次數", default=False, help_text="標記此心得是否已觸發增加使用次數")
 
     class Meta:
-        ordering = ['-approved_at', '-created_at'] # <<< 修改預設排序，優先按審核時間
+        ordering = ['-approved_at', '-created_at']
         verbose_name = "心得評論"
         verbose_name_plural = "心得評論"
 
@@ -170,7 +183,6 @@ class Review(models.Model):
         reward_status = "已獎勵" if self.reward_granted else "未獎勵"
         approved_time_str = f"於 {timezone.localtime(self.approved_at).strftime('%Y-%m-%d %H:%M')}" if self.approved_at else ""
         return f"{animal_name} 的心得 (由 {user_name}) - {status}{approved_time_str}, {reward_status}"
-# --- *** Review Model 修改結束 *** ---
 
 # --- PendingAppointment Model (保持不變) ---
 class PendingAppointment(models.Model):
@@ -336,6 +348,20 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username}'s Profile (Pending:{self.pending_list_limit}, Notes:{self.notes_limit})"
 
+# --- *** 新增：SiteConfiguration 模型 (用於管理 Logo) *** ---
+# 放在 myapp 中，如果之後設定變多，建議移到獨立的 site_settings app
+class SiteConfiguration(SingletonModel):
+    site_logo = models.ImageField("網站 Logo (頁首左上角)", upload_to='site_config/', blank=True, null=True, help_text="建議使用透明背景的 PNG 圖片，高度約 40-50px")
+    # 可以加入其他全站設定，例如頁尾文字、預設分享訊息等
+
+    def __str__(self):
+        return "網站設定"
+
+    class Meta:
+        verbose_name = "網站設定"
+        verbose_name_plural = "網站設定"
+# --- *** SiteConfiguration 模型結束 *** ---
+
 
 # --- *** Signals *** ---
 
@@ -358,10 +384,9 @@ def save_user_profile(sender, instance, **kwargs):
         if created:
             logger.warning(f"UserProfile created/ensured for {instance.username} on save signal because it was missing.")
 
-# --- *** 新增：Signal for Review - 設定審核時間 *** ---
+# --- Signal for Review - 設定審核時間 (保持不變) ---
 @receiver(pre_save, sender=Review)
 def set_review_approval_time(sender, instance, **kwargs):
-    """當一般心得的 approved 狀態改變時，設定或清除 approved_at 時間戳"""
     try:
         original_instance = sender.objects.get(pk=instance.pk)
         approved_changed = original_instance.approved != instance.approved
@@ -375,9 +400,8 @@ def set_review_approval_time(sender, instance, **kwargs):
     elif not instance.approved and approved_changed:
         instance.approved_at = None
         logger.info(f"Review {instance.pk}: Clearing approved_at.")
-# --- *** Signal 新增結束 *** ---
 
-# --- Signal for StoryReview (保持不變) ---
+# --- Signal for StoryReview - 設定審核/過期時間 (保持不變) ---
 @receiver(pre_save, sender=StoryReview)
 def set_story_approval_times(sender, instance, **kwargs):
     try:
@@ -397,15 +421,12 @@ def set_story_approval_times(sender, instance, **kwargs):
 @receiver(post_save, sender=Review)
 def grant_reward_for_review(sender, instance, created, **kwargs):
     update_fields = kwargs.get('update_fields')
-    # 只有在 approved 欄位被實際更新時才觸發 (避免僅更新 reward_granted 時重複觸發)
-    # 同時確保 reward_granted 尚未被設置
     if instance.approved and not instance.reward_granted and (not update_fields or 'approved' in update_fields):
         try:
             profile = UserProfile.objects.select_for_update().get(user=instance.user)
             profile.pending_list_limit = F('pending_list_limit') + 3
             profile.notes_limit = F('notes_limit') + 3
             profile.save(update_fields=['pending_list_limit', 'notes_limit'])
-            # 使用 update() 避免再次觸發 post_save
             Review.objects.filter(pk=instance.pk).update(reward_granted=True)
             logger.info(f"Granted +3 uses to {instance.user.username} for Review {instance.pk}")
         except UserProfile.DoesNotExist:
@@ -416,7 +437,6 @@ def grant_reward_for_review(sender, instance, created, **kwargs):
 @receiver(post_save, sender=StoryReview)
 def grant_reward_for_story_review(sender, instance, created, **kwargs):
     update_fields = kwargs.get('update_fields')
-    # 只有在 approved 欄位被實際更新時才觸發
     if instance.approved and not instance.reward_granted and (not update_fields or 'approved' in update_fields):
         if instance.expires_at and instance.expires_at > timezone.now():
             try:
@@ -433,5 +453,7 @@ def grant_reward_for_story_review(sender, instance, created, **kwargs):
         else:
              if not instance.reward_granted:
                  logger.warning(f"StoryReview {instance.pk} for user {instance.user.username} was approved but already expired ({instance.expires_at}), no reward granted.")
+
+# --- 不再需要 pre_delete signals (根據之前的決定) ---
 
 # --- *** Signals 結束 *** ---

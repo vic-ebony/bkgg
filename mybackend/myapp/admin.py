@@ -6,11 +6,21 @@ from django.http import HttpResponseRedirect
 from .models import (
     Hall, Animal, Review, PendingAppointment, Note, Announcement,
     StoryReview, WeeklySchedule, UserTitleRule, ReviewFeedback,
-    UserProfile
+    UserProfile, SiteConfiguration # <<< 導入 SiteConfiguration
 )
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .views import merge_transfer_animal_view # 確保導入
+from .views import merge_transfer_animal_view
+
+# --- 導入 django-solo admin (如果使用) ---
+try:
+    from solo.admin import SingletonModelAdmin
+    DJANGO_SOLO_INSTALLED = True
+except ImportError:
+    SingletonModelAdmin = admin.ModelAdmin # Fallback
+    DJANGO_SOLO_INSTALLED = False
+# --- ---
+
 
 # --- UserProfile Inline Admin (保持不變) ---
 class UserProfileInline(admin.StackedInline):
@@ -56,17 +66,17 @@ class HallAdmin(admin.ModelAdmin):
         ('班表與解析', {'fields': ('schedule_format_type',)}),
     )
 
-# --- Animal Admin (保持不變) ---
+# --- *** 修改 Animal Admin *** ---
 @admin.register(Animal)
 class AnimalAdmin(admin.ModelAdmin):
-    list_display = ('name', 'hall_display', 'fee', 'is_active', 'aliases_display', 'order')
-    list_filter = ('hall__is_active', 'hall', 'is_active', 'is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer')
+    list_display = ('name', 'hall_display', 'fee', 'is_active', 'is_featured', 'aliases_display', 'order') # <<< 加入 is_featured
+    list_filter = ('is_featured', 'hall__is_active', 'hall', 'is_active', 'is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer') # <<< 加入 is_featured
     search_fields = ('name', 'introduction', 'hall__name', 'aliases')
-    list_editable = ('is_active', 'order')
+    list_editable = ('is_active', 'is_featured', 'order') # <<< 加入 is_featured
     fieldsets = (
         (None, {'fields': ('name', 'hall', 'is_active', 'order', 'photo')}),
         ('基本資料', {'fields': ('height', 'weight', 'cup_size', 'fee'), 'classes': ('collapse',)}),
-        ('標籤', {'fields': ('is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer')}),
+        ('標籤與狀態', {'fields': ('is_recommended', 'is_hidden_edition', 'is_exclusive', 'is_hot', 'is_newcomer', 'is_featured')}), # <<< 加入 is_featured
         ('介紹與別名', {'fields': ('introduction', 'aliases')}),
         ('舊時段(參考)', {'fields': ('time_slot',), 'classes': ('collapse',)}),
         ('時間戳', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
@@ -120,18 +130,18 @@ class AnimalAdmin(admin.ModelAdmin):
         except Exception as e:
             self.message_user(request, f"無法導向合併頁面，請檢查URL配置或視圖導入: {e}", messages.ERROR)
             return HttpResponseRedirect(request.get_full_path())
+# --- *** Animal Admin 修改結束 *** ---
 
-# --- *** 修改 Review Admin *** ---
+# --- Review Admin (保持不變) ---
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     list_filter = ('approved', 'reward_granted', 'animal__hall__is_active', 'animal__hall', 'animal', 'user')
-    list_display = ('animal', 'user', 'created_at', 'approved', 'approved_at', 'reward_granted') # <<< 添加 approved_at
+    list_display = ('animal', 'user', 'created_at', 'approved', 'approved_at', 'reward_granted')
     search_fields = ('content', 'user__username', 'animal__name', 'animal__hall__name')
-    list_editable = ('approved',) # approved_at 由 signal 控制
+    list_editable = ('approved',)
     list_select_related = ('animal', 'user', 'animal__hall')
-    date_hierarchy = 'approved_at' # <<< 將排序基準改為審核時間 (或保留 created_at)
-    readonly_fields = ('created_at', 'approved_at', 'reward_granted') # <<< 將 approved_at 設為唯讀
-# --- *** ---
+    date_hierarchy = 'approved_at'
+    readonly_fields = ('created_at', 'approved_at', 'reward_granted')
 
 # --- PendingAppointment Admin (保持不變) ---
 @admin.register(PendingAppointment)
@@ -231,3 +241,15 @@ class ReviewFeedbackAdmin(admin.ModelAdmin):
             user_name = obj.story_review.user.username if obj.story_review.user else "未知用戶"
             return f"限時動態 #{obj.story_review.id} (作者: {user_name})"
         return "N/A"
+
+# --- *** 新增：註冊 SiteConfiguration Admin *** ---
+# 根據是否安裝了 django-solo 使用不同的基類
+if DJANGO_SOLO_INSTALLED:
+    admin.site.register(SiteConfiguration, SingletonModelAdmin)
+else:
+    # 如果沒有 solo，提供一個基本的 Admin 界面，但不強制單例
+    @admin.register(SiteConfiguration)
+    class SiteConfigurationAdmin(admin.ModelAdmin):
+         # 可以在這裡添加 list_display 等設定
+         pass
+# --- *** 註冊結束 *** ---
