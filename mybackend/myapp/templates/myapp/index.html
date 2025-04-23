@@ -1,4 +1,4 @@
-{# templates/myapp/index.html (或其他你的模板路徑) #}
+{# templates/myapp/index.html (完整版 - 修正 togglePending alert - 再次確認) #}
 {% load static %}
 {% load my_filters %} {# Ensure filters are loaded #}
 <!DOCTYPE html>
@@ -15,7 +15,7 @@
     html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; font-size: 16px; background: #ccc; display: flex; flex-direction: column; line-height: 1.5; }
     *, *::before, *::after { box-sizing: inherit; }
 
-    /* --- *** 修改後的頁首樣式 *** --- */
+    /* --- 頁首樣式 (含 Logo, 按鈕, 用戶區調整) --- */
     .page-header {
         display: flex;
         justify-content: space-between; /* 主要軸對齊方式：兩端對齊 */
@@ -27,23 +27,18 @@
         gap: 1rem; /* 元素間距 */
         flex-wrap: wrap; /* 允許換行 */
     }
-
-    /* Logo 區域 */
     .header-logo {
-    flex-shrink: 0;
-    /* 維持你之前設定的最大高度限制容器 */
-    max-height: 40px; /* 這是 Logo 容器的高度限制 */
-    order: 0;
-    display: flex;
-    align-items: center;
-}
-.header-logo img {
-    /* 限制圖片本身的最大尺寸 */
-    max-height: 100%; /* 圖片高度不超過容器高度 (40px) */
-    max-width: 50px; /* 同時限制最大寬度，避免太寬的 Logo 變形 (可調整) */
-    width: auto;      /* 讓寬度根據高度自動縮放，保持比例 */
-    height: auto;     /* 高度也自適應 (max-height 會先生效) */
-    display: block;
+        flex-shrink: 0; /* 防止 Logo 被壓縮 */
+        max-height: 40px; /* 限制最大高度 */
+        order: 0; /* 預設在最左 */
+        display: flex; /* 使用 flex 垂直居中 placeholder */
+        align-items: center;
+    }
+    .header-logo img {
+        height: 100%; /* 高度填滿容器 */
+        width: auto; /* 寬度自適應 */
+        display: block;
+        max-width: 75px; /* 限制最大寬度 */
     }
     .logo-placeholder {
         font-weight: bold;
@@ -52,11 +47,9 @@
         line-height: 40px; /* 與 max-height 匹配 */
         min-width: 50px;
         text-align: center;
-        border: 1px dashed #ccc; /* 顯示佔位符邊框 */
+        border: 1px dashed #ccc;
         padding: 0 0.5rem;
     }
-
-    /* 中間的操作按鈕區域 */
     .header-actions {
         display: flex;
         flex-wrap: wrap;
@@ -64,10 +57,9 @@
         align-items: center;
         flex-grow: 1; /* 佔據中間剩餘空間 */
         justify-content: center; /* 按鈕在區域內居中 */
-        order: 1; /* 預設順序 */
+        order: 1; /* 預設在中間 */
         min-width: 0; /* 允許 flex item 收縮 */
     }
-
     .header-actions button {
         padding: 0.4rem 0.8rem;
         font-size: 0.9rem;
@@ -80,18 +72,15 @@
         flex-grow: 0; /* 預設不伸展，保持自然寬度 */
         flex-basis: auto;
         text-align: center;
-        /* min-width: 100px; */ /* 移除電腦版的最小寬度限制，讓按鈕自適應 */
     }
      .header-actions button:hover { background-color: #eee; }
      .header-actions .pending-count { background-color: #007bff; color: white; padding: 0.1em 0.4em; border-radius: 0.5em; font-size: 0.8em; margin-left: 0.2em; vertical-align: middle; }
-
-    /* 用戶資訊/登入區域 */
     .header-user-area {
         display: flex;
         align-items: center;
         gap: 0.75rem;
         flex-shrink: 0; /* 防止被壓縮 */
-        order: 2; /* 預設順序 */
+        order: 2; /* 預設在最右 */
     }
     .header-user-area .user-info-header {
         font-size: 0.9rem;
@@ -99,7 +88,7 @@
         white-space: nowrap;
         margin: 0;
     }
-    .header-user-area button { /* 登入/登出按鈕基本樣式 */
+    .header-user-area button {
         padding: 0.4rem 0.8rem;
         font-size: 0.9rem;
         border-radius: 5px;
@@ -109,59 +98,26 @@
         transition: background-color 0.2s;
         white-space: nowrap;
     }
-    .header-user-area button:hover {
-        background-color: #eee;
-    }
-    /* --- *** 修改登出按鈕樣式 *** --- */
+    .header-user-area button:hover { background-color: #eee; }
     .header-user-area .logout-button {
-        color: #dc3545; /* 紅色文字 */
-        border-color: #dc3545; /* 紅色邊框 */
-        background-color: #fff; /* 白色背景 */
+        color: #dc3545; border-color: #dc3545; background-color: #fff;
     }
-     .header-user-area .logout-button:hover {
-         background-color: #f8d7da; /* 淡紅色背景 on hover */
-         color: #842029; /* 深紅色文字 on hover */
-         border-color: #f5c2c7;
-     }
-    /* --- *** --- */
-     .header-user-area .login-button {
-        color: #0d6efd;
-        border-color: #0d6efd;
-     }
-     .header-user-area .login-button:hover {
-         background-color: #e0f0ff;
-     }
-    .header-user-area form {
-        margin: 0;
-        display: inline;
-    }
+     .header-user-area .logout-button:hover { background-color: #f8d7da; color: #842029; border-color: #f5c2c7; }
+     .header-user-area .login-button { color: #0d6efd; border-color: #0d6efd; }
+     .header-user-area .login-button:hover { background-color: #e0f0ff; }
+    .header-user-area form { margin: 0; display: inline; }
 
     /* 頁首在小螢幕上的佈局調整 */
-    @media (max-width: 991px) { /* 調整斷點 */
-        .page-header {
-            justify-content: space-between; /* 確保 Logo 和用戶區在兩側 */
-        }
-        .header-actions {
-            order: 2; /* 按鈕區移到下方 */
-            width: 100%;
-            justify-content: center; /* 按鈕組整體居中 */
-            margin-top: 0.5rem;
-        }
-        .header-actions button {
-             flex-grow: 1; /* 按鈕均分寬度 */
-             flex-basis: 0; /* 允許均分 */
-             min-width: 90px; /* 避免過窄 */
-             text-align: center;
-        }
+    @media (max-width: 991px) {
+        .page-header { justify-content: space-between; }
+        .header-actions { order: 2; width: 100%; justify-content: center; margin-top: 0.5rem; }
+        .header-actions button { flex-grow: 1; flex-basis: 0; min-width: 90px; text-align: center; }
         .header-logo { order: 0; }
         .header-user-area { order: 1; }
     }
      @media (max-width: 768px) {
-         .header-actions button {
-             min-width: 80px;
-         }
+         .header-actions button { min-width: 80px; }
      }
-    /* --- *** 頁首樣式修改結束 *** --- */
 
     /* --- 容器 & 入口內容區 --- */
     .glass-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; overflow: hidden; }
@@ -174,134 +130,36 @@
     .portal-content .portal-announcement { margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; text-align: left; }
     .portal-content .portal-announcement strong { display: block; margin-bottom: 0.5rem; font-size: 1.1em; color: #333;}
     .portal-content .portal-announcement p { margin: 0; color: #495057; line-height: 1.4;}
-    /* .portal-promo { display: none; } */ /* 舊的 promo 樣式不再需要 */
+
+    /* --- 主打區塊樣式 --- */
+    .featured-section { margin-top: 1.5rem; margin-bottom: 1.5rem; padding: 1rem; background-color: #f0f8ff; border: 1px solid #d1e7fd; border-radius: 8px; text-align: left; }
+    .featured-section h2 { text-align: center; color: #0d6efd; margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600; }
+    .featured-section h2 .fas { margin-right: 0.5em; }
+    .featured-card { display: flex; gap: 1rem; align-items: flex-start; }
+    .featured-photo { flex: 0 0 120px; height: 160px; border-radius: 6px; overflow: hidden; background-color: #e9ecef; display: flex; align-items: center; justify-content: center; }
+    .featured-photo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .photo-placeholder { color: #6c757d; font-size: 0.9rem; }
+    .featured-info { flex: 1; display: flex; flex-direction: column; }
+    .featured-info h3 { margin: 0 0 0.25rem 0; font-size: 1.4rem; color: #343a40; }
+    .featured-info .hall-name { font-size: 0.9rem; color: #6c757d; margin-bottom: 0.5rem; }
+    .featured-info .introduction { font-size: 0.95rem; color: #495057; line-height: 1.4; margin-bottom: 1rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; min-height: 4.2em; }
+    .featured-actions { margin-top: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .featured-actions button { padding: 0.4rem 0.8rem; font-size: 0.9rem; }
+    .featured-actions .view-details-btn { background-color: #0d6efd; color: white; border-color: #0d6efd; }
+    .featured-actions .view-details-btn:hover { background-color: #0b5ed7; border-color: #0a58ca; }
+    @media (max-width: 600px) {
+        .featured-card { flex-direction: column; align-items: center; text-align: center; }
+        .featured-photo { width: 80%; max-width: 200px; height: auto; max-height: 250px; margin-bottom: 1rem; }
+        .featured-photo img { max-height: 100%; }
+        .featured-info h3 { font-size: 1.3rem; }
+        .featured-info .introduction { text-align: left; -webkit-line-clamp: 4; min-height: 5.6em; }
+        .featured-actions { justify-content: center; margin-top: 1rem; }
+    }
 
     /* --- 隱藏舊元素 --- */
     #menuBtn, #sidePanel, #leftOverlay { display: none !important; }
 
-    /* --- 主打區塊樣式 --- */
-    .featured-section {
-        margin-top: 1.5rem;
-        margin-bottom: 1.5rem;
-        padding: 1rem;
-        background-color: #f0f8ff; /* 淡藍色背景 */
-        border: 1px solid #d1e7fd;
-        border-radius: 8px;
-        text-align: left;
-    }
-    .featured-section h2 {
-        text-align: center;
-        color: #0d6efd; /* 主題藍色 */
-        margin-bottom: 1rem;
-        font-size: 1.3rem;
-        font-weight: 600;
-    }
-    .featured-section h2 .fas {
-        margin-right: 0.5em;
-    }
-    .featured-card {
-        display: flex;
-        gap: 1rem;
-        align-items: flex-start;
-    }
-    .featured-photo {
-        flex: 0 0 120px;
-        height: 160px;
-        border-radius: 6px;
-        overflow: hidden;
-        background-color: #e9ecef;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .featured-photo img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain; /* <<< 修改：確保圖片完整顯示 */
-        display: block;
-    }
-    .photo-placeholder {
-        color: #6c757d;
-        font-size: 0.9rem;
-    }
-    .featured-info {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    .featured-info h3 {
-        margin: 0 0 0.25rem 0;
-        font-size: 1.4rem;
-        color: #343a40;
-    }
-    .featured-info .hall-name {
-        font-size: 0.9rem;
-        color: #6c757d;
-        margin-bottom: 0.5rem;
-    }
-    .featured-info .introduction {
-        font-size: 0.95rem;
-        color: #495057;
-        line-height: 1.4;
-        margin-bottom: 1rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        min-height: 4.2em;
-    }
-    .featured-actions {
-        margin-top: auto;
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-    .featured-actions button {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.9rem;
-    }
-    .featured-actions .view-details-btn {
-        background-color: #0d6efd;
-        color: white;
-        border-color: #0d6efd;
-    }
-    .featured-actions .view-details-btn:hover {
-        background-color: #0b5ed7;
-        border-color: #0a58ca;
-    }
-    /* 手機版主打區塊調整 */
-    @media (max-width: 600px) {
-        .featured-card {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-        .featured-photo {
-            width: 80%;
-            max-width: 200px;
-            height: auto; /* 高度自適應 */
-            max-height: 250px; /* 增加最大高度限制 */
-            margin-bottom: 1rem;
-        }
-         .featured-photo img {
-             max-height: 100%; /* 確保圖片不超過容器 */
-         }
-        .featured-info h3 {
-            font-size: 1.3rem;
-        }
-         .featured-info .introduction {
-            text-align: left;
-             -webkit-line-clamp: 4;
-             min-height: 5.6em;
-        }
-        .featured-actions {
-            justify-content: center;
-            margin-top: 1rem;
-        }
-    }
-
-    /* --- Modal 樣式 (保持不變) --- */
+    /* --- Modal 樣式 --- */
     .modal { display: none; position: fixed; z-index: 2999; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0, 0, 0, 0.5); animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     #reviewModal, #reviewSubmitModal, #noteModal, #storyDetailModal, #weeklyScheduleModal, #hallOfFameModal, #profileModal { z-index: 3999; }
@@ -310,52 +168,32 @@
         background-color: #fff; margin: 20px auto; padding: 0; border-radius: 15px;
         width: 95%; max-width: 500px; max-height: 90vh;
         display: flex; flex-direction: column;
-        overflow-y: hidden; overflow-x: hidden;
+        overflow: hidden;
         position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: none; min-height: 0;
     }
 
     #reviewSubmitModal .modal-content { overflow-y: hidden; }
     #reviewSubmitModal .modal-body {
-        flex-grow: 1;
-        overflow-y: auto;
-        min-height: 0;
-        padding: 1rem;
-        padding-bottom: 1rem;
+        flex-grow: 1; overflow-y: auto; min-height: 0; padding: 1rem; padding-bottom: 1rem;
     }
     #reviewSubmitModal .modal-footer {
-        flex-shrink: 0;
-        padding: 1rem 1.25rem;
-        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px);
-        border-top: 1px solid #eee; background-color: #f8f9fa; text-align: right;
+        flex-shrink: 0; padding: 1rem 1.25rem; padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); border-top: 1px solid #eee; background-color: #f8f9fa; text-align: right;
     }
 
     .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background-color: #f8f9fa;}
     .modal-header h2 { margin: 0; font-size: 1.3rem; color: #333; flex-grow: 1; margin-right: 0.5rem; }
     .modal-body {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-        padding: 1rem;
-        overflow-y: auto;
+        flex-grow: 1; display: flex; flex-direction: column; min-height: 0; padding: 1rem; overflow-y: auto;
     }
     .modal-body[data-layout="table"],
     #weeklyScheduleModal .modal-body,
     #hallOfFameModal .modal-body {
-        padding: 0 !important;
-        overflow-y: hidden;
-        flex-grow: 1;
+        padding: 0 !important; overflow-y: hidden; flex-grow: 1;
     }
     #hallOfFameModal .modal-body ol#hallOfFameList {
-       height: 100%;
-       overflow-y: auto;
-       -webkit-overflow-scrolling: touch;
-       padding: 10px 5px 0 5px;
-       margin: 0;
+       height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 5px 0 5px; margin: 0;
     }
-    #reviewModal .modal-body {
-        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px);
-    }
+    #reviewModal .modal-body { padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); }
     #noteModal .modal-body { display: flex; flex-direction: column; }
     #noteModal #noteForm { flex-grow: 1; display: flex; flex-direction: column; }
     #noteModal #noteForm .form-group:has(textarea[name="content"]), #noteModal #noteForm .form-group:last-of-type { flex-grow: 1; display: flex; flex-direction: column; margin-bottom: 0; }
@@ -365,22 +203,13 @@
     #profileModal .modal-body { padding: 1.5rem; }
 
     .modal-footer {
-        padding: 1rem 1.25rem;
-        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px);
-        border-top: 1px solid #eee;
-        flex-shrink: 0;
-        background-color: #f8f9fa; text-align: right;
+        padding: 1rem 1.25rem; padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); border-top: 1px solid #eee; flex-shrink: 0; background-color: #f8f9fa; text-align: right;
     }
     .close-modal { font-size: 1.75rem; font-weight: bold; cursor: pointer; color: #aaa; background: none; border: none; padding: 0 0.5rem; line-height: 1; flex-shrink: 0; }
     .close-modal:hover { color: #666; }
 
     #hallOfFameModal .modal-header { position: relative; }
-    #hallOfFameModal .close-modal {
-        position: absolute; top: 15px; right: 20px; z-index: 10; color: #aaa;
-        opacity: 0.7; transition: opacity 0.3s ease, color 0.3s ease; background: none;
-        border: none; padding: 5px; line-height: 0.8; font-size: 2rem; font-weight: bold;
-        cursor: pointer; margin-left: 0; flex-shrink: 0;
-    }
+    #hallOfFameModal .close-modal { position: absolute; top: 15px; right: 20px; z-index: 10; color: #aaa; opacity: 0.7; transition: opacity 0.3s ease, color 0.3s ease; background: none; border: none; padding: 5px; line-height: 0.8; font-size: 2rem; font-weight: bold; cursor: pointer; margin-left: 0; flex-shrink: 0; }
     #hallOfFameModal .close-modal:hover { color: #FFD700; opacity: 1; }
 
     .modal-body[data-layout="table"] .table-wrapper { margin-top: 0; background: #fff; border: none; border-radius: 0; overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -489,7 +318,7 @@
         #hallOfFameModal .modal-body .user-name { font-size: 0.9em; margin: 0 8px; white-space: normal; flex-wrap: wrap; gap: 0.3em;}
         #hallOfFameModal .modal-body .review-count { flex-basis: 70px; font-size: 0.8em; }
     }
-    @media (min-width: 769px) { /* .header-promo { display: block; } */ } /* 移除 header-promo 顯示 */
+    @media (min-width: 769px) { /* .header-promo { display: block; } */ }
 
     #bottomOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 3400; }
     #bottomOverlay.open { opacity: 1; pointer-events: auto; }
@@ -591,6 +420,7 @@
     .feedback-btn .fas { font-size: 0.9em; }
     .feedback-count { font-size: 0.8rem; color: #777; margin-left: 0.2em; }
 
+    /* --- 個人檔案 Modal 樣式 --- */
     #profileModal .modal-body {
         padding: 1.5rem;
         overflow-y: auto;
@@ -632,7 +462,7 @@
     .profile-stat-item strong {
         display: block;
         font-size: 1.4rem;
-        color: #333;
+        color: #333; /* 顯示已使用/上限，用回深色 */
         margin-bottom: 0.2rem;
     }
     .profile-stat-item span {
@@ -642,6 +472,7 @@
         align-items: center;
         justify-content: center;
         gap: 0.3em;
+        line-height: 1.3; /* 增加行高避免文字太擠 */
     }
      .profile-stat-item span .fas {
         font-size: 0.9em;
@@ -658,6 +489,7 @@
         font-style: normal;
         font-weight: bold;
     }
+    /* --- 個人檔案樣式結束 --- */
 
   </style>
 </head>
@@ -670,11 +502,10 @@
             <header class="page-header">
                 {# 左上角 Logo 區域 #}
                 <div class="header-logo">
-
                     {% if site_logo_url %}
                         <img src="{{ site_logo_url }}" alt="網站 Logo">
                     {% else %}
-                        <span class="logo-placeholder">LOGO</span> {# 後備文字 #}
+                        <span class="logo-placeholder">LOGO</span>
                     {% endif %}
                 </div>
 
@@ -698,10 +529,10 @@
                         <span class="user-info-header">登入中：{{ user.first_name|default:user.username }}</span>
                         <form action="{% url 'myapp:logout' %}" method="post">
                             {% csrf_token %}
-                            <button type="submit" class="logout-button">登出</button> {# 使用 logout-button class #}
+                            <button type="submit" class="logout-button">登出</button>
                         </form>
                     {% else %}
-                        <button id="loginBtnHeader" class="login-button">會員登入</button> {# 使用 login-button class #}
+                        <button id="loginBtnHeader" class="login-button">會員登入</button>
                     {% endif %}
                 </div>
             </header>
@@ -725,7 +556,7 @@
                  </div>
                  {% endif %}
 
-                 {# --- 新增：主打美容師區塊 --- #}
+                 {# --- 主打美容師區塊 --- #}
                  {% if featured_animal %}
                  <section class="featured-section">
                      <h2><i class="fas fa-star" style="color: #FFD700;"></i> 強力主打</h2>
@@ -745,9 +576,6 @@
                                   <button class="review-count-btn" data-animal-id="{{ featured_animal.id }}">
                                      查看心得 ({{ featured_animal.approved_review_count|default:0 }})
                                  </button>
-                                 {# 你可以在這裡添加更多按鈕，例如: #}
-                                 {# <button class="view-details-btn" data-animal-id="{{ featured_animal.id }}">查看詳情</button> #}
-                                 {# <button class="add-pending-btn" data-animal-id="{{ featured_animal.id }}">加入待約</button> #}
                              </div>
                          </div>
                      </div>
@@ -820,6 +648,7 @@
                     </div>
                 </div>
             </div>
+
 
           <!-- Bottom slide-up menu & Overlay -->
           <div id="plusDropdown" class="dropdown-menu"></div>
@@ -927,15 +756,38 @@
          function applyNoteVisibility(tbody, shouldShow) { if (!tbody) return; tbody.querySelectorAll('tr.note-row').forEach(noteRow => { noteRow.style.display = shouldShow ? '' : 'none'; }); }
          function syncCheckboxState(checkbox, tbody) { if (!checkbox || !tbody) return; const anyNoteRowsExist = tbody.querySelector('tr.note-row'); checkbox.disabled = !anyNoteRowsExist; const label = checkbox.closest('label'); const labelSpan = checkbox.nextElementSibling; if (label) { label.style.cursor = checkbox.disabled ? 'not-allowed' : 'pointer'; if (labelSpan && labelSpan.tagName === 'SPAN') { labelSpan.style.opacity = checkbox.disabled ? 0.6 : 1; } } }
 
-        // --- togglePending function (保持不變) ---
+        // --- *** 修改 togglePending 函數 (加入 alert) *** ---
         function togglePending(animalId, shouldAdd) {
           if (!isLoggedIn) { alert('請先登入'); return; }
           const url = shouldAdd ? "{% url 'myapp:add_pending' %}" : "{% url 'myapp:remove_pending' %}";
           fetch(url, { method: "POST", headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}, body: new URLSearchParams({ 'animal_id': animalId }) })
           .then(response => { if (!response.ok) { return response.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${response.status}`); }); } return response.json(); })
-          .then(data => { if (data.success) { updateRowsByAnimalId(animalId, (r) => { r.setAttribute('data-pending', shouldAdd ? "true" : "false"); }); if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); } const pendingModal = document.getElementById('pendingListModal'); if (pendingModal && pendingModal.style.display === 'block') { loadModalContent('pendingListModal'); } const dropdown = document.getElementById('plusDropdown'); if (dropdown?.classList.contains('open')) { const pendingButton = Array.from(dropdown.querySelectorAll('button')).find(btn => btn.textContent.includes('待約')); if (pendingButton) { pendingButton.textContent = shouldAdd ? "移除待約" : "加入待約"; } } /* alert(data.message || '操作成功'); */ } else { if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); } alert(data.error || '操作失敗'); } })
-          .catch(error => { console.error("Toggle Pending Error:", error); alert(`操作待約時發生錯誤: ${error.message}`); });
+          .then(data => {
+              if (data.success) {
+                  updateRowsByAnimalId(animalId, (r) => { r.setAttribute('data-pending', shouldAdd ? "true" : "false"); });
+                  if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
+                  const pendingModal = document.getElementById('pendingListModal');
+                  if (pendingModal && pendingModal.style.display === 'block') { loadModalContent('pendingListModal'); }
+                  const dropdown = document.getElementById('plusDropdown');
+                  if (dropdown?.classList.contains('open')) {
+                      const pendingButton = Array.from(dropdown.querySelectorAll('button')).find(btn => btn.textContent.includes('待約'));
+                      if (pendingButton) { pendingButton.textContent = shouldAdd ? "移除待約" : "加入待約"; }
+                  }
+                  // *** 在這裡顯示成功提示 ***
+                  if (data.message) {
+                       alert(data.message); // 顯示後端返回的訊息 (包含剩餘次數)
+                  }
+              } else {
+                  if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
+                  alert(data.error || '操作失敗');
+              }
+           })
+          .catch(error => {
+              console.error("Toggle Pending Error:", error);
+              alert(`操作待約時發生錯誤: ${error.message}`);
+          });
         }
+        // --- togglePending 函數修改結束 ---
 
         // --- updatePendingCount function (保持不變) ---
         function updatePendingCount(count) { const pendingCountSpan = document.getElementById('pendingCountHeader'); if (pendingCountSpan) pendingCountSpan.textContent = String(count); }
@@ -974,7 +826,7 @@
         function updateTopSectionFromRow(photoArea, introArea, row) { if (!photoArea || !introArea || !row) return; const photoUrl = row.dataset.photoUrl || ''; const introText = row.dataset.introduction || '無介紹'; const nameElement = row.querySelector('.name'); const animalName = nameElement ? nameElement.textContent.trim() : '美容師'; updatePhotoArea(photoArea, photoUrl, animalName); updateIntroArea(introArea, introText); }
         function updateTopSectionFromData(photoArea, introArea, animalData) { if (!photoArea || !introArea || !animalData) return; updatePhotoArea(photoArea, animalData.photo_url || '', animalData.name || '美容師'); updateIntroArea(introArea, animalData.introduction || '無介紹'); }
 
-        // --- loadReviews function (保持不變，使用 display_date) ---
+        // --- loadReviews function (保持不變) ---
         function loadReviews(animalId) {
             const reviewList = document.getElementById('reviewList');
             if (!reviewList) { console.error("Element with ID 'reviewList' not found."); return; }
@@ -1093,12 +945,12 @@
             .catch(error => { console.error("Error loading story detail:", error); headerDiv.innerHTML = `<div class="story-loading-message">錯誤</div>`; contentDiv.innerHTML = `<div class="story-loading-message">無法載入動態內容: ${error.message}</div>`; });
         }
 
-        // --- *** 修改後的 Hall of Fame 函數 *** ---
-        let hallOfFameDataStore = {}; // 用於儲存所有排行的數據
+        // --- Hall of Fame 函數 (保持不變) ---
+        let hallOfFameDataStore = {};
 
         function displayRanking(rankType) {
             const listElement = document.getElementById('hallOfFameList');
-            const listContainer = document.querySelector('.hof-list-container'); // Get the scrollable container
+            const listContainer = document.querySelector('.hof-list-container');
             if (!listElement || !listContainer) return;
 
             const rankings = hallOfFameDataStore[rankType];
@@ -1175,9 +1027,26 @@
                 listElement.innerHTML = `<li class="empty-message" style="color: #ff8a8a;">無法載入名人堂: ${error.message}</li>`;
             });
         }
-        // --- *** Hall of Fame 函數修改結束 *** ---
+        // --- Hall of Fame 函數結束 ---
 
-        // --- *** 修改後的 loadProfileData 函數 (移除總心得數) *** ---
+        // --- handleFeedbackClick function (保持不變) ---
+        function handleFeedbackClick(button) {
+            if (!isLoggedIn) { alert('請先登入才能給予回饋'); openModal('loginModal'); return; }
+            const reviewId = button.dataset.reviewId; const storyReviewId = button.dataset.storyReviewId; const feedbackType = button.dataset.type; const card = button.closest('.review-card'); const authorIdAttr = card?.dataset.authorId;
+            if ((!reviewId && !storyReviewId) || !feedbackType || !card || !authorIdAttr) { console.error("Feedback button/card missing data attributes."); alert("無法處理此操作，缺少必要資訊。"); return; }
+            if (authorIdAttr !== 'none' && USER_ID === parseInt(authorIdAttr, 10)) { alert("不能對自己的心得給予回饋！"); return; }
+            button.disabled = true; button.style.opacity = 0.7;
+            const formData = new FormData(); formData.append('feedback_type', feedbackType); if (reviewId) formData.append('review_id', reviewId); else if (storyReviewId) formData.append('story_review_id', storyReviewId);
+            fetch("{% url 'myapp:add_review_feedback' %}", { method: "POST", headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json' }, body: formData })
+            .then(response => {
+                if (response.status === 409) { return response.json().then(errData => { alert(errData.error || '你已經給過這個回饋了'); const targetId = reviewId || storyReviewId; const idPrefix = reviewId ? '' : 'story-'; const gthyCountSpan = document.getElementById(`count-${idPrefix}gthy-${targetId}`); const glCountSpan = document.getElementById(`count-${idPrefix}gl-${targetId}`); if (gthyCountSpan && errData.good_to_have_you_count !== undefined) gthyCountSpan.textContent = errData.good_to_have_you_count; if (glCountSpan && errData.good_looking_count !== undefined) glCountSpan.textContent = errData.good_looking_count; button.classList.add('clicked'); throw new Error('Already Voted'); }); }
+                if (!response.ok) { return response.json().then(err => { throw new Error(err.error || `伺服器錯誤 ${response.status}`); }); } return response.json();
+            })
+            .then(data => { if (data.success) { const targetId = reviewId || storyReviewId; const idPrefix = reviewId ? '' : 'story-'; const gthyCountSpan = document.getElementById(`count-${idPrefix}gthy-${targetId}`); const glCountSpan = document.getElementById(`count-${idPrefix}gl-${targetId}`); if (gthyCountSpan && data.good_to_have_you_count !== undefined) { gthyCountSpan.textContent = data.good_to_have_you_count; } if (glCountSpan && data.good_looking_count !== undefined) { glCountSpan.textContent = data.good_looking_count; } button.classList.add('clicked'); console.log(data.message || '回饋成功'); } else { alert(data.error || '給予回饋失敗'); button.disabled = false; button.style.opacity = 1; } })
+            .catch(error => { if (error.message !== 'Already Voted') { console.error("Feedback Click Error:", error); alert(`處理回饋時發生錯誤: ${error.message}`); button.disabled = false; button.style.opacity = 1; } });
+        }
+
+        // --- loadProfileData 函數 (已修改 - 保持不變) ---
         function loadProfileData() {
             const profileBody = document.getElementById('profileModalBody');
             if (!profileBody) return;
@@ -1192,17 +1061,18 @@
                 return response.json();
             })
             .then(data => {
+                console.log("Received profile data:", data); // Debugging log
                 if (data.success && data.profile_data) {
                     const p = data.profile_data;
                     const titleBadge = p.user_title ? `<span class="profile-modal-title-badge">${p.user_title}</span>` : '';
 
-                    const pendingDisplay = (typeof p.pending_count === 'number' && typeof p.pending_list_limit === 'number')
-                        ? `${p.pending_count} / ${p.pending_list_limit}`
-                        : (p.pending_count !== undefined ? p.pending_count : '?');
+                    const pendingUsed = (typeof p.pending_count === 'number') ? p.pending_count : '?';
+                    const pendingMax = (typeof p.max_pending_limit === 'number') ? p.max_pending_limit : '?';
+                    const pendingDisplay = (pendingUsed !== '?' && pendingMax !== '?') ? `${pendingUsed} / ${pendingMax}` : pendingUsed;
 
-                    const notesDisplay = (typeof p.notes_count === 'number' && typeof p.notes_limit === 'number')
-                        ? `${p.notes_count} / ${p.notes_limit}`
-                        : (p.notes_count !== undefined ? p.notes_count : '?');
+                    const notesUsed = (typeof p.notes_count === 'number') ? p.notes_count : '?';
+                    const notesMax = (typeof p.max_notes_limit === 'number') ? p.max_notes_limit : '?';
+                    const notesDisplay = (notesUsed !== '?' && notesMax !== '?') ? `${notesUsed} / ${notesMax}` : notesUsed;
 
                     profileBody.innerHTML = `
                         <div class="profile-modal-header">
@@ -1210,7 +1080,6 @@
                             ${titleBadge}
                         </div>
                         <div class="profile-modal-stats">
-                            {# REMOVED Total Reviews Block #}
                             <div class="profile-stat-item">
                                 <strong>${p.approved_reviews_count !== undefined ? p.approved_reviews_count : '?'}</strong>
                                 <span><i class="fas fa-comments"></i> 一般心得</span>
@@ -1229,15 +1098,16 @@
                             </div>
                             <div class="profile-stat-item">
                                 <strong>${pendingDisplay}</strong>
-                                <span><i class="fas fa-calendar-check"></i> 待約清單 (次數)</span>
+                                <span><i class="fas fa-calendar-check"></i> 待約清單 (已用/上限)</span>
                             </div>
                              <div class="profile-stat-item">
                                 <strong>${notesDisplay}</strong>
-                                <span><i class="fas fa-sticky-note"></i> 我的筆記 (次數)</span>
+                                <span><i class="fas fa-sticky-note"></i> 我的筆記 (已用/上限)</span>
                             </div>
                         </div>
                     `;
                 } else {
+                    console.error("Backend returned error or no profile data:", data);
                     throw new Error(data.error || '無法載入個人檔案資料');
                 }
             })
@@ -1246,9 +1116,9 @@
                 profileBody.innerHTML = `<div class="profile-error">無法載入個人檔案: ${error.message}</div>`;
             });
         }
-        // --- *** loadProfileData 函數修改結束 *** ---
+        // --- loadProfileData 函數結束 ---
 
-        // --- Event Listener Setup (加入 HOF Tab 監聽) ---
+        // --- Event Listener Setup (保持不變) ---
         document.addEventListener('click', function(e) {
             const target = e.target; const targetClosest = (selector) => target.closest(selector);
 

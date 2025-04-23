@@ -79,7 +79,7 @@ class Hall(models.Model):
         self.clean()
         super().save(*args, **kwargs)
 
-# --- *** 修改 Animal Model *** ---
+# --- Animal Model (保持不變) ---
 class Animal(models.Model):
     name = models.CharField("姓名", max_length=100, db_index=True)
     hall = models.ForeignKey(
@@ -111,7 +111,7 @@ class Animal(models.Model):
     is_exclusive = models.BooleanField("獨家", default=False)
     is_hidden_edition = models.BooleanField("隱藏版", default=False)
     is_recommended = models.BooleanField("推薦", default=False)
-    is_featured = models.BooleanField("設為主打", default=False, db_index=True, help_text="勾選此項，將此美容師顯示在首頁主打區塊（建議只勾選一位）") # <<< 新增欄位
+    is_featured = models.BooleanField("設為主打", default=False, db_index=True, help_text="勾選此項，將此美容師顯示在首頁主打區塊（建議只勾選一位）")
     created_at = models.DateTimeField("建立時間", auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField("更新時間", auto_now=True, null=True, blank=True)
 
@@ -128,7 +128,7 @@ class Animal(models.Model):
             hall_status = " (館別停用)"
         size_info = self.size_display
         fee_info = f"{self.fee}元" if self.fee is not None else "未填"
-        featured_status = " [主打]" if self.is_featured else "" # <<< 加入主打狀態顯示
+        featured_status = " [主打]" if self.is_featured else ""
         return f"{hall_name}{hall_status} - {self.name}{featured_status} (身材:{size_info} | 台費:{fee_info} | ID:{self.pk}){status}"
 
     @property
@@ -138,9 +138,8 @@ class Animal(models.Model):
         if self.weight: parts.append(str(self.weight))
         if self.cup_size: parts.append(self.cup_size)
         return ".".join(parts) if parts else "未填"
-# --- *** Animal Model 修改結束 *** ---
 
-# --- Review Model (加入 approved_at) (保持不變) ---
+# --- Review Model (保持不變) ---
 class Review(models.Model):
     animal = models.ForeignKey(Animal, related_name="reviews", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
@@ -335,24 +334,26 @@ class ReviewFeedback(models.Model):
         if self.review is not None and self.story_review is not None: raise ValidationError("不能同時關聯一般心得和限時動態心得。")
     def __str__(self): target_type = "一般心得" if self.review else "限時動態"; target_id = self.review.id if self.review else self.story_review.id; user_name = self.user.username if self.user else "未知用戶"; return f"{user_name} 對 {target_type} #{target_id} 給予 '{self.get_feedback_type_display()}' 回饋"
 
-# --- UserProfile Model (保持不變) ---
+# --- *** 修改 UserProfile Model *** ---
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     pending_list_limit = models.PositiveIntegerField("待約清單剩餘次數", default=10)
     notes_limit = models.PositiveIntegerField("我的筆記剩餘次數", default=10)
+    # --- 新增最大上限欄位 ---
+    max_pending_limit = models.PositiveIntegerField("待約清單最大上限", default=10, help_text="使用者當前可用的待約總額度")
+    max_notes_limit = models.PositiveIntegerField("我的筆記最大上限", default=10, help_text="使用者當前可用的筆記總額度")
 
     class Meta:
         verbose_name = "使用者檔案"
         verbose_name_plural = "使用者檔案"
 
     def __str__(self):
-        return f"{self.user.username}'s Profile (Pending:{self.pending_list_limit}, Notes:{self.notes_limit})"
+        return f"{self.user.username}'s Profile (Pending:{self.pending_list_limit}/{self.max_pending_limit}, Notes:{self.notes_limit}/{self.max_notes_limit})"
+# --- *** UserProfile Model 修改結束 *** ---
 
-# --- *** 新增：SiteConfiguration 模型 (用於管理 Logo) *** ---
-# 放在 myapp 中，如果之後設定變多，建議移到獨立的 site_settings app
+# --- SiteConfiguration 模型 (保持不變) ---
 class SiteConfiguration(SingletonModel):
     site_logo = models.ImageField("網站 Logo (頁首左上角)", upload_to='site_config/', blank=True, null=True, help_text="建議使用透明背景的 PNG 圖片，高度約 40-50px")
-    # 可以加入其他全站設定，例如頁尾文字、預設分享訊息等
 
     def __str__(self):
         return "網站設定"
@@ -360,29 +361,43 @@ class SiteConfiguration(SingletonModel):
     class Meta:
         verbose_name = "網站設定"
         verbose_name_plural = "網站設定"
-# --- *** SiteConfiguration 模型結束 *** ---
+# --- SiteConfiguration 模型結束 ---
 
 
-# --- *** Signals *** ---
+# --- *** 修改 Signals *** ---
 
-# 1. 自動創建 UserProfile (保持不變)
+# 1. 自動創建 UserProfile (初始化 max limit)
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
-        UserProfile.objects.create(user=instance)
-        logger.info(f"UserProfile created for {instance.username}")
+        # 創建時，讓 max limit 等於 initial limit
+        initial_pending_limit = 10 # 與 default 一致
+        initial_notes_limit = 10   # 與 default 一致
+        UserProfile.objects.create(
+            user=instance,
+            pending_list_limit=initial_pending_limit,
+            notes_limit=initial_notes_limit,
+            max_pending_limit=initial_pending_limit, # <<< 初始化 Max Limit
+            max_notes_limit=initial_notes_limit      # <<< 初始化 Max Limit
+        )
+        logger.info(f"UserProfile created for {instance.username} with initial limits (Remaining/Max): P={initial_pending_limit}/{initial_pending_limit}, N={initial_notes_limit}/{initial_notes_limit}")
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'profile'):
         try:
+            # 確保 Max Limit 至少和 Remaining Limit 一樣大 (防止手動改小 Remaining)
+            if instance.profile.max_pending_limit < instance.profile.pending_list_limit:
+                instance.profile.max_pending_limit = instance.profile.pending_list_limit
+            if instance.profile.max_notes_limit < instance.profile.notes_limit:
+                instance.profile.max_notes_limit = instance.profile.notes_limit
             instance.profile.save()
         except Exception as e:
             logger.error(f"Error saving profile for user {instance.username} in save_user_profile signal: {e}", exc_info=True)
     else:
-        profile, created = UserProfile.objects.get_or_create(user=instance)
-        if created:
-            logger.warning(f"UserProfile created/ensured for {instance.username} on save signal because it was missing.")
+        # 如果 profile 不存在，調用 create_user_profile 中的邏輯來創建
+        create_user_profile(sender=sender, instance=instance, created=True)
+
 
 # --- Signal for Review - 設定審核時間 (保持不變) ---
 @receiver(pre_save, sender=Review)
@@ -417,18 +432,37 @@ def set_story_approval_times(sender, instance, **kwargs):
         instance.expires_at = None
 
 
-# 2. 處理心得審核通過的獎勵 (保持不變)
+# 2. *** 修改心得獎勵 Signal *** (同時增加 剩餘 和 最大上限)
 @receiver(post_save, sender=Review)
 def grant_reward_for_review(sender, instance, created, **kwargs):
     update_fields = kwargs.get('update_fields')
-    if instance.approved and not instance.reward_granted and (not update_fields or 'approved' in update_fields):
+    # 確保是審核狀態變更為 True，且尚未獎勵
+    was_approved = False
+    if not created:
         try:
-            profile = UserProfile.objects.select_for_update().get(user=instance.user)
-            profile.pending_list_limit = F('pending_list_limit') + 3
-            profile.notes_limit = F('notes_limit') + 3
-            profile.save(update_fields=['pending_list_limit', 'notes_limit'])
-            Review.objects.filter(pk=instance.pk).update(reward_granted=True)
-            logger.info(f"Granted +3 uses to {instance.user.username} for Review {instance.pk}")
+            # 嘗試獲取保存前的狀態
+            original_instance = Review.objects.get(pk=instance.pk)
+            was_approved = original_instance.approved
+        except Review.DoesNotExist:
+             pass # 如果是新建的就不用管
+
+    if instance.approved and not was_approved and not instance.reward_granted:
+        try:
+            with transaction.atomic(): # 使用事務確保一致性
+                profile = UserProfile.objects.select_for_update().get(user=instance.user)
+                # 同時增加 剩餘次數 和 最大上限
+                profile.pending_list_limit = F('pending_list_limit') + 3
+                profile.notes_limit = F('notes_limit') + 3
+                profile.max_pending_limit = F('max_pending_limit') + 3 # <<< 增加最大上限
+                profile.max_notes_limit = F('max_notes_limit') + 3     # <<< 增加最大上限
+
+                profile.save(update_fields=[
+                    'pending_list_limit', 'notes_limit',
+                    'max_pending_limit', 'max_notes_limit' # <<< 保存最大上限
+                ])
+                # 使用 update() 來避免再次觸發 post_save signal
+                Review.objects.filter(pk=instance.pk).update(reward_granted=True)
+                logger.info(f"Granted +3 uses (Remaining & Max) to {instance.user.username} for Review {instance.pk}")
         except UserProfile.DoesNotExist:
             logger.error(f"UserProfile not found for user {instance.user.username} (ID: {instance.user.id}) when granting reward for Review {instance.pk}")
         except Exception as e:
@@ -437,15 +471,32 @@ def grant_reward_for_review(sender, instance, created, **kwargs):
 @receiver(post_save, sender=StoryReview)
 def grant_reward_for_story_review(sender, instance, created, **kwargs):
     update_fields = kwargs.get('update_fields')
-    if instance.approved and not instance.reward_granted and (not update_fields or 'approved' in update_fields):
+    # 確保是審核狀態變更為 True，且尚未獎勵，且未過期
+    was_approved = False
+    if not created:
+         try:
+             original_instance = StoryReview.objects.get(pk=instance.pk)
+             was_approved = original_instance.approved
+         except StoryReview.DoesNotExist:
+             pass
+
+    if instance.approved and not was_approved and not instance.reward_granted:
         if instance.expires_at and instance.expires_at > timezone.now():
             try:
-                profile = UserProfile.objects.select_for_update().get(user=instance.user)
-                profile.pending_list_limit = F('pending_list_limit') + 1
-                profile.notes_limit = F('notes_limit') + 1
-                profile.save(update_fields=['pending_list_limit', 'notes_limit'])
-                StoryReview.objects.filter(pk=instance.pk).update(reward_granted=True)
-                logger.info(f"Granted +1 uses to {instance.user.username} for StoryReview {instance.pk}")
+                with transaction.atomic():
+                    profile = UserProfile.objects.select_for_update().get(user=instance.user)
+                    # 同時增加 剩餘次數 和 最大上限
+                    profile.pending_list_limit = F('pending_list_limit') + 1
+                    profile.notes_limit = F('notes_limit') + 1
+                    profile.max_pending_limit = F('max_pending_limit') + 1 # <<< 增加最大上限
+                    profile.max_notes_limit = F('max_notes_limit') + 1     # <<< 增加最大上限
+
+                    profile.save(update_fields=[
+                        'pending_list_limit', 'notes_limit',
+                        'max_pending_limit', 'max_notes_limit' # <<< 保存最大上限
+                    ])
+                    StoryReview.objects.filter(pk=instance.pk).update(reward_granted=True)
+                    logger.info(f"Granted +1 uses (Remaining & Max) to {instance.user.username} for StoryReview {instance.pk}")
             except UserProfile.DoesNotExist:
                  logger.error(f"UserProfile not found for user {instance.user.username} (ID: {instance.user.id}) when granting reward for StoryReview {instance.pk}")
             except Exception as e:
@@ -454,6 +505,4 @@ def grant_reward_for_story_review(sender, instance, created, **kwargs):
              if not instance.reward_granted:
                  logger.warning(f"StoryReview {instance.pk} for user {instance.user.username} was approved but already expired ({instance.expires_at}), no reward granted.")
 
-# --- 不再需要 pre_delete signals (根據之前的決定) ---
-
-# --- *** Signals 結束 *** ---
+# --- Signals 結束 *** ---
