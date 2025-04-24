@@ -37,6 +37,10 @@ urlpatterns = [
     # --- 個人檔案 AJAX URL ---
     path('ajax/profile_data/', views.ajax_get_profile_data, name='ajax_get_profile_data'),
 
+    # --- 新增的搜尋 AJAX URL ---
+    path('ajax/search_beauticians/', views.ajax_search_beauticians, name='ajax_search_beauticians'),
+    # --- ------------------- ---
+
     # --- 如果你需要上傳圖片班表的功能，取消註釋下面這行 ---
     # path('upload_schedule_image/', views.upload_schedule_image_view, name='upload_schedule_image'),
 
