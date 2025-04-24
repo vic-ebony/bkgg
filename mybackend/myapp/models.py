@@ -7,7 +7,7 @@ from django.dispatch import receiver
 from django.db import transaction
 from django.db.models import Q, Count, F, Case, When, Value
 from django.core.exceptions import ValidationError
-from datetime import timedelta
+from datetime import timedelta # <<< 確保導入 timedelta
 import logging
 
 # --- 假設你已安裝 django-solo 來管理單例模型 ---
@@ -20,7 +20,7 @@ except ImportError:
     print("WARNING: django-solo not installed. SiteConfiguration will not be a singleton.")
 # --- ---
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) # <<< 確保 logger 初始化
 
 # --- Hall Model (保持不變) ---
 class Hall(models.Model):
@@ -334,12 +334,11 @@ class ReviewFeedback(models.Model):
         if self.review is not None and self.story_review is not None: raise ValidationError("不能同時關聯一般心得和限時動態心得。")
     def __str__(self): target_type = "一般心得" if self.review else "限時動態"; target_id = self.review.id if self.review else self.story_review.id; user_name = self.user.username if self.user else "未知用戶"; return f"{user_name} 對 {target_type} #{target_id} 給予 '{self.get_feedback_type_display()}' 回饋"
 
-# --- *** 修改 UserProfile Model *** ---
+# --- UserProfile Model (包含 max_ 欄位，保持不變) ---
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     pending_list_limit = models.PositiveIntegerField("待約清單剩餘次數", default=10)
     notes_limit = models.PositiveIntegerField("我的筆記剩餘次數", default=10)
-    # --- 新增最大上限欄位 ---
     max_pending_limit = models.PositiveIntegerField("待約清單最大上限", default=10, help_text="使用者當前可用的待約總額度")
     max_notes_limit = models.PositiveIntegerField("我的筆記最大上限", default=10, help_text="使用者當前可用的筆記總額度")
 
@@ -349,7 +348,6 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s Profile (Pending:{self.pending_list_limit}/{self.max_pending_limit}, Notes:{self.notes_limit}/{self.max_notes_limit})"
-# --- *** UserProfile Model 修改結束 *** ---
 
 # --- SiteConfiguration 模型 (保持不變) ---
 class SiteConfiguration(SingletonModel):
@@ -364,21 +362,20 @@ class SiteConfiguration(SingletonModel):
 # --- SiteConfiguration 模型結束 ---
 
 
-# --- *** 修改 Signals *** ---
+# --- Signals ---
 
-# 1. 自動創建 UserProfile (初始化 max limit)
+# 1. 自動創建 UserProfile (初始化 max limit - 保持不變)
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
-        # 創建時，讓 max limit 等於 initial limit
-        initial_pending_limit = 10 # 與 default 一致
-        initial_notes_limit = 10   # 與 default 一致
+        initial_pending_limit = 10
+        initial_notes_limit = 10
         UserProfile.objects.create(
             user=instance,
             pending_list_limit=initial_pending_limit,
             notes_limit=initial_notes_limit,
-            max_pending_limit=initial_pending_limit, # <<< 初始化 Max Limit
-            max_notes_limit=initial_notes_limit      # <<< 初始化 Max Limit
+            max_pending_limit=initial_pending_limit,
+            max_notes_limit=initial_notes_limit
         )
         logger.info(f"UserProfile created for {instance.username} with initial limits (Remaining/Max): P={initial_pending_limit}/{initial_pending_limit}, N={initial_notes_limit}/{initial_notes_limit}")
 
@@ -386,7 +383,7 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'profile'):
         try:
-            # 確保 Max Limit 至少和 Remaining Limit 一樣大 (防止手動改小 Remaining)
+            # 確保 Max Limit 至少和 Remaining Limit 一樣大
             if instance.profile.max_pending_limit < instance.profile.pending_list_limit:
                 instance.profile.max_pending_limit = instance.profile.pending_list_limit
             if instance.profile.max_notes_limit < instance.profile.notes_limit:
@@ -399,110 +396,155 @@ def save_user_profile(sender, instance, **kwargs):
         create_user_profile(sender=sender, instance=instance, created=True)
 
 
-# --- Signal for Review - 設定審核時間 (保持不變) ---
+# --- *** NEW: 合併 Review 的 pre_save 和獎勵邏輯 *** ---
 @receiver(pre_save, sender=Review)
-def set_review_approval_time(sender, instance, **kwargs):
+def handle_review_pre_save_and_reward(sender, instance, **kwargs):
+    original_instance = None
     try:
-        original_instance = sender.objects.get(pk=instance.pk)
-        approved_changed = original_instance.approved != instance.approved
+        if instance.pk: # Check if it's an update
+            original_instance = sender.objects.get(pk=instance.pk)
     except sender.DoesNotExist:
-        approved_changed = instance.approved
+        pass # It's a new instance
 
-    if instance.approved and approved_changed:
+    # 1. 處理 approved_at
+    approved_changed_to_true = False
+    if original_instance:
+        # Check if approved status changed from False to True
+        if not original_instance.approved and instance.approved:
+            approved_changed_to_true = True
+            if not instance.approved_at: # Only set if not already set (e.g., manual input)
+                instance.approved_at = timezone.now()
+                logger.info(f"[PRE_SAVE] Review {instance.pk}: Approved status changed to True. Setting approved_at to {instance.approved_at}")
+        # Check if approved status changed from True to False
+        elif original_instance.approved and not instance.approved:
+            instance.approved_at = None # Clear approval time if unapproved
+            instance.reward_granted = False # <<< 重置獎勵狀態，如果取消審核
+            logger.info(f"[PRE_SAVE] Review {instance.pk}: Approved status changed to False. Clearing approved_at and reward_granted.")
+    elif instance.approved: # Handle new instance being created as approved
+        approved_changed_to_true = True
         if not instance.approved_at:
             instance.approved_at = timezone.now()
-            logger.info(f"Review {instance.pk}: Setting approved_at to {instance.approved_at}")
-    elif not instance.approved and approved_changed:
-        instance.approved_at = None
-        logger.info(f"Review {instance.pk}: Clearing approved_at.")
+            logger.info(f"[PRE_SAVE] Review (New): Created as approved. Setting approved_at to {instance.approved_at}")
 
-# --- Signal for StoryReview - 設定審核/過期時間 (保持不變) ---
-@receiver(pre_save, sender=StoryReview)
-def set_story_approval_times(sender, instance, **kwargs):
-    try:
-        original_instance = sender.objects.get(pk=instance.pk)
-        approved_changed = original_instance.approved != instance.approved
-    except sender.DoesNotExist:
-        approved_changed = instance.approved
-    if instance.approved and approved_changed:
-        if not instance.approved_at: instance.approved_at = timezone.now()
-        if instance.approved_at and not instance.expires_at: instance.expires_at = instance.approved_at + timedelta(hours=24)
-    elif not instance.approved and approved_changed:
-        instance.approved_at = None
-        instance.expires_at = None
-
-
-# 2. *** 修改心得獎勵 Signal *** (同時增加 剩餘 和 最大上限)
-@receiver(post_save, sender=Review)
-def grant_reward_for_review(sender, instance, created, **kwargs):
-    update_fields = kwargs.get('update_fields')
-    # 確保是審核狀態變更為 True，且尚未獎勵
-    was_approved = False
-    if not created:
+    # 2. *** 處理獎勵邏輯 *** (只有在狀態從 False 變為 True 且未獎勵時執行)
+    if approved_changed_to_true and not instance.reward_granted:
         try:
-            # 嘗試獲取保存前的狀態
-            original_instance = Review.objects.get(pk=instance.pk)
-            was_approved = original_instance.approved
-        except Review.DoesNotExist:
-             pass # 如果是新建的就不用管
+            # 獲取 Profile (不鎖定)
+            profile = UserProfile.objects.get(user=instance.user)
 
-    if instance.approved and not was_approved and not instance.reward_granted:
-        try:
-            with transaction.atomic(): # 使用事務確保一致性
-                profile = UserProfile.objects.select_for_update().get(user=instance.user)
-                # 同時增加 剩餘次數 和 最大上限
-                profile.pending_list_limit = F('pending_list_limit') + 3
-                profile.notes_limit = F('notes_limit') + 3
-                profile.max_pending_limit = F('max_pending_limit') + 3 # <<< 增加最大上限
-                profile.max_notes_limit = F('max_notes_limit') + 3     # <<< 增加最大上限
+            # 準備更新 profile 的 F() 表達式
+            profile.pending_list_limit = F('pending_list_limit') + 3
+            profile.notes_limit = F('notes_limit') + 3
+            profile.max_pending_limit = F('max_pending_limit') + 3
+            profile.max_notes_limit = F('max_notes_limit') + 3
+            profile.save(update_fields=[
+                'pending_list_limit', 'notes_limit',
+                'max_pending_limit', 'max_notes_limit'
+            ])
 
-                profile.save(update_fields=[
-                    'pending_list_limit', 'notes_limit',
-                    'max_pending_limit', 'max_notes_limit' # <<< 保存最大上限
-                ])
-                # 使用 update() 來避免再次觸發 post_save signal
-                Review.objects.filter(pk=instance.pk).update(reward_granted=True)
-                logger.info(f"Granted +3 uses (Remaining & Max) to {instance.user.username} for Review {instance.pk}")
+            # 標記獎勵已發放 (將在同一個 save 操作中寫入)
+            instance.reward_granted = True
+            logger.info(f"[PRE_SAVE] Review {instance.pk or '(New)'}: Granting +3 uses (Remaining & Max) to {instance.user.username}. Reward Granted flag set.")
+
         except UserProfile.DoesNotExist:
-            logger.error(f"UserProfile not found for user {instance.user.username} (ID: {instance.user.id}) when granting reward for Review {instance.pk}")
+            logger.error(f"[PRE_SAVE] UserProfile not found for user {instance.user.username} (ID: {instance.user.id}) when attempting reward for Review {instance.pk or '(New)'}")
+            # 獎勵失敗，保持 reward_granted 為 False
         except Exception as e:
-            logger.error(f"Error granting reward for Review {instance.pk} to user {instance.user.username}: {e}", exc_info=True)
+            logger.error(f"[PRE_SAVE] Error attempting reward for Review {instance.pk or '(New)'} user {instance.user.username}: {e}", exc_info=True)
+            # 獎勵失敗，保持 reward_granted 為 False
 
-@receiver(post_save, sender=StoryReview)
-def grant_reward_for_story_review(sender, instance, created, **kwargs):
-    update_fields = kwargs.get('update_fields')
-    # 確保是審核狀態變更為 True，且尚未獎勵，且未過期
-    was_approved = False
-    if not created:
-         try:
-             original_instance = StoryReview.objects.get(pk=instance.pk)
-             was_approved = original_instance.approved
-         except StoryReview.DoesNotExist:
-             pass
+# --- *** REMOVED/COMMENTED OUT: Old Review post_save reward signal *** ---
+# @receiver(post_save, sender=Review)
+# def grant_reward_for_review(sender, instance, created, **kwargs):
+#    # ... (Old logic removed) ...
+#    pass
 
-    if instance.approved and not was_approved and not instance.reward_granted:
-        if instance.expires_at and instance.expires_at > timezone.now():
-            try:
-                with transaction.atomic():
-                    profile = UserProfile.objects.select_for_update().get(user=instance.user)
-                    # 同時增加 剩餘次數 和 最大上限
-                    profile.pending_list_limit = F('pending_list_limit') + 1
-                    profile.notes_limit = F('notes_limit') + 1
-                    profile.max_pending_limit = F('max_pending_limit') + 1 # <<< 增加最大上限
-                    profile.max_notes_limit = F('max_notes_limit') + 1     # <<< 增加最大上限
+# --- *** REMOVED/COMMENTED OUT: Old Review pre_save time setting signal *** ---
+# @receiver(pre_save, sender=Review)
+# def set_review_approval_time(sender, instance, **kwargs):
+#    # ... (Old logic removed) ...
+#    pass
 
-                    profile.save(update_fields=[
-                        'pending_list_limit', 'notes_limit',
-                        'max_pending_limit', 'max_notes_limit' # <<< 保存最大上限
-                    ])
-                    StoryReview.objects.filter(pk=instance.pk).update(reward_granted=True)
-                    logger.info(f"Granted +1 uses (Remaining & Max) to {instance.user.username} for StoryReview {instance.pk}")
-            except UserProfile.DoesNotExist:
-                 logger.error(f"UserProfile not found for user {instance.user.username} (ID: {instance.user.id}) when granting reward for StoryReview {instance.pk}")
-            except Exception as e:
-                logger.error(f"Error granting reward for StoryReview {instance.pk} to user {instance.user.username}: {e}", exc_info=True)
-        else:
-             if not instance.reward_granted:
-                 logger.warning(f"StoryReview {instance.pk} for user {instance.user.username} was approved but already expired ({instance.expires_at}), no reward granted.")
+
+# --- *** NEW: 合併 StoryReview 的 pre_save 和獎勵邏輯 *** ---
+@receiver(pre_save, sender=StoryReview)
+def handle_story_pre_save_and_reward(sender, instance, **kwargs):
+    original_instance = None
+    try:
+        if instance.pk:
+            original_instance = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        pass
+
+    # 1. 處理 approved_at 和 expires_at
+    approved_changed_to_true = False
+    if original_instance:
+        if not original_instance.approved and instance.approved:
+            approved_changed_to_true = True
+            if not instance.approved_at: instance.approved_at = timezone.now()
+            # Set expires_at only if approved_at is being set now or already exists
+            if instance.approved_at and not instance.expires_at:
+                 instance.expires_at = instance.approved_at + timedelta(hours=24)
+            logger.info(f"[PRE_SAVE] StoryReview {instance.pk}: Approved change True. Set approved_at: {instance.approved_at}, expires_at: {instance.expires_at}")
+        elif original_instance.approved and not instance.approved:
+            instance.approved_at = None
+            instance.expires_at = None
+            instance.reward_granted = False # <<< 重置獎勵狀態
+            logger.info(f"[PRE_SAVE] StoryReview {instance.pk}: Approved change False. Cleared times and reward_granted.")
+    elif instance.approved: # New instance created as approved
+        approved_changed_to_true = True
+        if not instance.approved_at: instance.approved_at = timezone.now()
+        if instance.approved_at and not instance.expires_at:
+             instance.expires_at = instance.approved_at + timedelta(hours=24)
+        logger.info(f"[PRE_SAVE] StoryReview (New): Created approved. Set approved_at: {instance.approved_at}, expires_at: {instance.expires_at}")
+
+    # 2. *** 處理獎勵邏輯 *** (只有在從 False 變 True，未獎勵，且未過期時執行)
+    # Need to use instance.approved_at because expires_at depends on it being set first
+    current_approved_at = instance.approved_at or (timezone.now() if approved_changed_to_true else None)
+    current_expires_at = instance.expires_at or (current_approved_at + timedelta(hours=24) if current_approved_at else None)
+
+    is_valid_for_reward = (
+        approved_changed_to_true and
+        not instance.reward_granted and
+        current_expires_at and # Ensure expiry time is calculated
+        current_expires_at > timezone.now() # Ensure not expired *now*
+    )
+
+    if is_valid_for_reward:
+        try:
+            profile = UserProfile.objects.get(user=instance.user)
+            profile.pending_list_limit = F('pending_list_limit') + 1
+            profile.notes_limit = F('notes_limit') + 1
+            profile.max_pending_limit = F('max_pending_limit') + 1
+            profile.max_notes_limit = F('max_notes_limit') + 1
+            profile.save(update_fields=[
+                'pending_list_limit', 'notes_limit',
+                'max_pending_limit', 'max_notes_limit'
+            ])
+
+            instance.reward_granted = True
+            logger.info(f"[PRE_SAVE] StoryReview {instance.pk or '(New)'}: Granting +1 uses (Rem & Max) to {instance.user.username}. Reward Granted flag set.")
+
+        except UserProfile.DoesNotExist:
+             logger.error(f"[PRE_SAVE] UserProfile not found for user {instance.user.username} (ID: {instance.user.id}) when attempting reward for StoryReview {instance.pk or '(New)'}")
+        except Exception as e:
+            logger.error(f"[PRE_SAVE] Error attempting reward for StoryReview {instance.pk or '(New)'} user {instance.user.username}: {e}", exc_info=True)
+    elif approved_changed_to_true and not instance.reward_granted:
+         # If changed to approved but expired or missing expiry, log why no reward
+         expiry_status = "Not Set" if not current_expires_at else ("Expired" if current_expires_at <= timezone.now() else "Valid")
+         logger.warning(f"[PRE_SAVE] StoryReview {instance.pk or '(New)'}: Approved change True but NO reward granted. Reason: reward_granted={instance.reward_granted}, expiry_status={expiry_status} (Expires: {current_expires_at})")
+
+
+# --- *** REMOVED/COMMENTED OUT: Old StoryReview pre_save time setting signal *** ---
+# @receiver(pre_save, sender=StoryReview)
+# def set_story_approval_times(sender, instance, **kwargs):
+#     # ... (Old logic removed) ...
+#     pass
+
+# --- *** REMOVED/COMMENTED OUT: Old StoryReview post_save reward signal *** ---
+# @receiver(post_save, sender=StoryReview)
+# def grant_reward_for_story_review(sender, instance, created, **kwargs):
+#     # ... (Old logic removed) ...
+#     pass
 
 # --- Signals 結束 *** ---
