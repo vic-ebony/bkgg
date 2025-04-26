@@ -1,4 +1,6 @@
 # D:\bkgg\mybackend\myapp\admin.py
+# --- 完整程式碼 (更新 HallAdmin) ---
+
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.urls import reverse, path
@@ -10,9 +12,20 @@ from .models import (
 )
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .views import merge_transfer_animal_view
+# 如果 merge_transfer_animal_view 在 myapp.views, 確保導入
+# from .views import merge_transfer_animal_view
+# 如果它在別處，則從正確位置導入
+# 假設它在 myapp/views.py
+try:
+    from .views import merge_transfer_animal_view
+except ImportError:
+    # Fallback or error handling if the view is not found
+    # This prevents server startup failure if the view is temporarily missing
+    merge_transfer_animal_view = None
+    print("WARNING: merge_transfer_animal_view not found in myapp.views. Merge action may fail.")
 
-# --- 導入 django-solo admin (如果使用) ---
+
+# --- solo admin import ---
 try:
     from solo.admin import SingletonModelAdmin
     DJANGO_SOLO_INSTALLED = True
@@ -22,56 +35,54 @@ except ImportError:
 # --- ---
 
 
-# --- *** 修改 UserProfile Inline Admin (顯示上限) *** ---
+# --- UserProfile Inline Admin (保持不變) ---
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     verbose_name_plural = '使用者檔案 (次數與上限)'
     fk_name = 'user'
-    # 顯示剩餘和最大上限
     fields = ('pending_list_limit', 'max_pending_limit', 'notes_limit', 'max_notes_limit')
-    # 將最大上限設為唯讀，因為它應該由獎勵機制自動管理
     readonly_fields = ('max_pending_limit', 'max_notes_limit')
-# --- *** UserProfile Inline Admin 修改結束 *** ---
+# --- ---
 
-# --- User Admin (加入上限顯示) ---
+# --- User Admin (保持不變) ---
 class UserAdmin(BaseUserAdmin):
     inlines = (UserProfileInline,)
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff',
-                    'get_pending_limit_display', 'get_notes_limit_display') # 修改顯示欄位
-    list_select_related = ('profile',) # 保持不變
+                    'get_pending_limit_display', 'get_notes_limit_display')
+    list_select_related = ('profile',)
 
-    @admin.display(description='待約 (剩餘/上限)') # 修改描述
+    @admin.display(description='待約 (剩餘/上限)')
     def get_pending_limit_display(self, instance):
-        try:
-            # 同時顯示剩餘和上限
-            return f"{instance.profile.pending_list_limit} / {instance.profile.max_pending_limit}"
-        except UserProfile.DoesNotExist:
-            return 'N/A'
+        try: return f"{instance.profile.pending_list_limit} / {instance.profile.max_pending_limit}"
+        except UserProfile.DoesNotExist: return 'N/A'
 
-    @admin.display(description='筆記 (剩餘/上限)') # 修改描述
+    @admin.display(description='筆記 (剩餘/上限)')
     def get_notes_limit_display(self, instance):
-         try:
-             # 同時顯示剩餘和上限
-             return f"{instance.profile.notes_limit} / {instance.profile.max_notes_limit}"
-         except UserProfile.DoesNotExist:
-             return 'N/A'
+         try: return f"{instance.profile.notes_limit} / {instance.profile.max_notes_limit}"
+         except UserProfile.DoesNotExist: return 'N/A'
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
+# --- User Admin 結束 ---
 
-# --- Hall Admin (保持不變) ---
+
+# --- Hall Admin (更新以包含 address) ---
 @admin.register(Hall)
 class HallAdmin(admin.ModelAdmin):
-    list_display = ('name', 'order', 'is_active', 'is_visible', 'schedule_format_type')
+    list_display = ('name', 'order', 'is_active', 'is_visible', 'schedule_format_type') # list_display 可選加入 address
     list_filter = ('is_active', 'is_visible', 'schedule_format_type')
     list_editable = ('order', 'is_active', 'is_visible')
-    search_fields = ('name',)
+    search_fields = ('name', 'address') # <<<--- 加入 address 到搜尋
     fieldsets = (
-        (None, {'fields': ('name', 'order')}),
+        (None, {
+            'fields': ('name', 'order', 'address') # <<<--- 加入 address 到表單
+        }),
         ('狀態與可見性', {'fields': ('is_active', 'is_visible')}),
         ('班表與解析', {'fields': ('schedule_format_type',)}),
     )
+# --- Hall Admin 結束 ---
+
 
 # --- Animal Admin (保持不變) ---
 @admin.register(Animal)
@@ -95,14 +106,18 @@ class AnimalAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         urls = super().get_urls()
-        custom_urls = [
-            path(
-                '<int:animal_id>/merge-transfer/',
-                self.admin_site.admin_view(merge_transfer_animal_view),
-                name='myapp_animal_merge_transfer'
-            )
-        ]
-        return custom_urls + urls
+        # Make sure merge_transfer_animal_view is imported correctly
+        if merge_transfer_animal_view:
+            custom_urls = [
+                path(
+                    '<int:animal_id>/merge-transfer/',
+                    self.admin_site.admin_view(merge_transfer_animal_view),
+                    name='myapp_animal_merge_transfer'
+                )
+            ]
+            return custom_urls + urls
+        return urls # Return original urls if view import failed
+
 
     @admin.display(description='館別', ordering='hall__name')
     def hall_display(self, obj):
@@ -126,6 +141,11 @@ class AnimalAdmin(admin.ModelAdmin):
 
     @admin.action(description='合併/轉移選定的美容師資料')
     def merge_transfer_animal(self, request, queryset):
+        # Check if the view function exists before proceeding
+        if not merge_transfer_animal_view:
+            self.message_user(request, "合併視圖未正確載入，無法執行操作。", messages.ERROR)
+            return HttpResponseRedirect(request.get_full_path())
+
         if queryset.count() != 1:
             self.message_user(request, "請只選擇一位美容師進行合併/轉移操作。", messages.WARNING)
             return HttpResponseRedirect(request.get_full_path())
@@ -137,9 +157,10 @@ class AnimalAdmin(admin.ModelAdmin):
         except Exception as e:
             self.message_user(request, f"無法導向合併頁面，請檢查URL配置或視圖導入: {e}", messages.ERROR)
             return HttpResponseRedirect(request.get_full_path())
+# --- Animal Admin 結束 ---
+
 
 # --- Review Admin (保持不變) ---
-# ... (與之前相同，保持不變) ...
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     list_filter = ('approved', 'reward_granted', 'animal__hall__is_active', 'animal__hall', 'animal', 'user')
@@ -149,20 +170,20 @@ class ReviewAdmin(admin.ModelAdmin):
     list_select_related = ('animal', 'user', 'animal__hall')
     date_hierarchy = 'approved_at'
     readonly_fields = ('created_at', 'approved_at', 'reward_granted')
+# --- Review Admin 結束 ---
 
 
 # --- PendingAppointment Admin (保持不變) ---
-# ... (與之前相同，保持不變) ...
 @admin.register(PendingAppointment)
 class PendingAppointmentAdmin(admin.ModelAdmin):
     list_display = ('user', 'animal', 'added_at')
     list_filter = ('user', 'animal__hall__is_active', 'animal__hall', 'animal')
     search_fields = ('user__username', 'animal__name', 'animal__hall__name')
     list_select_related = ('user', 'animal', 'animal__hall')
+# --- PendingAppointment Admin 結束 ---
 
 
 # --- Note Admin (保持不變) ---
-# ... (與之前相同，保持不變) ...
 @admin.register(Note)
 class NoteAdmin(admin.ModelAdmin):
     list_display = ('user', 'animal', 'updated_at')
@@ -170,10 +191,10 @@ class NoteAdmin(admin.ModelAdmin):
     search_fields = ('content', 'user__username', 'animal__name', 'animal__hall__name')
     list_select_related = ('user', 'animal', 'animal__hall')
     readonly_fields = ('created_at', 'updated_at')
+# --- Note Admin 結束 ---
 
 
 # --- Announcement Admin (保持不變) ---
-# ... (與之前相同，保持不變) ...
 @admin.register(Announcement)
 class AnnouncementAdmin(admin.ModelAdmin):
     list_display = ('title', 'content_summary', 'is_active', 'updated_at')
@@ -186,10 +207,10 @@ class AnnouncementAdmin(admin.ModelAdmin):
     def content_summary(self, obj):
         return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
     content_summary.short_description = '內容摘要'
+# --- Announcement Admin 結束 ---
 
 
 # --- StoryReview Admin (保持不變) ---
-# ... (與之前相同，保持不變) ...
 @admin.register(StoryReview)
 class StoryReviewAdmin(admin.ModelAdmin):
     list_display = ('animal', 'user', 'created_at', 'approved', 'approved_at', 'expires_at', 'is_story_active_display', 'reward_granted')
@@ -208,10 +229,10 @@ class StoryReviewAdmin(admin.ModelAdmin):
     @admin.display(boolean=True, description='目前有效')
     def is_story_active_display(self, obj):
         return obj.is_active
+# --- StoryReview Admin 結束 ---
 
 
 # --- WeeklySchedule Admin (保持不變) ---
-# ... (與之前相同，保持不變) ...
 @admin.register(WeeklySchedule)
 class WeeklyScheduleAdmin(admin.ModelAdmin):
     list_display = ('hall', 'order', 'schedule_image_preview', 'updated_at')
@@ -228,23 +249,21 @@ class WeeklyScheduleAdmin(admin.ModelAdmin):
         if obj.schedule_image:
             return format_html('<img src="{}" style="max-height: 100px; max-width: 100px;" />', obj.schedule_image.url)
         return "無圖片"
+# --- WeeklySchedule Admin 結束 ---
 
 
 # --- UserTitleRule Admin (保持不變) ---
-# ... (與之前相同，保持不變) ...
 @admin.register(UserTitleRule)
 class UserTitleRuleAdmin(admin.ModelAdmin):
     list_display = ('title_name', 'min_review_count', 'is_active')
     list_filter = ('is_active',)
     search_fields = ('title_name',)
     list_editable = ('min_review_count', 'is_active',)
-    fieldsets = (
-        (None, {'fields': ('title_name', 'min_review_count', 'is_active')}),
-    )
+    fieldsets = ( (None, {'fields': ('title_name', 'min_review_count', 'is_active')}), )
+# --- UserTitleRule Admin 結束 ---
 
 
 # --- ReviewFeedback Admin (保持不變) ---
-# ... (與之前相同，保持不變) ...
 @admin.register(ReviewFeedback)
 class ReviewFeedbackAdmin(admin.ModelAdmin):
     list_display = ('user', 'get_target_review_display', 'feedback_type', 'created_at')
@@ -255,20 +274,17 @@ class ReviewFeedbackAdmin(admin.ModelAdmin):
 
     @admin.display(description='目標心得', ordering='review__id')
     def get_target_review_display(self, obj):
-        if obj.review:
-            user_name = obj.review.user.username if obj.review.user else "未知用戶"
-            return f"一般心得 #{obj.review.id} (作者: {user_name})"
-        elif obj.story_review:
-            user_name = obj.story_review.user.username if obj.story_review.user else "未知用戶"
-            return f"限時動態 #{obj.story_review.id} (作者: {user_name})"
+        if obj.review: user_name = obj.review.user.username if obj.review.user else "未知用戶"; return f"一般心得 #{obj.review.id} (作者: {user_name})"
+        elif obj.story_review: user_name = obj.story_review.user.username if obj.story_review.user else "未知用戶"; return f"限時動態 #{obj.story_review.id} (作者: {user_name})"
         return "N/A"
+# --- ReviewFeedback Admin 結束 ---
 
 
-# --- 註冊 SiteConfiguration Admin (保持不變) ---
+# --- SiteConfiguration Admin (保持不變) ---
 if DJANGO_SOLO_INSTALLED:
     admin.site.register(SiteConfiguration, SingletonModelAdmin)
 else:
     @admin.register(SiteConfiguration)
     class SiteConfigurationAdmin(admin.ModelAdmin):
          pass
-# --- 註冊結束 (保持不變) ---
+# --- SiteConfiguration Admin 結束 ---
