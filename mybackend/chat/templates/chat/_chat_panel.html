@@ -1,0 +1,21 @@
+{# D:\bkgg\mybackend\chat\templates\chat\_chat_panel.html (新檔案) #}
+
+{% comment %}
+這個模板片段包含了聊天面板的 HTML 結構。
+它應該只在用戶登入的情況下，被主模板 (例如 index.html) include 進來。
+{% endcomment %}
+
+<div id="chat-panel"> {# 聊天 UI 的主容器 #}
+    <div class="chat-header"> {# 頂部標題和關閉按鈕 #}
+        <h3>公共聊天室</h3>
+        <button class="chat-close-button" aria-label="關閉聊天室">×</button>
+    </div>
+    <div id="chat-messages"> {# 顯示聊天訊息的區域 #}
+        {# 訊息會由 JavaScript 動態加入到這裡 #}
+        <div class="chat-message system">連接中...</div> {# 初始狀態顯示連接中 #}
+    </div>
+    <div class="chat-input-area"> {# 底部輸入框和發送按鈕區域 #}
+        <input type="text" id="chat-message-input" placeholder="輸入訊息..." autocomplete="off" disabled> {# 初始禁用，連接成功後啟用 #}
+        <button id="chat-message-submit" disabled>發送</button> {# 初始禁用 #}
+    </div>
+</div>

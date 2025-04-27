@@ -1,6 +1,6 @@
-{# D:\bkgg\mybackend\myapp\templates\myapp\index.html (完整版 - 含篩選 + z-index修正 + story修正 + 搜尋簡化) #}
+{# D:\bkgg\mybackend\myapp\templates\myapp\index.html (最終整合版 - 含聊天功能 + 大小調整) #}
 {% load static %}
-{% load my_filters %} {# Ensure filters are loaded #}
+{% load my_filters %} {# 確保你的自訂過濾器已載入 #}
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -279,8 +279,7 @@
     .review-count-btn { border: 1px solid #ccc; background: #f8f9fa; color: #007bff; border-radius: 12px; padding: 0.2rem 0.4rem; font-size: 0.85rem; cursor: pointer; width: auto; min-width: 30px; display: inline-block; text-align: center; transition: background-color 0.2s, border-color 0.2s; } .review-count-btn:hover { background: #e2e6ea; border-color: #adb5bd; }
     .circle-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #ccc; background-color: #fff; font-size: 1.1rem; line-height: 1; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s, color 0.2s, transform 0.1s; padding: 0; } .circle-btn:hover { background-color: #f0f0f0; color: #555; } .circle-btn:active { transform: scale(0.95); }
     .review-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); } .review-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 0.75rem; margin-bottom: 1rem; font-size: 1rem; color: #555; } .review-user-info { display: flex; align-items: center; gap: 0.5em; flex-wrap: wrap; } .review-user { color: #333; font-weight: 500; } .review-total { font-size: 0.8rem; color: #888; } .review-date { font-size: 0.85rem; color: #999;} .review-body { padding-top: 0.5rem; } .review-body p { margin: 0.3rem 0; font-size: 1rem; color: #555; white-space: pre-wrap; word-wrap: break-word; } .review-line { display: flex; align-items: flex-start; margin: 0.5rem 0; font-size: 0.95rem; } .review-label { flex: 0 0 60px; font-weight: bold; color: #444; padding-right: 10px; } .review-value { flex: 1; color: #666; word-break: break-word; white-space: pre-wrap; } #reviewList { padding: 0 0.5rem; }
-    .note-box { border: none; border-left: 4px solid #adb5bd; background-color: #f8f9fa; padding: 0.6rem 0.8rem 0.6rem 1rem; margin: 0.5rem 0.3rem; font-size: 0.9rem; color: #555; width: auto; max-width: calc(100% - 0.6rem); text-align: left; border-radius: 0 4px 4px 0; white-space: pre-wrap; word-break: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-
+    .note-box { border: none !important; background: transparent !important; padding: 0 !important; margin: 0 0 1rem 0 !important; font-style: normal !important; color: #333 !important; box-shadow: none !important; border-radius: 0 !important; }
     .form-group { margin-bottom: 1rem; } .form-group label { display: block; margin-bottom: 0.4rem; font-weight: bold; font-size: 0.95rem; color: #555; } .form-group input[type="text"], .form-group input[type="password"], .form-group input[type="number"], .form-group textarea, .form-group select, .form-group input[type="search"] { width: 100%; padding: 0.6rem 0.75rem; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; } /* Apply to search too */
     .form-group textarea { resize: vertical; min-height: 80px; white-space: pre-wrap; }
     input:focus, textarea:focus, select:focus, input[type="search"]:focus { outline: none; border-color: #80bdff; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); } /* Apply to search too */
@@ -465,75 +464,197 @@
     .feedback-count { font-size: 0.8rem; color: #777; margin-left: 0.2em; }
 
     /* --- 個人檔案 Modal 樣式 --- */
-    #profileModal .modal-body {
-        padding: 1.5rem;
-        overflow-y: auto;
+    #profileModal .modal-body { padding: 1.5rem; overflow-y: auto; }
+    .profile-modal-header { text-align: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee; }
+    .profile-modal-header h3 { margin-bottom: 0.5rem; color: #333; font-size: 1.4rem; }
+    .profile-modal-title-badge { display: inline-block; margin-top: 0.3rem; font-size: 0.85rem; font-weight: bold; padding: 0.2em 0.8em; border-radius: 15px; background-color: #e0f7fa; color: #007bff; border: 1px solid #bce8f1; }
+    .profile-modal-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; }
+    .profile-stat-item { background-color: #f8f9fa; padding: 0.8rem; border-radius: 8px; text-align: center; border: 1px solid #e9ecef; }
+    .profile-stat-item strong { display: block; font-size: 1.4rem; color: #333; margin-bottom: 0.2rem; }
+    .profile-stat-item span { font-size: 0.85rem; color: #6c757d; display: flex; align-items: center; justify-content: center; gap: 0.3em; line-height: 1.3; }
+    .profile-stat-item span .fas { font-size: 0.9em; color: #6c757d; }
+    .profile-loading, .profile-error { text-align: center; padding: 2rem; color: #6c757d; font-style: italic; }
+    .profile-error { color: #dc3545; font-style: normal; font-weight: bold; }
+    /* --- 個人檔案樣式結束 --- */
+
+
+    /* --- 聊天室相關樣式 (已調整大小以匹配 Modal) --- */
+    #chat-toggle-button {
+        /* 頁首按鈕樣式 - 可調整 */
+        margin-left: 0.5rem; /* 與其他按鈕間隔 */
+        padding: 0.4rem 0.6rem;
+        position: relative; /* 為了未讀訊息標記 */
     }
-    .profile-modal-header {
-        text-align: center;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #eee;
+    #chat-unread-indicator {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        width: 10px;
+        height: 10px;
+        background-color: red;
+        border-radius: 50%;
+        display: none; /* 預設隱藏 */
     }
-    .profile-modal-header h3 {
-        margin-bottom: 0.5rem;
-        color: #333;
-        font-size: 1.4rem;
+    #chat-panel {
+        position: fixed;
+        bottom: 0;
+        /* --- 尺寸修改 --- */
+        width: 95%;          /* 改為百分比寬度 */
+        max-width: 500px;     /* 添加最大寬度限制 (同 modal-content) */
+        height: 85vh;         /* 基礎高度設為 85vh (同 modal-content 桌面版) */
+        max-height: 90vh;     /* 添加最大高度限制 (同 modal-content) */
+        /* --- 定位修改 (配合寬度) --- */
+        right: 2.5%;          /* 將左右邊距設為均等 (100% - 95%) / 2 */
+        left: 2.5%;           /* 添加 left 使其水平居中 (相對視窗) */
+        margin-left: auto;    /* 與 left/right 配合實現基於 max-width 的居中 */
+        margin-right: auto;   /* 與 left/right 配合實現基於 max-width 的居中 */
+        /* --- 其他樣式保持不變 --- */
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 10px 10px 0 0; /* 頂部圓角 */
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+        display: none; /* 預設隱藏 */
+        flex-direction: column;
+        z-index: 4200; /* 比一般 Modal 高 */
+        transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        transform: translateY(100%); /* 初始狀態在螢幕下方 */
+        opacity: 0;
     }
-    .profile-modal-title-badge {
-        display: inline-block;
-        margin-top: 0.3rem;
-        font-size: 0.85rem;
-        font-weight: bold;
-        padding: 0.2em 0.8em;
-        border-radius: 15px;
-        background-color: #e0f7fa;
-        color: #007bff;
-        border: 1px solid #bce8f1;
+    #chat-panel.open {
+        display: flex;
+        transform: translateY(0);
+        opacity: 1;
     }
-    .profile-modal-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 1rem;
+    .chat-header {
+      padding: 0.75rem 1rem;
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #eee;
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move; /* 可拖曳提示 (可選) */
     }
-    .profile-stat-item {
-        background-color: #f8f9fa;
-        padding: 0.8rem;
-        border-radius: 8px;
-        text-align: center;
-        border: 1px solid #e9ecef;
+    .chat-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #333;
     }
-    .profile-stat-item strong {
+    .chat-close-button {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #aaa;
+      cursor: pointer;
+      padding: 0 0.3rem;
+      line-height: 1;
+    }
+    .chat-close-button:hover { color: #666; }
+    #chat-messages {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+      background-color: #f9f9f9;
+      display: flex;
+      flex-direction: column; /* 讓新訊息從底部開始 */
+    }
+    .chat-message {
+      margin-bottom: 0.75rem;
+      max-width: 85%;
+      word-wrap: break-word;
+      padding: 0.4rem 0.7rem;
+      border-radius: 15px;
+      line-height: 1.4;
+    }
+    .chat-message.system {
+      font-style: italic;
+      color: #888;
+      text-align: center;
+      background: none;
+      font-size: 0.85rem;
+      align-self: center; /* 系統訊息置中 */
+       margin-top: 0.5rem;
+       margin-bottom: 0.5rem;
+       padding: 0.2rem 0.5rem;
+    }
+    .chat-message.user {
+      background-color: #e0f7fa; /* 預設其他人訊息 */
+      border: 1px solid #bce8f1;
+      align-self: flex-start; /* 其他人靠左 */
+      border-bottom-left-radius: 3px;
+    }
+    .chat-message.user.mine {
+      background-color: #d4edda; /* 自己發的訊息 */
+      border: 1px solid #c3e6cb;
+      align-self: flex-end; /* 自己靠右 */
+      border-bottom-right-radius: 3px;
+      border-bottom-left-radius: 15px; /* 改左下角圓角 */
+    }
+    .chat-message-header {
         display: block;
-        font-size: 1.4rem;
-        color: #333; /* 顯示已使用/上限，用回深色 */
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: #555;
         margin-bottom: 0.2rem;
     }
-    .profile-stat-item span {
-        font-size: 0.85rem;
-        color: #6c757d;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.3em;
-        line-height: 1.3; /* 增加行高避免文字太擠 */
+    .chat-message-time {
+        display: block;
+        font-size: 0.7rem;
+        color: #aaa;
+        margin-top: 0.2rem;
+        text-align: right; /* 時間戳靠右 */
     }
-     .profile-stat-item span .fas {
-        font-size: 0.9em;
-        color: #6c757d;
-     }
-    .profile-loading, .profile-error {
-        text-align: center;
-        padding: 2rem;
-        color: #6c757d;
-        font-style: italic;
+    .chat-message.mine .chat-message-time {
+         text-align: right; /* 自己的訊息時間也靠右 */
     }
-    .profile-error {
-        color: #dc3545;
-        font-style: normal;
-        font-weight: bold;
+    .chat-input-area {
+      display: flex;
+      padding: 0.5rem;
+      border-top: 1px solid #eee;
+      background-color: #fff;
     }
-    /* --- 個人檔案樣式結束 --- */
+    #chat-message-input {
+      flex-grow: 1;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 15px;
+      margin-right: 0.5rem;
+      font-size: 0.95rem;
+      resize: none; /* 禁止拖動改變大小 */
+      height: 38px; /* 固定高度 */
+      line-height: 1.4; /* 調整行高 */
+    }
+    #chat-message-input:focus { outline: none; border-color: #80bdff; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); }
+    #chat-message-submit {
+      padding: 0.5rem 1rem;
+      border-radius: 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    #chat-message-submit:hover { background-color: #0056b3; }
+     #chat-message-submit:disabled { background-color: #aaa; cursor: not-allowed; }
+
+    /* --- 聊天室小螢幕調整 (使用與 Modal 類似的斷點) --- */
+    @media (max-width: 600px) { /* 使用 600px 作為斷點 */
+        #chat-panel {
+            width: 100%;      /* 改為 100% 寬 */
+            max-width: none;   /* 移除最大寬度限制 */
+            height: 75vh;     /* 調整高度為視窗高度的 75% */
+            max-height: 85vh; /* 稍微限制最大高度 */
+            left: 0;          /* 靠左對齊 */
+            right: 0;         /* 靠右對齊 */
+            border-radius: 10px 10px 0 0; /* 保持頂部圓角 */
+            border-left: none;  /* 移除左右邊框 */
+            border-right: none;
+        }
+        /* 如果需要在更小螢幕進一步調整，可以保留或修改 480px 的斷點 */
+        /* @media (max-width: 480px) { ... } */
+    }
+    /* --- 聊天室樣式結束 --- */
 
   </style>
 </head>
@@ -564,9 +685,7 @@
                         待約清單 (<span id="pendingCountHeader">{{ pending_count|default:0 }}</span>)
                     </button>
                     <button id="myNotesBtnHeader">我的筆記</button>
-                    {# *** 新增的按鈕 *** #}
                     <button id="btnFindBeauticianHeader">找美容師</button>
-                    {# *** ------------- *** #}
                     <button id="btnProfileHeader">個人檔案</button>
                 </div>
 
@@ -578,6 +697,12 @@
                             {% csrf_token %}
                             <button type="submit" class="logout-button">登出</button>
                         </form>
+                        {# --- 聊天觸發按鈕 --- #}
+                        <button id="chat-toggle-button" title="聊天室">
+                            <i class="fas fa-comments"></i>
+                            <span id="chat-unread-indicator"></span>
+                        </button>
+                        {# -------------------- #}
                     {% else %}
                         <button id="loginBtnHeader" class="login-button">會員登入</button>
                     {% endif %}
@@ -800,22 +925,32 @@
             <img id="lightboxImage" src="" alt="放大圖片">
           </div>
 
+          {# --- 引入聊天面板 HTML 片段 (僅在用戶登入時) --- #}
+          {% if user.is_authenticated %}
+              {% include 'chat/_chat_panel.html' %}
+          {% endif %}
+          {# ----------------------------------------- #}
+
         </div> {# End .content #}
     </div> {# End .glass-overlay #}
 
+    {# --- SCRIPTS --- #}
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <script>
       // --- getCookie function ---
       function getCookie(name) { let cookieValue = null; if (document.cookie && document.cookie !== '') { const cookies = document.cookie.split(';'); for (let i = 0; i < cookies.length; i++) { const cookie = cookies[i].trim(); if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; } } } return cookieValue; }
     </script>
     <script>
-      // --- Pass User ID to Frontend ---
+      // --- Pass User ID to Frontend (Must be before chat.js) ---
       const USER_ID = {{ request.user.id|default:'null' }};
+      // --- Pass CSRF Token (If needed by other scripts) ---
+      const csrfToken = getCookie('csrftoken');
     </script>
     <script>
-      // --- Main JavaScript Logic ---
+      // --- 原有的 myapp 主要 JavaScript 邏輯 ---
+      // !!! 注意：這裡包含了你之前提供的所有 myapp 前端功能 !!!
       document.addEventListener('DOMContentLoaded', function() {
-        const csrfToken = getCookie('csrftoken');
+        // const csrfToken = getCookie('csrftoken'); // 已在上面定義
         const bottomOverlay = document.getElementById('bottomOverlay');
         const isLoggedIn = USER_ID !== null;
 
@@ -1686,9 +1821,16 @@
         loadActiveStories(); // Initial load on page ready
         setInterval(loadActiveStories, 60000); // Refresh stories every 60 seconds
 
+        console.log("MyApp main script loaded."); // 確認這個腳本已執行
 
-      }); // End DOMContentLoaded
+      }); // myapp 的 DOMContentLoaded 結束
     </script>
+
+    {# --- 引入獨立的聊天 JavaScript 檔案 (只在用戶登入時) --- #}
+    {% if user.is_authenticated %}
+    <script src="{% static 'chat/js/chat.js' %}" defer></script>
+    {% endif %}
+    {# ------------------------------------------------------ #}
 
 </body>
 </html>
