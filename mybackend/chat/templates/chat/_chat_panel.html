@@ -1,21 +1,39 @@
-{# D:\bkgg\mybackend\chat\templates\chat\_chat_panel.html (新檔案) #}
+{# D:\bkgg\mybackend\chat\templates\chat\_chat_panel.html (修改後 - Modal 結構版) #}
 
 {% comment %}
-這個模板片段包含了聊天面板的 HTML 結構。
+這個模板片段包含了聊天面板的 HTML 結構，已修改為標準 Modal 樣式。
 它應該只在用戶登入的情況下，被主模板 (例如 index.html) include 進來。
+外層的 <div id="chatModal" class="modal"> 應該放在主模板中 include 這個檔案的地方。
 {% endcomment %}
 
-<div id="chat-panel"> {# 聊天 UI 的主容器 #}
-    <div class="chat-header"> {# 頂部標題和關閉按鈕 #}
-        <h3>公共聊天室</h3>
-        <button class="chat-close-button" aria-label="關閉聊天室">×</button>
-    </div>
-    <div id="chat-messages"> {# 顯示聊天訊息的區域 #}
-        {# 訊息會由 JavaScript 動態加入到這裡 #}
-        <div class="chat-message system">連接中...</div> {# 初始狀態顯示連接中 #}
-    </div>
-    <div class="chat-input-area"> {# 底部輸入框和發送按鈕區域 #}
-        <input type="text" id="chat-message-input" placeholder="輸入訊息..." autocomplete="off" disabled> {# 初始禁用，連接成功後啟用 #}
-        <button id="chat-message-submit" disabled>發送</button> {# 初始禁用 #}
-    </div>
-</div>
+{# --- 外層 Modal 容器 - 請將這個結構放在 index.html 中 include 此檔案的地方 --- #}
+{# <div id="chatModal" class="modal" role="dialog" aria-modal="true" style="z-index: 4150;"> #}
+
+    {# --- 以下是聊天面板的實際內容，現在放在 .modal-content 容器內 --- #}
+    <div class="modal-content"> {# 使用標準的 modal-content class #}
+
+        {# 1. Modal Header (對應 .chat-header) #}
+        <div class="modal-header"> {# 使用標準的 modal-header class #}
+            <h2>公共聊天室</h2> {# 使用 h2 標籤，與其他 Modal 保持一致 #}
+            {# 確保關閉按鈕有 .close-modal class，以便通用 JS 處理 #}
+            <button class="close-modal chat-close-button" aria-label="關閉聊天室">×</button>
+        </div>
+
+        {# 2. Modal Body (對應 #chat-messages) #}
+        {# 將原 #chat-messages 的內容和 ID 放在 .modal-body 裡 #}
+        <div id="chat-messages" class="modal-body"> {# 使用標準的 modal-body class #}
+            {# 訊息會由 JavaScript 動態加入到這裡 #}
+            <div class="chat-message system">連接中...</div> {# 初始狀態顯示連接中 #}
+        </div>
+
+        {# 3. Modal Footer (對應 .chat-input-area) #}
+        {# 將原 .chat-input-area 的內容放在 .modal-footer 裡 #}
+        <div class="chat-input-area modal-footer"> {# 使用標準的 modal-footer class #}
+            {# 保留 input 和 button 的 ID 以便 chat.js 使用 #}
+            <input type="text" id="chat-message-input" placeholder="輸入訊息..." autocomplete="off" disabled>
+            <button id="chat-message-submit" disabled>發送</button>
+        </div>
+
+    </div> {# --- modal-content 結束 --- #}
+
+{# </div> --- 外層 #chatModal 結束 --- #}

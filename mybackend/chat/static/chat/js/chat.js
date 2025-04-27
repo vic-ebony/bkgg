@@ -1,375 +1,339 @@
-// D:\bkgg\mybackend\chat\static\chat\js\chat.js (修正並確認完整版)
+// --- START OF COMPLETE chat.js ---
+// D:\bkgg\mybackend\chat\static\chat\js\chat.js (V5 修復 isMine 錯誤)
 
-document.addEventListener('DOMContentLoaded', function() {
-    // 確保 USER_ID 已在 HTML 中由 Django 模板定義
-    // 並且用戶已登入 (USER_ID 不是 null)
-    if (typeof USER_ID === 'undefined' || USER_ID === null) {
-        console.log("用戶未登入，聊天功能已禁用。");
-        const chatToggleButton = document.getElementById('chat-toggle-button');
-        if (chatToggleButton) {
-            chatToggleButton.style.display = 'none'; // 如果未登入，隱藏按鈕
-        }
-        return; // 停止執行聊天相關腳本
-    }
+// 使用 IIFE (立即執行函數表達式) 避免污染全局作用域
+(function() {
+    // 在 DOM 完全加載後執行所有操作
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("[Chat] DOMContentLoaded 事件觸發。");
 
-    // --- DOM 元素引用 ---
-    const chatPanel = document.getElementById('chat-panel');
-    const chatToggleButton = document.getElementById('chat-toggle-button');
-    const chatCloseButton = chatPanel?.querySelector('.chat-close-button');
-    const chatMessages = document.getElementById('chat-messages');
-    const chatMessageInput = document.getElementById('chat-message-input');
-    const chatMessageSubmit = document.getElementById('chat-message-submit');
-    const chatUnreadIndicator = document.getElementById('chat-unread-indicator');
+        // 延遲執行，確保 DOM 完全準備好，特別是異步加載或複雜渲染後
+        setTimeout(() => {
+            console.log("[Chat] 延遲 150ms 後開始執行聊天腳本核心邏輯。");
 
-    // 檢查核心元素是否存在
-    if (!chatPanel || !chatToggleButton || !chatCloseButton || !chatMessages || !chatMessageInput || !chatMessageSubmit || !chatUnreadIndicator) {
-        console.error("聊天室 UI 的一個或多個核心元素未找到，功能可能異常。請檢查 HTML 結構。");
-        // 可以選擇在這裡 return，如果缺少核心元素則無法繼續
-        // return;
-    }
+            // 再次檢查用戶是否登入
+            if (typeof USER_ID === 'undefined' || USER_ID === null) {
+                console.log("[Chat] 用戶未登入 (檢查於 setTimeout)，聊天功能已禁用。");
+                return;
+            }
+            console.log(`[Chat] 用戶已登入 (USER_ID: ${USER_ID})，繼續初始化聊天功能...`);
 
-    // --- 狀態變數 ---
-    let chatSocket = null;
-    let isChatOpen = false;
-    let hasUnread = false;
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 5;
-    const reconnectDelay = 5000; // ms
+            // --- DOM 元素引用 (在延遲後獲取) ---
+            const chatModal = document.getElementById('chatModal');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatMessageInput = document.getElementById('chat-message-input');
+            const chatMessageSubmit = document.getElementById('chat-message-submit');
+            const chatUnreadIndicator = document.getElementById('chat-unread-indicator');
 
-    // --- 輔助函數 ---
+            // 檢查核心元素是否存在
+            let elementsFound = true;
+            if (!chatModal) {
+                console.error("[Chat] 致命錯誤：未找到聊天 Modal 容器元素 (#chatModal)。請仔細檢查 index.html 是否正確渲染此元素。");
+                elementsFound = false;
+            }
+            if (!chatMessages) {
+                console.error("[Chat] 致命錯誤：未找到聊天訊息顯示區域元素 (#chat-messages)。");
+                elementsFound = false;
+            }
+            if (!chatMessageInput) {
+                console.error("[Chat] 致命錯誤：未找到聊天訊息輸入框元素 (#chat-message-input)。");
+                elementsFound = false;
+            }
+            if (!chatMessageSubmit) {
+                console.error("[Chat] 致命錯誤：未找到聊天發送按鈕元素 (#chat-message-submit)。");
+                elementsFound = false;
+            }
+            if (!chatUnreadIndicator) {
+                console.warn("[Chat] 警告：未找到聊天未讀標記元素 (#chat-unread-indicator)。");
+            }
 
-    /**
-     * 安全地將 ISO 8601 時間戳格式化為本地時間字串 (HH:MM)。
-     * @param {string} isoTimestamp - ISO 8601 格式的時間戳字串。
-     * @returns {string} 格式化後的時間字串，或在出錯時返回空字串。
-     */
-    function formatTimestamp(isoTimestamp) {
-        try {
-            if (!isoTimestamp) return '';
-            return new Date(isoTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
-            console.error("格式化時間戳時出錯:", e);
-            return '';
-        }
-    }
+            if (!elementsFound) {
+                console.error("[Chat] 因缺少核心元素，聊天功能無法啟動。");
+                return; // 停止執行
+            }
+            console.log("[Chat] 所有必要的聊天 UI 元素已找到。");
 
-    /**
-     * 將聊天訊息容器捲動到底部。
-     */
-    function scrollToBottom() {
-        if (chatMessages) {
-            // 使用 setTimeout 確保 DOM 更新完成後再捲動
-            setTimeout(() => {
-                try { // 添加 try-catch 以防 chatMessages 在異步操作中失效
-                     chatMessages.scrollTop = chatMessages.scrollHeight;
-                } catch(e) {
-                    console.error("滾動聊天窗口時出錯:", e);
+            // --- 狀態變數 ---
+            let chatSocket = null;       // WebSocket 實例
+            let hasUnread = false;       // 是否有未讀消息
+            let reconnectAttempts = 0;   // 當前重連次數
+            const maxReconnectAttempts = 5; // 最大重連次數
+            const reconnectDelay = 5000; // 重連延遲 (毫秒)
+            let initialConnectionAttempted = false; // 標記是否已嘗試過初始連接
+
+            // --- 輔助函數 ---
+            function formatTimestamp(isoTimestamp) {
+                try {
+                    if (!isoTimestamp) return '';
+                    const date = new Date(isoTimestamp);
+                    if (isNaN(date.getTime())) {
+                        console.warn("[Chat] 無效時間戳:", isoTimestamp);
+                        return '';
+                    }
+                    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                } catch (e) {
+                    console.error("[Chat] 格式化時間戳時出錯:", e, "輸入:", isoTimestamp);
+                    return '';
                 }
-            }, 0);
-        }
-    }
-
-    /**
-     * 將一條訊息添加到聊天顯示區域。
-     * @param {object} data - 包含訊息內容的物件，格式應為 {type: 'system'|'user', message: string, username?: string, user_id?: number, timestamp: string}。
-     */
-    function addChatMessage(data) {
-        if (!chatMessages || !data || !data.type || data.message === undefined || data.message === null) { // 確保 message 存在，即使是空字串
-            console.warn("收到了無效或不完整的訊息數據，無法顯示:", data);
-            return;
-        }
-
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('chat-message');
-        const messageTime = formatTimestamp(data.timestamp || new Date().toISOString()); // 提供預設時間戳
-
-        // --- 處理系統訊息 ---
-        if (data.type === 'system') {
-            messageElement.classList.add('system');
-            messageElement.textContent = `[${messageTime}] ${data.message}`;
-        }
-        // --- 處理用戶訊息 ---
-        else if (data.type === 'user') {
-            if (data.user_id === undefined || data.username === undefined) {
-                console.warn("收到的用戶訊息缺少 user_id 或 username:", data);
-                return; // 缺少必要資訊，不顯示
-            }
-            messageElement.classList.add('user');
-            const isMine = data.user_id === USER_ID;
-            if (isMine) {
-                messageElement.classList.add('mine');
             }
 
-            // Header (Username)
-            const usernameSpan = document.createElement('span');
-            usernameSpan.className = 'chat-message-header';
-            usernameSpan.textContent = data.username || '匿名'; // 預設為匿名
-            messageElement.appendChild(usernameSpan);
-
-            // Message Content (Use textContent for security)
-            const messageSpan = document.createElement('span');
-             // 檢查 message 是否為 null 或 undefined，如果是則顯示空字串
-            messageSpan.textContent = (data.message === null || data.message === undefined) ? '' : data.message;
-            messageElement.appendChild(messageSpan);
-
-            // Timestamp
-            const timeSpan = document.createElement('span');
-            timeSpan.className = 'chat-message-time';
-            timeSpan.textContent = messageTime;
-            messageElement.appendChild(timeSpan);
-
-        }
-        // --- 處理未知類型的訊息 ---
-        else {
-            console.warn("收到了未知的訊息類型:", data.type);
-            return; // 不顯示未知類型的訊息
-        }
-
-        try {
-            chatMessages.appendChild(messageElement);
-            scrollToBottom();
-        } catch(e) {
-             console.error("添加到聊天窗口時出錯:", e);
-        }
-
-
-        // 更新未讀提示 (僅對非系統訊息，且聊天窗口關閉時)
-        if (!isChatOpen && data.type === 'user') {
-            hasUnread = true;
-            if (chatUnreadIndicator) {
-                chatUnreadIndicator.style.display = 'block';
+            function scrollToBottom() {
+                if (chatMessages) {
+                    requestAnimationFrame(() => {
+                        try {
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        } catch (e) {
+                            console.error("[Chat] 滾動聊天窗口錯誤:", e);
+                        }
+                    });
+                }
             }
-        }
-    }
 
-    /**
-     * 將輸入框中的訊息通過 WebSocket 發送出去。
-     */
-    function sendMessage() {
-        if (!chatMessageInput || !chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
-            console.error("無法發送訊息：輸入框丟失或連接未打開。");
-            addChatMessage({ type: 'system', message: '錯誤：無法發送訊息，連接已斷開。', timestamp: new Date().toISOString() });
-            return;
-        }
-        const message = chatMessageInput.value.trim();
-        if (message) { // 確保有訊息內容
-            console.log('正在發送訊息:', message);
-            try {
-                chatSocket.send(JSON.stringify({
-                    'message': message
-                }));
-                chatMessageInput.value = ''; // 清空輸入框
-            } catch (error) {
-                console.error("發送訊息時出錯:", error);
-                addChatMessage({ type: 'system', message: `發送訊息失敗: ${error.message}`, timestamp: new Date().toISOString() });
-            }
-        }
-        // 重新聚焦輸入框
-        chatMessageInput.focus();
-    }
+            /**
+             * 將一條訊息添加到聊天顯示區域。
+             * @param {object} data - 包含訊息內容的物件。
+             */
+            function addChatMessage(data) {
+                if (!chatMessages) { return; }
+                if (!data || typeof data !== 'object' || !data.type || data.message === undefined) {
+                    console.warn("[Chat] 收到了無效訊息數據:", data);
+                    return;
+                }
 
-    /**
-     * 建立或重新建立 WebSocket 連接。
-     */
-    function connectChatSocket() {
-        // 防止同時進行多個連接嘗試
-        if (chatSocket && (chatSocket.readyState === WebSocket.CONNECTING || chatSocket.readyState === WebSocket.OPEN)) {
-            console.log("WebSocket 連接嘗試被跳過：已存在連接中或已打開的連接。");
-            return;
-        }
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('chat-message');
+                const messageTime = formatTimestamp(data.timestamp || new Date().toISOString());
+                const messageText = String(data.message ?? ''); // 確保 message 是字符串
 
-        // 在重新連接前，確保關閉舊的、已關閉或正在關閉的連接實例
-        if (chatSocket && (chatSocket.readyState === WebSocket.CLOSED || chatSocket.readyState === WebSocket.CLOSING)) {
-             console.log("重新連接前關閉舊的 WebSocket 實例。");
-             // 移除舊的事件監聽器，避免內存洩漏 (雖然 close 通常會處理)
-             chatSocket.onopen = null;
-             chatSocket.onmessage = null;
-             chatSocket.onclose = null;
-             chatSocket.onerror = null;
-             chatSocket.close();
-             chatSocket = null;
-        }
+                let isMine = false; // 預設不是自己的消息
 
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsURL = `${wsProtocol}//${window.location.host}/ws/chat/`;
+                if (data.type === 'system') {
+                    messageElement.classList.add('system');
+                    messageElement.textContent = `[${messageTime}] ${messageText}`;
+                } else if (data.type === 'user') {
+                    if (data.user_id === undefined || data.username === undefined) {
+                        console.warn("[Chat] 用戶訊息缺少 user_id 或 username:", data);
+                        return;
+                    }
+                    messageElement.classList.add('user');
+                    const currentUserId = typeof USER_ID === 'string' ? parseInt(USER_ID, 10) : USER_ID;
+                    const messageUserId = typeof data.user_id === 'string' ? parseInt(data.user_id, 10) : data.user_id;
+                    if (isNaN(currentUserId) || isNaN(messageUserId)) {
+                         console.error("[Chat] 無法比較 User ID，類型錯誤。");
+                         return;
+                    }
+                    isMine = (messageUserId === currentUserId); // 計算 isMine
+                    if (isMine) { messageElement.classList.add('mine'); }
 
-        console.log(`嘗試連接 WebSocket: ${wsURL} (嘗試次數: ${reconnectAttempts + 1})`);
-        if (chatMessages) { // 僅在面板存在時添加提示
-             addChatMessage({ type: 'system', message: `正在連接聊天室... (嘗試 ${reconnectAttempts + 1})`, timestamp: new Date().toISOString() });
-        }
-        // 禁用輸入和發送按鈕
-        if (chatMessageInput) chatMessageInput.disabled = true;
-        if (chatMessageSubmit) chatMessageSubmit.disabled = true;
+                    const usernameSpan = document.createElement('span');
+                    usernameSpan.className = 'chat-message-header';
+                    usernameSpan.textContent = String(data.username || '匿名');
+                    messageElement.appendChild(usernameSpan);
 
-        try {
-             chatSocket = new WebSocket(wsURL);
-        } catch (error) {
-            console.error("創建 WebSocket 實例失敗:", error);
-            handleConnectionError(); // 觸發錯誤處理
-            return;
-        }
+                    const messageSpan = document.createElement('span');
+                    messageSpan.textContent = messageText;
+                    messageElement.appendChild(messageSpan);
 
+                    const timeSpan = document.createElement('span');
+                    timeSpan.className = 'chat-message-time';
+                    timeSpan.textContent = messageTime;
+                    messageElement.appendChild(timeSpan);
+                } else {
+                    console.warn("[Chat] 未知訊息類型:", data.type, data);
+                    return;
+                }
 
-        // --- WebSocket 事件處理程序 ---
+                try {
+                    chatMessages.appendChild(messageElement);
+                    scrollToBottom();
+                } catch (e) {
+                    console.error("[Chat] 添加訊息到 DOM 錯誤:", e);
+                }
 
-        chatSocket.onopen = function(e) {
-            console.log('WebSocket 連接成功建立。');
-            reconnectAttempts = 0; // 重置重連次數
-            if (chatMessageInput) chatMessageInput.disabled = false; // 啟用輸入
-            if (chatMessageSubmit) chatMessageSubmit.disabled = false; // 啟用發送
-            addChatMessage({ type: 'system', message: '已連接到聊天室。', timestamp: new Date().toISOString() });
-            // 可選：如果需要在重連時清空歷史記錄，取消下面註解
-            // if (chatMessages) chatMessages.innerHTML = '';
-            // TODO: 如果需要載入歷史記錄，可以在這裡發送請求
-        };
-
-        chatSocket.onmessage = function(e) {
-            try {
-                const data = JSON.parse(e.data);
-                // console.log('從伺服器收到訊息:', data); // Debug: 打印收到的原始數據
-                addChatMessage(data); // 添加到聊天窗口
-            } catch (error) {
-                console.error("解析伺服器訊息數據時出錯:", error, "原始數據:", e.data);
-            }
-        };
-
-        chatSocket.onclose = function(e) {
-            console.error('WebSocket 連接已關閉。 代碼:', e.code, '原因:', e.reason, '是否正常關閉:', e.wasClean);
-             if (chatMessageInput) chatMessageInput.disabled = true;
-            if (chatMessageSubmit) chatMessageSubmit.disabled = true;
-
-            const currentSocket = this; // 保存當前 socket 引用
-
-            // 清除可能存在的舊監聽器 (以防萬一)
-            currentSocket.onopen = null;
-            currentSocket.onmessage = null;
-            currentSocket.onclose = null;
-            currentSocket.onerror = null;
-
-            chatSocket = null; // 清除全局引用，表示當前無有效連接
-
-            // 如果不是正常關閉 (code 1000) 且未達最大重連次數
-            if (e.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
-                reconnectAttempts++;
-                console.log(`準備在 ${reconnectDelay / 1000} 秒後嘗試重新連接... (嘗試 ${reconnectAttempts}/${maxReconnectAttempts})`);
-                addChatMessage({ type: 'system', message: `連接斷開，${reconnectDelay / 1000}秒後嘗試重新連接...`, timestamp: new Date().toISOString() });
-                setTimeout(connectChatSocket, reconnectDelay);
-            } else if (e.code === 1000) {
-                 addChatMessage({ type: 'system', message: '與聊天室的連接已關閉。', timestamp: new Date().toISOString() });
-                 console.log("WebSocket 連接正常關閉。");
-            } else {
-                 addChatMessage({ type: 'system', message: '嘗試重新連接失敗，請稍後手動重試。', timestamp: new Date().toISOString() });
-                 console.log("達到最大重連次數，停止重連。");
-            }
-        };
-
-        chatSocket.onerror = function(err) {
-            console.error('WebSocket 發生錯誤:', err);
-             addChatMessage({ type: 'system', message: '發生連接錯誤，請檢查網絡或稍後重試。', timestamp: new Date().toISOString() });
-             // onerror 後通常會觸發 onclose，讓 onclose 處理重連邏輯
-             // 確保 UI 禁用
-             if (chatMessageInput) chatMessageInput.disabled = true;
-             if (chatMessageSubmit) chatMessageSubmit.disabled = true;
-             // 如果需要立即嘗試關閉
-             // handleConnectionError();
-        };
-    }
-
-     /** 處理連接錯誤或意外關閉時的清理 */
-     function handleConnectionError() {
-         console.log("執行 handleConnectionError 清理...");
-         if (chatMessageInput) chatMessageInput.disabled = true;
-         if (chatMessageSubmit) chatMessageSubmit.disabled = true;
-         if (chatSocket && chatSocket.readyState !== WebSocket.CLOSED && chatSocket.readyState !== WebSocket.CLOSING) {
-            console.log("嘗試關閉錯誤的 WebSocket 連接...");
-            chatSocket.onerror = null; // 避免在關閉時觸發更多錯誤處理
-            chatSocket.onclose = null; // 避免觸發重連邏輯
-            chatSocket.close();
-         }
-         chatSocket = null; // 清除引用
-         // 注意：重連邏輯現在由 onclose 控制
-     }
-
-    // --- UI 事件監聽器設定 ---
-
-    if (chatToggleButton) {
-        chatToggleButton.addEventListener('click', () => {
-            console.log("Chat toggle button CLICKED!"); // <<<--- 添加日誌確認點擊事件觸發
-            if (!chatPanel) return;
-            isChatOpen = !isChatOpen;
-            chatPanel.classList.toggle('open', isChatOpen);
-
-            if (isChatOpen) {
-                console.log("Chat panel 打開。");
+                // 更新未讀標記 (檢查 Modal 是否可見 以及 是否非自己的消息)
                 if (chatUnreadIndicator) {
-                    chatUnreadIndicator.style.display = 'none';
+                    const isChatVisible = chatModal && window.getComputedStyle(chatModal).display === 'block';
+                    // *** 修正：只有當 Modal 不可見 且 消息不是自己的 才標記未讀 ***
+                    if (!isChatVisible && data.type === 'user' && !isMine) {
+                        if (!hasUnread) { console.log("[Chat] 收到新訊息，聊天 Modal 不可見，標記為未讀。"); }
+                        hasUnread = true;
+                        chatUnreadIndicator.style.display = 'block';
+                    }
                 }
-                hasUnread = false;
-                scrollToBottom();
-                if (chatMessageInput) {
-                    chatMessageInput.focus();
+            }
+
+
+            function sendMessage() {
+                if (!chatMessageInput) return;
+                 if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+                    console.error("[Chat] 無法發送：WebSocket 未連接。");
+                    addChatMessage({ type: 'system', message: '錯誤：連接已斷開。', timestamp: new Date().toISOString() });
+                    return;
                 }
-                // 檢查連接狀態，只在需要時連接
-                if (!chatSocket || chatSocket.readyState === WebSocket.CLOSED || chatSocket.readyState === WebSocket.CLOSING) {
-                    console.log("面板打開，嘗試連接 WebSocket...");
+                const message = chatMessageInput.value.trim();
+                if (message) {
+                    console.log('[Chat] 發送訊息:', message);
+                    try {
+                        chatSocket.send(JSON.stringify({ 'message': message }));
+                        chatMessageInput.value = '';
+                    } catch (error) {
+                        console.error("[Chat] 發送訊息錯誤:", error);
+                        addChatMessage({ type: 'system', message: `發送失敗: ${error.message}`, timestamp: new Date().toISOString() });
+                    }
+                }
+                chatMessageInput.focus();
+            }
+
+            function connectChatSocket() {
+                if (chatSocket && (chatSocket.readyState === WebSocket.CONNECTING || chatSocket.readyState === WebSocket.OPEN)) {
+                    console.log("[Chat] 跳過連接：已有連接。");
+                    return;
+                }
+                if (chatSocket) {
+                     console.log("[Chat] 清理舊 WebSocket...");
+                     chatSocket.onopen = chatSocket.onmessage = chatSocket.onclose = chatSocket.onerror = null;
+                     try { if (chatSocket.readyState !== WebSocket.CLOSED) { chatSocket.close(); } } catch (e) {}
+                     chatSocket = null;
+                }
+
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsPath = `/ws/chat/`;
+                const wsURL = `${wsProtocol}//${window.location.host}${wsPath}`;
+
+                console.log(`[Chat] 嘗試連接: ${wsURL} (第 ${reconnectAttempts + 1} 次)`);
+                if (chatMessages) { addChatMessage({ type: 'system', message: `正在連接聊天室... (嘗試 ${reconnectAttempts + 1})`, timestamp: new Date().toISOString() }); }
+                if (chatMessageInput) chatMessageInput.disabled = true;
+                if (chatMessageSubmit) chatMessageSubmit.disabled = true;
+
+                try {
+                    chatSocket = new WebSocket(wsURL);
+                } catch (error) {
+                    console.error("[Chat] 創建 WebSocket 失敗:", error);
+                    handleConnectionError("創建 WebSocket 失敗");
+                    if (reconnectAttempts < maxReconnectAttempts) { reconnectAttempts++; setTimeout(connectChatSocket, reconnectDelay); }
+                    return;
+                }
+
+                chatSocket.onopen = function(e) {
+                    console.log('[Chat] WebSocket 連接成功。');
                     reconnectAttempts = 0;
-                    connectChatSocket();
-                } else if (chatSocket.readyState === WebSocket.OPEN) {
-                    console.log("面板打開，WebSocket 已連接，啟用輸入。");
                     if (chatMessageInput) chatMessageInput.disabled = false;
                     if (chatMessageSubmit) chatMessageSubmit.disabled = false;
-                } else if (chatSocket.readyState === WebSocket.CONNECTING) {
-                     console.log("面板打開，WebSocket 正在連接中...");
-                     if (chatMessageInput) chatMessageInput.disabled = true; // 保持禁用直到連接成功
-                     if (chatMessageSubmit) chatMessageSubmit.disabled = true;
+                    addChatMessage({ type: 'system', message: '已連接。', timestamp: new Date().toISOString() });
+                    if (hasUnread && chatUnreadIndicator) {
+                        // 檢查 Modal 是否可見，如果不可見則不清空未讀（可能後台連接成功）
+                        const isChatVisible = chatModal && window.getComputedStyle(chatModal).display === 'block';
+                        if (isChatVisible) {
+                             hasUnread = false;
+                             chatUnreadIndicator.style.display = 'none';
+                        }
+                    }
+                    scrollToBottom();
+                    // 聚焦輸入框（如果Modal可見）
+                     const isChatVisibleOnOpen = chatModal && window.getComputedStyle(chatModal).display === 'block';
+                     if (isChatVisibleOnOpen && chatMessageInput) {
+                         chatMessageInput.focus();
+                     }
+                };
+
+                chatSocket.onmessage = function(e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        addChatMessage(data);
+                    } catch (error) {
+                        console.error("[Chat] 解析訊息錯誤:", error, "Data:", e.data);
+                         addChatMessage({ type: 'system', message: '收到格式錯誤的訊息。', timestamp: new Date().toISOString() });
+                    }
+                };
+
+                chatSocket.onclose = function(e) {
+                    console.error('[Chat] WebSocket 連接關閉。 Code:', e.code, 'Reason:', e.reason || '(無)', 'Clean:', e.wasClean);
+                    if (chatMessageInput) chatMessageInput.disabled = true;
+                    if (chatMessageSubmit) chatMessageSubmit.disabled = true;
+                    const wasConnected = chatSocket === this;
+                    if (wasConnected) chatSocket = null;
+                    const normalCloseCodes = [1000, 1001, 1005];
+                    if (!normalCloseCodes.includes(e.code) && reconnectAttempts < maxReconnectAttempts) {
+                        reconnectAttempts++;
+                        console.log(`[Chat] ${reconnectDelay / 1000} 秒後重連 (嘗試 ${reconnectAttempts}/${maxReconnectAttempts})`);
+                        if (chatMessages) addChatMessage({ type: 'system', message: `連接斷開，${reconnectDelay / 1000}秒後重連...`, timestamp: new Date().toISOString() });
+                        setTimeout(connectChatSocket, reconnectDelay);
+                    } else if (normalCloseCodes.includes(e.code)) {
+                         if (chatMessages) addChatMessage({ type: 'system', message: '連接已關閉。', timestamp: new Date().toISOString() });
+                    } else {
+                         if (chatMessages) addChatMessage({ type: 'system', message: '重連失敗。請刷新頁面重試。', timestamp: new Date().toISOString() });
+                    }
+                };
+
+                chatSocket.onerror = function(err) {
+                    console.error('[Chat] WebSocket 錯誤:', err);
+                     if (chatMessages) addChatMessage({ type: 'system', message: '發生連接錯誤。', timestamp: new Date().toISOString() });
+                };
+            }
+
+            function handleConnectionError(errorMessage = "連接錯誤") {
+                 console.error(`[Chat] 處理連接錯誤: ${errorMessage}`);
+                 if (chatMessageInput) chatMessageInput.disabled = true;
+                 if (chatMessageSubmit) chatMessageSubmit.disabled = true;
+                 if (chatSocket && chatSocket.readyState !== WebSocket.CLOSED && chatSocket.readyState !== WebSocket.CLOSING) {
+                    console.log("[Chat] 嘗試關閉錯誤狀態的 WebSocket...");
+                    chatSocket.onerror = chatSocket.onclose = null;
+                    try { chatSocket.close(1011, "Client-side error"); } catch (e) {}
+                 }
+                 chatSocket = null;
+                 if (chatMessages) addChatMessage({ type: 'system', message: `連接失敗: ${errorMessage}。`, timestamp: new Date().toISOString() });
+            }
+
+            // --- UI 事件監聽器設定 ---
+            if (chatMessageSubmit) {
+                chatMessageSubmit.addEventListener('click', sendMessage);
+            }
+            if (chatMessageInput) {
+                chatMessageInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+
+            // --- MutationObserver for Modal Visibility ---
+            const chatModalObserver = new MutationObserver((mutationsList) => {
+                for(let mutation of mutationsList) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const displayStyle = window.getComputedStyle(chatModal).display;
+                        const isChatVisible = displayStyle === 'block';
+                        if (isChatVisible && hasUnread) {
+                            console.log("[Chat] 聊天 Modal 變為可見，清除未讀標記。");
+                            hasUnread = false;
+                            if (chatUnreadIndicator) { chatUnreadIndicator.style.display = 'none'; }
+                            scrollToBottom();
+                            setTimeout(() => { if (chatMessageInput) chatMessageInput.focus(); }, 100);
+                        }
+                        // 當 Modal 打開時，確保連接是正常的，如果不是則嘗試連接
+                        if (isChatVisible && (!chatSocket || chatSocket.readyState === WebSocket.CLOSED)) {
+                             console.log("[Chat] 聊天 Modal 打開，但 WebSocket 未連接或已關閉，嘗試重新連接...");
+                             reconnectAttempts = 0; // 重置重連次數
+                             connectChatSocket();
+                        }
+                    }
                 }
-            } else {
-                 console.log("Chat panel 關閉。");
-                 // 可選：關閉面板時斷開連接
-                 // if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-                 //     console.log("因面板關閉而關閉 WebSocket 連接。");
-                 //     chatSocket.close(1000, "Panel Closed");
-                 // }
+            });
+            if (chatModal) {
+                chatModalObserver.observe(chatModal, { attributes: true, attributeFilter: ['style'] });
             }
-        });
-    } else {
-         console.warn("未找到聊天切換按鈕元素 (#chat-toggle-button)。");
-    }
 
-
-    if (chatCloseButton) {
-        chatCloseButton.addEventListener('click', () => {
-            isChatOpen = false;
-            if (chatPanel) {
-                chatPanel.classList.remove('open');
-                 console.log("通過面板內按鈕關閉了聊天面板。");
-                 // 可選：關閉面板時斷開連接
-                 // if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-                 //     console.log("因面板關閉而關閉 WebSocket 連接。");
-                 //     chatSocket.close(1000, "Panel Closed");
-                 // }
+            // --- 初始連接 ---
+            if (!initialConnectionAttempted) {
+                 console.log("[Chat] 嘗試初始 WebSocket 連接...");
+                 connectChatSocket();
+                 initialConnectionAttempted = true;
             }
-        });
-    }
 
-    if (chatMessageSubmit) {
-        chatMessageSubmit.addEventListener('click', sendMessage);
-    } else {
-         console.warn("未找到聊天發送按鈕元素 (#chat-message-submit)。");
-    }
+            console.log("[Chat] 聊天室腳本核心邏輯初始化完畢。");
 
-    if (chatMessageInput) {
-        chatMessageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // 阻止默認換行
-                sendMessage();     // 發送訊息
-            }
-        });
-    } else {
-         console.warn("未找到聊天訊息輸入框元素 (#chat-message-input)。");
-    }
+        }, 150); // 保持延遲
 
-    console.log("聊天室腳本 (chat.js) 已初始化。"); // 確認腳本執行到末尾
-
-// 確保 DOMContentLoaded 的括號是閉合的
-}); // <<--- 這是檔案的最後一行，對應 document.addEventListener('DOMContentLoaded', function() {
+    }); // DOMContentLoaded 結束
+})(); // IIFE 結束
+// --- END OF COMPLETE chat.js ---
