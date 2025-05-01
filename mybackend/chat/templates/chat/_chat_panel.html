@@ -1,4 +1,4 @@
-{# D:\bkgg\mybackend\chat\templates\chat\_chat_panel.html (修改後 - Modal 結構版) #}
+{# D:\bkgg\mybackend\chat\templates\chat\_chat_panel.html (修改後 - 引用回覆版) #}
 
 {% comment %}
 這個模板片段包含了聊天面板的 HTML 結構，已修改為標準 Modal 樣式。
@@ -29,6 +29,15 @@
         {# 3. Modal Footer (對應 .chat-input-area) #}
         {# 將原 .chat-input-area 的內容放在 .modal-footer 裡 #}
         <div class="chat-input-area modal-footer"> {# 使用標準的 modal-footer class #}
+            {# --- 新增：引用訊息預覽區 --- #}
+            <div id="reply-quote-display" style="display: none;">
+                 <div class="reply-quote-content">
+                     <span class="reply-quote-label">回覆 <strong class="reply-quote-user"></strong>：</span>
+                     <span class="reply-quote-text"></span>
+                 </div>
+                 <button id="cancel-reply-btn" class="cancel-reply-btn" aria-label="取消回覆">×</button>
+            </div>
+            {# -------------------------- #}
             {# 保留 input 和 button 的 ID 以便 chat.js 使用 #}
             <input type="text" id="chat-message-input" placeholder="輸入訊息..." autocomplete="off" disabled>
             <button id="chat-message-submit" disabled>發送</button>

@@ -1,4 +1,4 @@
-{# D:\bkgg\mybackend\myapp\templates\myapp\index.html (完整修改版 V18 - Uniform Timestamp/Reply Button) #}
+{# D:\bkgg\mybackend\myapp\templates\myapp\index.html (完整修改版 V13 - JS Syntax Fix) #}
 {% load static %}
 {% load my_filters %} {# 確保你的自訂過濾器已載入 #}
 <!DOCTYPE html>
@@ -124,6 +124,7 @@
     .glass-background { display: none; }
     .content {
         position: relative; z-index: 1; background: #fff; padding: 0; border-radius: 15px; width: 95%; max-width: 500px; margin: 1.25rem auto; flex-grow: 1; overflow: hidden; animation: fadeInUp 1s forwards; transform: translateZ(0); will-change: opacity, transform; background-clip: padding-box; display: flex; flex-direction: column;
+        /* Prevent dragging and selection */
         -webkit-user-drag: none; user-drag: none;
         -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
     }
@@ -132,9 +133,10 @@
     .portal-content h1 { color: #333; margin-bottom: 1rem; font-size: 1.8rem; }
     .portal-content p, .portal-content .portal-announcement p {
         color: #555; margin-bottom: 1.5rem;
+        /* Allow text selection in paragraphs */
         -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
     }
-     .portal-content .portal-announcement p { margin-bottom: 0; }
+     .portal-content .portal-announcement p { margin-bottom: 0; } /* Reset margin for announcement p */
     .portal-content .portal-announcement { margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; text-align: left; }
     .portal-content .portal-announcement strong { display: block; margin-bottom: 0.5rem; font-size: 1.1em; color: #333;}
     .portal-content .portal-announcement p { margin: 0; color: #495057; line-height: 1.4;}
@@ -152,6 +154,7 @@
     .featured-info .hall-name { font-size: 0.9rem; color: #6c757d; margin-bottom: 0.5rem; }
     .featured-info .introduction {
         font-size: 0.95rem; color: #495057; line-height: 1.4; margin-bottom: 1rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; min-height: 4.2em;
+        /* Allow text selection */
         -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
     }
     .featured-actions { margin-top: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -197,6 +200,7 @@
         display: flex; flex-direction: column; /* 確保 flex 佈局 */
         overflow: hidden; /* 重要 for sticky children */
         position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: none; min-height: 0; /* flex 需要 */
+        /* Prevent dragging and selection */
         -webkit-user-drag: none; user-drag: none;
         -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
     }
@@ -209,8 +213,7 @@
     .modal-body[data-layout="table"] .intro-top p, /* Top intro paragraph */
     .review-card .review-body, /* Review content area */
     #noteModal #viewNoteContent, /* Note view area */
-    #chat-messages .chat-message span:not(.chat-message-header):not(.chat-message-time), /* Allow selecting message text span */
-    #chat-messages .quoted-message-preview, /* Allow selecting quote preview */
+    #chat-messages .chat-message, /* Chat messages */
     #profileModal .modal-body /* Allow selecting profile text */
     {
         -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text; /* Allow selection for these elements */
@@ -259,7 +262,7 @@
         padding: 0.75rem 0.8rem; /* 保持之前的修改 */
         background-color: #f9f9f9;
         display: flex;
-        flex-direction: column; /* 父容器設為 column，訊息才能用 align-self */
+        flex-direction: column;
         flex-grow: 1; /* Takes up space */
         overflow-y: auto; /* ***This is the scrollable area*** */
         min-height: 0; /* Important for flex scroll */
@@ -306,19 +309,12 @@
         z-index: 2; /* Needs to be above scrolling body */
         background-color: #fff; /* Ensure background */
         border-top: 1px solid #eee;
-        display: flex; /* 改回 flex */
-        flex-direction: column; /* 引用區在上，輸入區在下 */
-        align-items: stretch; /* 子元素水平拉伸 */
+        display: flex;
+        align-items: center;
         text-align: left;
         padding: 0.5rem;
         padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)); /* Add safe area padding */
         flex-shrink: 0; /* Ensure it doesn't shrink */
-     }
-      /* 聊天輸入框和按鈕容器 (放在引用區下方) */
-     #chatModal .modal-footer > div:last-child {
-        display: flex;
-        align-items: center; /* 輸入框和按鈕垂直居中 */
-        width: 100%; /* 佔滿父容器 */
      }
      /* Ensure the body scrolls correctly between sticky elements */
      #chatModal .modal-content {
@@ -468,12 +464,6 @@
              padding: 0.75rem 1rem;
              padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px);
         }
-         /* Chat Modal Footer Padding for Mobile */
-         #chatModal .modal-footer {
-            padding: 0.5rem;
-            padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
-         }
-
         #reviewSubmitModal .modal-footer {
             padding: 0.75rem 1rem;
             padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px);
@@ -652,7 +642,7 @@
     .profile-error { color: #dc3545; font-style: normal; font-weight: bold; }
     /* --- 個人檔案樣式結束 --- */
 
-    /* --- 聊天室相關樣式 (恢復 V13 佈局 + 保留 V14 引用) --- */
+    /* --- 聊天室相關樣式 --- */
     #chat-toggle-button {
         margin-left: 0.5rem; padding: 0.4rem 0.6rem; position: relative;
     }
@@ -660,89 +650,82 @@
         position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; background-color: red; border-radius: 50%; display: none;
     }
 
-    /* --- 聊天訊息主要樣式 (V13 原始 - inline-flex + align-self) --- */
+    /* --- 聊天訊息主要樣式 (平衡換行策略) --- */
     #chat-messages .chat-message {
-      display: inline-flex !important; /* **恢復使用 inline-flex** */
-      flex-direction: column;         /* 內部元素垂直排列 */
-      align-items: flex-start;        /* 內部元素預設靠左對齊 */
+      display: inline-flex !important; /* 使用 inline-flex */
+      flex-direction: column;         /* 內部元素垂直排列 (header, content, time) */
+      align-items: flex-start;        /* 內容靠左對齊 */
       inline-size: 85% !important;    /* 訊息寬度佔父容器的85% */
       max-inline-size: 85% !important;/* 最大寬度 */
       padding: 0.5rem 0.75rem;       /* 內邊距 */
       border-radius: 15px;           /* 圓角 */
       margin-bottom: 0.5rem;         /* 訊息間距 */
-      position: relative;            /* 相對定位 for reply btn */
+      position: relative;            /* 相對定位 */
       box-sizing: border-box;        /* padding/border計入寬度 */
-      padding-bottom: 28px;          /* *** 為下方的 reply 按鈕和時間戳留出空間 *** */
 
-      /* --- 重要的換行規則 (保持不變) --- */
-      white-space: normal !important;
-      overflow-wrap: break-word !important;
-      word-break: normal !important; /* 依賴 overflow-wrap */
-      line-break: auto;
+      /* --- 重要的換行規則 (平衡策略) --- */
+      white-space: normal !important;     /* 允許標準換行 */
+      overflow-wrap: break-word !important; /* 允許在必要時在單詞內換行以防止溢出 */
+      word-break: normal !important;      /* 主要依賴 overflow-wrap，避免過度斷詞 */
+      line-break: auto;               /* 使用瀏覽器默認的 CJK 斷行規則 */
     }
 
     .chat-message.user {
       background-color: #e0f7fa;
       border: 1px solid #bce8f1;
-      align-self: flex-start; /* **其他用戶訊息靠左** */
-      border-bottom-left-radius: 3px;
-      text-align: left;
+      align-self: flex-start; /* 用戶訊息靠左 */
+      border-bottom-left-radius: 3px; /* 左下角稍微直一點 */
+      text-align: left; /* 文字本身靠左 */
     }
 
     .chat-message.user.mine {
       background-color: #d4edda;
       border: 1px solid #c3e6cb;
-      align-self: flex-end; /* **自己的訊息氣泡靠右** */
-      border-bottom-right-radius: 3px;
-      border-bottom-left-radius: 15px;
+      align-self: flex-end; /* 自己的訊息氣泡靠右 */
+      border-bottom-right-radius: 3px; /* 右下角稍微直一點 */
+      border-bottom-left-radius: 15px; /* 左下角保持圓滑 */
       text-align: left; /* 文字本身還是靠左 */
     }
 
-    /* 系統訊息樣式 (基本不變，確保 align-self: center) */
+    /* 系統訊息樣式 */
     .chat-message.system {
-      font-style: italic; color: #888; text-align: center; background: none; font-size: 0.85rem;
-      align-self: center; /* **系統訊息居中** */
-      margin-top: 0.5rem; margin-bottom: 0.5rem; padding: 0.2rem 0.5rem;
-      border: none;
-      border-radius: 0;
-      display: block !important;
-      width: auto;
-      max-width: 85%;
-      inline-size: auto !important;
-      max-inline-size: 85% !important;
-      overflow-wrap: normal !important;
-      word-break: normal !important;
-      white-space: normal !important;
-      line-break: auto !important;
-      padding-bottom: 0.2rem; /* 系統訊息不需要底部 padding */
-      position: static; /* 系統訊息不需要相對定位 */
-    }
-    /* --- V13 聊天訊息對齊樣式結束 --- */
+      font-style: italic; color: #888; text-align: center; background: none; font-size: 0.85rem; align-self: center; margin-top: 0.5rem; margin-bottom: 0.5rem; padding: 0.2rem 0.5rem;
+      border: none; /* 移除邊框 */
+      border-radius: 0; /* 移除圓角 */
 
-    /* 訊息頭部樣式 (保持不變) */
+      /* 重置/確保系統訊息的換行和顯示 */
+      display: block !important;          /* 通常是塊級居中 */
+      width: auto;                     /* 寬度自適應 */
+      max-width: 85%;                  /* 最大寬度限制 */
+      inline-size: auto !important;    /* 重置 inline-size */
+      max-inline-size: 85% !important; /* 保留 max-inline-size */
+      overflow-wrap: normal !important; /* 普通換行 */
+      word-break: normal !important;    /* 普通斷詞 */
+      white-space: normal !important;   /* 正常空白處理 */
+      line-break: auto !important;      /* 瀏覽器默認斷行 */
+    }
+
+    /* 訊息頭部樣式 */
     .chat-message-header {
         display: block; font-size: 0.8rem; font-weight: bold; color: #555; margin-bottom: 0.2rem;
+        /* 繼承父級的換行規則通常即可 */
         word-break: inherit;
         overflow-wrap: inherit;
     }
 
-    /* *** 修改：訊息時間樣式 (統一靠左) *** */
+    /* 訊息時間樣式 */
     .chat-message-time {
-        font-size: 0.7rem; color: #aaa;
-        position: absolute; /* 絕對定位 */
-        bottom: 5px;        /* 定位到底部偏上 */
-        left: 10px;         /* *** 始終定位到左側 *** */
-        /* right: auto; */    /* 確保右側定位被移除 */
+        display: block; font-size: 0.7rem; color: #aaa; margin-top: 0.4rem; /* 增加與內容的間距 */
+        text-align: right; /* 時間文本靠右 */
+        align-self: flex-end; /* 在 flex column 佈局中，讓時間元素本身靠右 */
     }
-    /* *** 移除：針對 .mine 的時間戳覆蓋規則 *** */
-    /*
+    /* 自己的訊息時間，樣式通常一致，確認即可 */
     .chat-message.mine .chat-message-time {
-         left: auto;
-         right: 10px;
+         text-align: right;
+         align-self: flex-end;
     }
-    */
 
-    /* 輸入框和按鈕樣式 (保持不變) */
+    /* 輸入框和按鈕樣式保持不變 */
     #chat-message-input {
       flex-grow: 1; padding: 0.5rem 0.75rem; border: 1px solid #ccc; border-radius: 15px; margin-right: 0.5rem; font-size: 0.95rem; resize: none; line-height: 1.4; background-color: #fff; color: #333;
     }
@@ -755,134 +738,8 @@
     #chat-message-submit .fas { vertical-align: middle; }
     /* --- 聊天室樣式結束 --- */
 
-    /* --- 引用回覆相關樣式 (保留 V14) --- */
-
-    /* 引用訊息在輸入框上方的預覽樣式 */
-    #reply-quote-display {
-        background-color: #f0f0f0;
-        padding: 0.3rem 0.6rem;
-        border-radius: 5px;
-        border: 1px solid #ddd;
-        margin-bottom: 0.4rem; /* 與下方輸入區的間距 */
-        display: none; /* **改為預設隱藏** */
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.85rem;
-        color: #555;
-        width: 100%;
-        box-sizing: border-box;
-    }
-     /* JS 會將 display 改為 flex 來顯示 */
-
-    #reply-quote-display .reply-quote-content {
-        flex-grow: 1;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        margin-right: 0.5rem;
-    }
-    #reply-quote-display .reply-quote-label {
-        color: #777;
-    }
-    #reply-quote-display .reply-quote-user {
-        color: #333;
-        font-weight: bold;
-    }
-    #reply-quote-display .reply-quote-text {
-        color: #444;
-        margin-left: 0.3em;
-    }
-
-    #reply-quote-display .cancel-reply-btn {
-        background: none;
-        border: none;
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: #aaa;
-        cursor: pointer;
-        padding: 0 0.3rem;
-        line-height: 1;
-        flex-shrink: 0;
-    }
-    #reply-quote-display .cancel-reply-btn:hover {
-        color: #666;
-    }
-
-    /* 在聊天訊息中顯示的引用預覽 (保持不變) */
-    .quoted-message-preview {
-        border-left: 3px solid #adb5bd;
-        background-color: rgba(0, 0, 0, 0.04);
-        padding: 0.3rem 0.6rem;
-        margin-bottom: 0.4rem;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        color: #666;
-        white-space: normal !important;
-        overflow-wrap: break-word !important;
-        word-break: break-word !important;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-    .quoted-message-preview:hover {
-        background-color: rgba(0, 0, 0, 0.08);
-    }
-
-    .quoted-message-preview .quoted-user {
-        font-weight: bold;
-        color: #555;
-        display: block;
-        margin-bottom: 0.1rem;
-    }
-
-    .quoted-message-preview .quoted-text {
-        color: #777;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        line-height: 1.3;
-    }
-    /* --- 引用回覆樣式結束 --- */
-
-    /* --- 修改：聊天訊息內聯回覆按鈕樣式 (統一靠右) --- */
-    .chat-message .reply-trigger-btn {
-        position: absolute; /* 相對於 .chat-message 定位 */
-        bottom: 4px;       /* 距離底部 */
-        right: 8px;        /* *** 始終定位到右側 *** */
-        /* left: auto; */     /* 確保左側定位被移除 */
-        background: rgba(0, 0, 0, 0.05); /* 半透明背景 */
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        border-radius: 50%; /* 圓形 */
-        width: 22px;       /* 寬度 */
-        height: 22px;      /* 高度 */
-        padding: 0;        /* 無內邊距 */
-        display: inline-flex; /* 使用 flex 居中圖標 */
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #666;       /* 圖標顏色 */
-        font-size: 0.8rem; /* 圖標大小 */
-        opacity: 0.6;      /* 預設透明度 */
-        transition: opacity 0.2s, background-color 0.2s, color 0.2s;
-        z-index: 1;
-    }
-    /* *** 移除：針對 .mine 的回覆按鈕覆蓋規則 *** */
-    /*
-    .chat-message.mine .reply-trigger-btn {
-        right: auto;
-        left: 8px;
-    }
-    */
-    .chat-message:hover .reply-trigger-btn {
-        opacity: 1; /* 懸停時完全顯示 */
-        background-color: rgba(0, 0, 0, 0.1);
-    }
-    .reply-trigger-btn:active {
-        background-color: rgba(0, 0, 0, 0.15);
-        transform: scale(0.95);
-    }
-    /* --- 內聯回覆按鈕樣式結束 --- */
+    /* --- 移除之前的強制覆蓋聊天訊息換行策略 --- */
+    /* (這裡原來的覆蓋塊已被刪除) */
 
   </style>
 </head>
@@ -995,28 +852,282 @@
              {% endif %}
 
             <!-- Modals -->
-            {# ... (所有其他 Modal 保持不變) ... #}
-            <div id="loginModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"><h2>會員登入</h2><button class="close-modal" aria-label="關閉">×</button></div> <div class="modal-body"> <form id="loginForm" action="{% url 'myapp:login' %}" method="POST"> {% csrf_token %} <div class="form-group"><label for="username">帳號：</label><input type="text" id="username" name="username" placeholder="請輸入帳號" required></div> <div class="form-group"><label for="password">密碼：</label><input type="password" id="password" name="password" placeholder="請輸入密碼" required></div> <button type="submit">登入</button> </form> </div> </div> </div>
-            <div id="reviewModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"><h2>心得評論</h2><button class="close-modal" aria-label="關閉">×</button></div> <div class="modal-body"> <div id="reviewList"><p>載入中...</p></div> </div> </div> </div>
-            <div id="storyDetailModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>限時動態心得</h2><button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body"> <div id="storyDetailHeader"><div class="story-loading-message">載入中...</div></div> <div id="storyDetailContent"></div> </div> </div> </div>
-            <div id="reviewSubmitModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2 id="reviewSubmitModalTitle">填寫心得</h2><button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body"> <form id="reviewForm"> {% csrf_token %} <input type="hidden" name="submission_type" id="submissionType" value="review"> <input type="hidden" name="animal_id" value=""> <div class="form-group"><label for="age">年紀</label><input type="number" id="age" name="age" placeholder="請輸入大約年紀數字, 不可有中文字"></div> <div class="form-group"><label for="looks">顏值</label><select id="looks" name="looks"><option value="">請選擇</option><option value="S級 (一見難忘)">S級 (一見難忘)</option><option value="A級 (出眾)">A級 (出眾)</option><option value="B級 (優異)">B級 (優異)</option><option value="C級 (中上)">C級 (中上)</option><option value="D級 (大眾)">D級 (大眾)</option><option value="E級 (較平凡)">E級 (較平凡)</option></select></div> <div class="form-group"><label>臉蛋（最多選3個）</label><div id="faceCheckboxes" class="checkbox-group"><label><input type="checkbox" name="face" value="醫美"> 醫美</label><label><input type="checkbox" name="face" value="可愛"> 可愛</label><label><input type="checkbox" name="face" value="甜美"> 甜美</label><label><input type="checkbox" name="face" value="稚嫩"> 稚嫩</label><label><input type="checkbox" name="face" value="呆萌"> 呆萌</label><label><input type="checkbox" name="face" value="清秀"> 清秀</label><label><input type="checkbox" name="face" value="清純"> 清純</label><label><input type="checkbox" name="face" value="仙氣"> 仙氣</label><label><input type="checkbox" name="face" value="艷麗"> 艷麗</label><label><input type="checkbox" name="face" value="性感"> 性感</label><label><input type="checkbox" name="face" value="古典"> 古典</label><label><input type="checkbox" name="face" value="個性"> 個性</label><label><input type="checkbox" name="face" value="鄰家"> 鄰家</label><label><input type="checkbox" name="face" value="大眾"> 大眾</label><label><input type="checkbox" name="face" value="平凡"> 平凡</label><label><input type="checkbox" name="face" value="單眼皮"> 單眼皮</label><label><input type="checkbox" name="face" value="輕熟"> 輕熟</label><label><input type="checkbox" name="face" value="熟女"> 熟女</label></div></div> <div class="form-group"><label>氣質（最多選3個）</label><div id="temperamentCheckboxes" class="checkbox-group"><label><input type="checkbox" name="temperament" value="優雅"> 優雅</label><label><input type="checkbox" name="temperament" value="成熟"> 成熟</label><label><input type="checkbox" name="temperament" value="清新"> 清新</label><label><input type="checkbox" name="temperament" value="自然"> 自然</label><label><input type="checkbox" name="temperament" value="禮貌"> 禮貌</label><label><input type="checkbox" name="temperament" value="女友感"> 女友感</label><label><input type="checkbox" name="temperament" value="女人味"> 女人味</label><label><input type="checkbox" name="temperament" value="OL"> OL</label><label><input type="checkbox" name="temperament" value="台妹"> 台妹</label><label><input type="checkbox" name="temperament" value="普通"> 普通</label></div></div> <div class="form-group"><label for="physique">體態</label><select id="physique" name="physique"><option value="">請選擇體態</option><option value="骨感">骨感</option> <option value="瘦">瘦</option> <option value="瘦有肉">瘦有肉</option> <option value="標準">標準</option> <option value="曲線迷人">曲線迷人</option> <option value="瘦偏肉">瘦偏肉</option> <option value="微肉">微肉</option> <option value="棉花糖">棉花糖</option></select></div> <div class="form-group"> <label for="cup">罩杯類型</label><select id="cup" name="cup"><option value="">請選擇類型</option><option value="天然">天然</option><option value="醫美">醫美</option><option value="自體醫美">自體醫美</option><option value="不確定">不確定</option></select> <label for="cup_size" style="margin-top:0.5rem;">罩杯大小</label><select id="cup_size" name="cup_size"><option value="">請選擇大小</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option><option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option><option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option><option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option></select> </div> <div class="form-group"><label for="skin_texture">膚質</label><select id="skin_texture" name="skin_texture"><option value="">請選擇</option> <option value="絲滑">絲滑</option> <option value="還不錯">還不錯</option> <option value="正常">正常</option> <option value="普通">普通</option></select></div> <div class="form-group"><label for="skin_color">膚色</label><select id="skin_color" name="skin_color"><option value="">請選擇</option> <option value="白皙">白皙</option> <option value="偏白">偏白</option> <option value="正常黃">正常黃</option> <option value="偏黃">偏黃</option> <option value="健康黑">健康黑</option></select></div> <div class="form-group"> <label for="music">音樂</label><select id="music" name="music"><option value="">請選擇</option><option value="未詢問">未詢問</option><option value="無此服務">無此服務</option><option value="可加值">可加值</option><option value="自談">自談</option></select> <input type="number" id="music_price" name="music_price" placeholder="請填寫大約金額(數字)" style="display:none; margin-top:0.5rem;" min="0"> </div> <div class="form-group"> <label for="sports">體育</label><select id="sports" name="sports"><option value="">請選擇</option><option value="未詢問">未詢問</option><option value="無此服務">無此服務</option><option value="可加值">可加值</option><option value="自談">自談</option></select> <input type="number" id="sports_price" name="sports_price" placeholder="請填寫大約金額(數字)" style="display:none; margin-top:0.5rem;" min="0"> </div> <div class="form-group"><label>尺度</label><div id="scaleCheckboxes" class="checkbox-group"><label><input type="checkbox" name="scale" value="三光"> 三光</label> <label><input type="checkbox" name="scale" value="兩光"> 兩光</label> <label><input type="checkbox" name="scale" value="LG"> LG</label> <label><input type="checkbox" name="scale" value="親"> 親</label> <label><input type="checkbox" name="scale" value="舔"> 舔</label> <label><input type="checkbox" name="scale" value="伸"> 伸</label> <label><input type="checkbox" name="scale" value="摸"> 摸</label> <label><input type="checkbox" name="scale" value="磨"> 磨</label></div></div> <div class="form-group"><label for="content">心得</label><textarea name="content" id="content" placeholder="請填寫心得" rows="4" required></textarea></div> </form> </div> <div class="modal-footer"> <button type="submit" form="reviewForm">提交</button> </div> </div> </div>
-            <div id="pendingListModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>待約清單</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="pendingTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="pendingPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="pendingIntroArea"><div class="intro-top"><p id="pendingIntroductionContent">載入中...</p></div></div> </section> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="pendingTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
-            <div id="latestReviewModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>最新心得</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="latestReviewTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="latestPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="latestIntroArea"><div class="intro-top"><p id="latestIntroductionContent">載入中...</p></div></div> </section> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="latestReviewTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
-            <div id="noteModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2 id="noteModalTitle">筆記</h2><button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body"> <form id="noteForm" method="POST" style="display:none;"> {% csrf_token %} <input type="hidden" id="noteAnimalId" name="animal_id" value=""> <input type="hidden" id="currentNoteId" name="note_id" value=""> <div class="form-group"><label for="noteContent">筆記內容</label><textarea name="content" id="noteContent" rows="5" placeholder="請輸入筆記內容" required></textarea></div> </form> <div id="viewNoteSection" style="display:none;"> <div class="note-box" id="viewNoteContent"></div> </div> </div> <div class="modal-footer"> <button type="submit" form="noteForm" id="saveNoteBtn" style="display: none;">儲存筆記</button> <div id="viewNoteButtons" style="display: none;"> <button id="editNoteBtn" class="button-secondary">修改筆記</button> <button id="deleteNoteBtn" class="button-danger" data-animal-id="" style="margin-left: 0.5rem;">刪除筆記</button> </div> </div> </div> </div>
-            <div id="myNotesModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>我的筆記</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="myNotesTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="myNotesPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">載入中...</p></div></div> </section> <nav class="hall-menu" id="myNotesHallMenu"> <a href="#" data-hall-id="all" class="active">全部</a> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} </nav> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="myNotesTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
-            <div id="dailyScheduleModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>每日班表</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="dailyAnimalTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="dailyPhotoArea"><p style="color:#888;font-size:0.9rem;">請點擊下方館別載入班表</p></div> <div class="intro-area" id="dailyIntroArea"><div class="intro-top"><p id="dailyIntroductionContent">點擊下方館別載入介紹</p></div></div> </section> <nav class="hall-menu" id="dailyHallMenu"> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} </nav> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="dailyAnimalTable"> <tbody><tr class="empty-table-message"><td colspan="5">請點擊上方館別載入班表</td></tr></tbody> </table> </div> </div> </div> </div> </div>
-            <div id="dailyRecommendationModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>每日推薦</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="recommendationTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="recommendationPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="recommendationIntroArea"><div class="intro-top"><p id="recommendationIntroductionContent">載入中...</p></div></div> </section> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="recommendationTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
-            <div id="weeklyScheduleModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>每週班表</h2> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body"> <nav class="hall-menu" id="weeklyHallMenu"> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} {% if not halls %} <p style="color:#666; padding: 0.5rem 0.75rem;">沒有可選的館別</p> {% endif %} </nav> <div id="weeklyScheduleImageArea" class="schedule-image-container"> <p>請點擊上方館別查看班表</p> </div> </div> </div> </div>
-            <div id="hallOfFameModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <button class="close-modal" aria-label="關閉">×</button> <div class="modal-header"> <h2><i class="fas fa-crown"></i> 紓壓名人堂</h2> </div> <div class="modal-body"> <div class="hof-tabs"> <button class="hof-tab active" data-rank-type="reviews" aria-selected="true"><i class="fas fa-comments"></i> 一般心得</button> <button class="hof-tab" data-rank-type="stories" aria-selected="false"><i class="fas fa-bolt"></i> 限時動態</button> <button class="hof-tab" data-rank-type="good_looking" aria-selected="false"><i class="fas fa-thumbs-up"></i> 人帥真好</button> <button class="hof-tab" data-rank-type="good_to_have_you" aria-selected="false"><i class="fas fa-heart"></i> 有你真好</button> </div> <div class="hof-list-container"> <ol id="hallOfFameList"> <li class="loading-message">載入中...</li> </ol> </div> </div> </div> </div>
-            <div id="profileModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>個人檔案</h2> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" id="profileModalBody"> <div class="profile-loading">載入個人檔案中...</div> </div> </div> </div>
-            <div id="findBeauticianModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>尋找美容師</h2> <div class="header-toggle-notes"> <label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="findBeauticianTable"> <span>顯示筆記</span></label> </div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #eee; background: #f8f9fa;"> <div class="form-group" style="margin-bottom: 0.75rem;"> <input type="search" id="findBeauticianSearchInput" placeholder="輸入美容師姓名..." style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;"> </div> <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem 1rem;"> <div class="form-group" style="margin-bottom: 0;"> <label for="minHeightInput" style="font-size: 0.8rem; margin-bottom: 0.2rem;">身高 (cm)</label> <div style="display: flex; gap: 0.3rem;"> <input type="number" id="minHeightInput" class="filter-input" placeholder="最低" min="0" style="font-size: 0.9rem; padding: 0.3rem;"> <span style="line-height: 2.1rem;">-</span> <input type="number" id="maxHeightInput" class="filter-input" placeholder="最高" min="0" style="font-size: 0.9rem; padding: 0.3rem;"> </div> </div> <div class="form-group" style="margin-bottom: 0;"> <label for="minWeightInput" style="font-size: 0.8rem; margin-bottom: 0.2rem;">體重 (kg)</label> <div style="display: flex; gap: 0.3rem;"> <input type="number" id="minWeightInput" class="filter-input" placeholder="最低" min="0" style="font-size: 0.9rem; padding: 0.3rem;"> <span style="line-height: 2.1rem;">-</span> <input type="number" id="maxWeightInput" class="filter-input" placeholder="最高" min="0" style="font-size: 0.9rem; padding: 0.3rem;"> </div> </div> <div class="form-group" style="margin-bottom: 0;"> <label for="cupSelectMin" style="font-size: 0.8rem; margin-bottom: 0.2rem;">罩杯</label> <div style="display: flex; gap: 0.3rem;"> <select id="cupSelectMin" class="filter-input" style="font-size: 0.9rem; padding: 0.3rem; height: 2.1rem; flex: 1;"> <option value="">最低</option> <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option><option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option><option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option><option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option> </select> <span style="line-height: 2.1rem;">-</span> <select id="cupSelectMax" class="filter-input" style="font-size: 0.9rem; padding: 0.3rem; height: 2.1rem; flex: 1;"> <option value="">最高</option> <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option><option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option><option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option><option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option> </select> </div> </div> <div class="form-group" style="margin-bottom: 0;"> <label for="minFeeInput" style="font-size: 0.8rem; margin-bottom: 0.2rem;">台費 (元)</label> <div style="display: flex; gap: 0.3rem;"> <input type="number" id="minFeeInput" class="filter-input" placeholder="最低" min="0" step="100" style="font-size: 0.9rem; padding: 0.3rem;"> <span style="line-height: 2.1rem;">-</span> <input type="number" id="maxFeeInput" class="filter-input" placeholder="最高" min="0" step="100" style="font-size: 0.9rem; padding: 0.3rem;"> </div> </div> </div> </div> <section class="top-section"> <div class="photo-area" id="findBeauticianPhotoArea"> <p style="color:#888;font-size:0.9rem;">請進行搜尋或篩選</p> </div> <div class="intro-area" id="findBeauticianIntroArea"> <div class="intro-top"><p id="findBeauticianIntroductionContent">結果將顯示於下方</p></div> </div> </section> <div class="table-wrapper"> <table class="header-table"> <thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead> </table> <div class="body-wrapper"> <table class="body-table" id="findBeauticianTable"> <tbody> <tr class="empty-table-message"><td colspan="5">請輸入姓名或使用篩選器</td></tr> </tbody> </table> </div> </div> </div> </div> </div>
+            <div id="loginModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"><h2>會員登入</h2><button class="close-modal" aria-label="關閉">×</button></div>
+                    <div class="modal-body">
+                        <form id="loginForm" action="{% url 'myapp:login' %}" method="POST">
+                            {% csrf_token %}
+                            <div class="form-group"><label for="username">帳號：</label><input type="text" id="username" name="username" placeholder="請輸入帳號" required></div>
+                            <div class="form-group"><label for="password">密碼：</label><input type="password" id="password" name="password" placeholder="請輸入密碼" required></div>
+                            <button type="submit">登入</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div id="reviewModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"><h2>心得評論</h2><button class="close-modal" aria-label="關閉">×</button></div>
+                    <div class="modal-body">
+                        <div id="reviewList"><p>載入中...</p></div>
+                    </div>
+                </div>
+            </div>
+            <div id="storyDetailModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"> <h2>限時動態心得</h2><button class="close-modal" aria-label="關閉">×</button> </div>
+                    <div class="modal-body">
+                        <div id="storyDetailHeader"><div class="story-loading-message">載入中...</div></div>
+                        <div id="storyDetailContent"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="reviewSubmitModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"> <h2 id="reviewSubmitModalTitle">填寫心得</h2><button class="close-modal" aria-label="關閉">×</button> </div>
+                    <div class="modal-body">
+                        <form id="reviewForm"> {% csrf_token %} <input type="hidden" name="submission_type" id="submissionType" value="review"> <input type="hidden" name="animal_id" value=""> <div class="form-group"><label for="age">年紀</label><input type="number" id="age" name="age" placeholder="請輸入大約年紀數字, 不可有中文字"></div> <div class="form-group"><label for="looks">顏值</label><select id="looks" name="looks"><option value="">請選擇</option><option value="S級 (一見難忘)">S級 (一見難忘)</option><option value="A級 (出眾)">A級 (出眾)</option><option value="B級 (優異)">B級 (優異)</option><option value="C級 (中上)">C級 (中上)</option><option value="D級 (大眾)">D級 (大眾)</option><option value="E級 (較平凡)">E級 (較平凡)</option></select></div> <div class="form-group"><label>臉蛋（最多選3個）</label><div id="faceCheckboxes" class="checkbox-group"><label><input type="checkbox" name="face" value="醫美"> 醫美</label><label><input type="checkbox" name="face" value="可愛"> 可愛</label><label><input type="checkbox" name="face" value="甜美"> 甜美</label><label><input type="checkbox" name="face" value="稚嫩"> 稚嫩</label><label><input type="checkbox" name="face" value="呆萌"> 呆萌</label><label><input type="checkbox" name="face" value="清秀"> 清秀</label><label><input type="checkbox" name="face" value="清純"> 清純</label><label><input type="checkbox" name="face" value="仙氣"> 仙氣</label><label><input type="checkbox" name="face" value="艷麗"> 艷麗</label><label><input type="checkbox" name="face" value="性感"> 性感</label><label><input type="checkbox" name="face" value="古典"> 古典</label><label><input type="checkbox" name="face" value="個性"> 個性</label><label><input type="checkbox" name="face" value="鄰家"> 鄰家</label><label><input type="checkbox" name="face" value="大眾"> 大眾</label><label><input type="checkbox" name="face" value="平凡"> 平凡</label><label><input type="checkbox" name="face" value="單眼皮"> 單眼皮</label><label><input type="checkbox" name="face" value="輕熟"> 輕熟</label><label><input type="checkbox" name="face" value="熟女"> 熟女</label></div></div> <div class="form-group"><label>氣質（最多選3個）</label><div id="temperamentCheckboxes" class="checkbox-group"><label><input type="checkbox" name="temperament" value="優雅"> 優雅</label><label><input type="checkbox" name="temperament" value="成熟"> 成熟</label><label><input type="checkbox" name="temperament" value="清新"> 清新</label><label><input type="checkbox" name="temperament" value="自然"> 自然</label><label><input type="checkbox" name="temperament" value="禮貌"> 禮貌</label><label><input type="checkbox" name="temperament" value="女友感"> 女友感</label><label><input type="checkbox" name="temperament" value="女人味"> 女人味</label><label><input type="checkbox" name="temperament" value="OL"> OL</label><label><input type="checkbox" name="temperament" value="台妹"> 台妹</label><label><input type="checkbox" name="temperament" value="普通"> 普通</label></div></div> <div class="form-group"><label for="physique">體態</label><select id="physique" name="physique"><option value="">請選擇體態</option><option value="骨感">骨感</option> <option value="瘦">瘦</option> <option value="瘦有肉">瘦有肉</option> <option value="標準">標準</option> <option value="曲線迷人">曲線迷人</option> <option value="瘦偏肉">瘦偏肉</option> <option value="微肉">微肉</option> <option value="棉花糖">棉花糖</option></select></div> <div class="form-group"> <label for="cup">罩杯類型</label><select id="cup" name="cup"><option value="">請選擇類型</option><option value="天然">天然</option><option value="醫美">醫美</option><option value="自體醫美">自體醫美</option><option value="不確定">不確定</option></select> <label for="cup_size" style="margin-top:0.5rem;">罩杯大小</label><select id="cup_size" name="cup_size"><option value="">請選擇大小</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option><option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option><option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option><option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option></select> </div> <div class="form-group"><label for="skin_texture">膚質</label><select id="skin_texture" name="skin_texture"><option value="">請選擇</option> <option value="絲滑">絲滑</option> <option value="還不錯">還不錯</option> <option value="正常">正常</option> <option value="普通">普通</option></select></div> <div class="form-group"><label for="skin_color">膚色</label><select id="skin_color" name="skin_color"><option value="">請選擇</option> <option value="白皙">白皙</option> <option value="偏白">偏白</option> <option value="正常黃">正常黃</option> <option value="偏黃">偏黃</option> <option value="健康黑">健康黑</option></select></div> <div class="form-group"> <label for="music">音樂</label><select id="music" name="music"><option value="">請選擇</option><option value="未詢問">未詢問</option><option value="無此服務">無此服務</option><option value="可加值">可加值</option><option value="自談">自談</option></select> <input type="number" id="music_price" name="music_price" placeholder="請填寫大約金額(數字)" style="display:none; margin-top:0.5rem;" min="0"> </div> <div class="form-group"> <label for="sports">體育</label><select id="sports" name="sports"><option value="">請選擇</option><option value="未詢問">未詢問</option><option value="無此服務">無此服務</option><option value="可加值">可加值</option><option value="自談">自談</option></select> <input type="number" id="sports_price" name="sports_price" placeholder="請填寫大約金額(數字)" style="display:none; margin-top:0.5rem;" min="0"> </div> <div class="form-group"><label>尺度</label><div id="scaleCheckboxes" class="checkbox-group"><label><input type="checkbox" name="scale" value="三光"> 三光</label> <label><input type="checkbox" name="scale" value="兩光"> 兩光</label> <label><input type="checkbox" name="scale" value="LG"> LG</label> <label><input type="checkbox" name="scale" value="親"> 親</label> <label><input type="checkbox" name="scale" value="舔"> 舔</label> <label><input type="checkbox" name="scale" value="伸"> 伸</label> <label><input type="checkbox" name="scale" value="摸"> 摸</label> <label><input type="checkbox" name="scale" value="磨"> 磨</label></div></div> <div class="form-group"><label for="content">心得</label><textarea name="content" id="content" placeholder="請填寫心得" rows="4" required></textarea></div> </form>
+                    </div>
+                    <div class="modal-footer"> <button type="submit" form="reviewForm">提交</button> </div>
+                </div>
+            </div>
+            <div id="pendingListModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"> <h2>待約清單</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="pendingTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div>
+                    <div class="modal-body" data-layout="table">
+                        <section class="top-section"> <div class="photo-area" id="pendingPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="pendingIntroArea"><div class="intro-top"><p id="pendingIntroductionContent">載入中...</p></div></div> </section>
+                        <div class="table-wrapper">
+                            <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
+                            <div class="body-wrapper">
+                                <table class="body-table" id="pendingTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="latestReviewModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"> <h2>最新心得</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="latestReviewTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div>
+                    <div class="modal-body" data-layout="table">
+                        <section class="top-section"> <div class="photo-area" id="latestPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="latestIntroArea"><div class="intro-top"><p id="latestIntroductionContent">載入中...</p></div></div> </section>
+                        <div class="table-wrapper">
+                            <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
+                            <div class="body-wrapper">
+                                <table class="body-table" id="latestReviewTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="noteModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"> <h2 id="noteModalTitle">筆記</h2><button class="close-modal" aria-label="關閉">×</button> </div>
+                    <div class="modal-body">
+                        <form id="noteForm" method="POST" style="display:none;"> {% csrf_token %} <input type="hidden" id="noteAnimalId" name="animal_id" value=""> <input type="hidden" id="currentNoteId" name="note_id" value=""> <div class="form-group"><label for="noteContent">筆記內容</label><textarea name="content" id="noteContent" rows="5" placeholder="請輸入筆記內容" required></textarea></div> </form>
+                        <div id="viewNoteSection" style="display:none;"> <div class="note-box" id="viewNoteContent"></div> </div>
+                    </div>
+                    <div class="modal-footer"> <button type="submit" form="noteForm" id="saveNoteBtn" style="display: none;">儲存筆記</button> <div id="viewNoteButtons" style="display: none;"> <button id="editNoteBtn" class="button-secondary">修改筆記</button> <button id="deleteNoteBtn" class="button-danger" data-animal-id="" style="margin-left: 0.5rem;">刪除筆記</button> </div> </div>
+                </div>
+            </div>
+            <div id="myNotesModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"> <h2>我的筆記</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="myNotesTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div>
+                    <div class="modal-body" data-layout="table">
+                        <section class="top-section"> <div class="photo-area" id="myNotesPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">載入中...</p></div></div> </section>
+                        <nav class="hall-menu" id="myNotesHallMenu"> <a href="#" data-hall-id="all" class="active">全部</a> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} </nav>
+                        <div class="table-wrapper">
+                            <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
+                            <div class="body-wrapper">
+                                <table class="body-table" id="myNotesTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <div id="dailyScheduleModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"> <h2>每日班表</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="dailyAnimalTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div>
+                    <div class="modal-body" data-layout="table">
+                        <section class="top-section"> <div class="photo-area" id="dailyPhotoArea"><p style="color:#888;font-size:0.9rem;">請點擊下方館別載入班表</p></div> <div class="intro-area" id="dailyIntroArea"><div class="intro-top"><p id="dailyIntroductionContent">點擊下方館別載入介紹</p></div></div> </section>
+                        <nav class="hall-menu" id="dailyHallMenu"> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} </nav>
+                        <div class="table-wrapper">
+                            <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
+                            <div class="body-wrapper">
+                                <table class="body-table" id="dailyAnimalTable"> <tbody><tr class="empty-table-message"><td colspan="5">請點擊上方館別載入班表</td></tr></tbody> </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <div id="dailyRecommendationModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"> <h2>每日推薦</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="recommendationTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div>
+                    <div class="modal-body" data-layout="table">
+                        <section class="top-section"> <div class="photo-area" id="recommendationPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="recommendationIntroArea"><div class="intro-top"><p id="recommendationIntroductionContent">載入中...</p></div></div> </section>
+                        <div class="table-wrapper">
+                            <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table>
+                            <div class="body-wrapper">
+                                <table class="body-table" id="recommendationTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="weeklyScheduleModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header"> <h2>每週班表</h2> <button class="close-modal" aria-label="關閉">×</button> </div>
+                    <div class="modal-body">
+                        <nav class="hall-menu" id="weeklyHallMenu"> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} {% if not halls %} <p style="color:#666; padding: 0.5rem 0.75rem;">沒有可選的館別</p> {% endif %} </nav>
+                        <div id="weeklyScheduleImageArea" class="schedule-image-container"> <p>請點擊上方館別查看班表</p> </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 名人堂 Modal 結構 -->
+            <div id="hallOfFameModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <button class="close-modal" aria-label="關閉">×</button>
+                    <div class="modal-header">
+                        <h2><i class="fas fa-crown"></i> 紓壓名人堂</h2>
+                    </div>
+                    <div class="modal-body">
+                        <div class="hof-tabs">
+                             <button class="hof-tab active" data-rank-type="reviews" aria-selected="true"><i class="fas fa-comments"></i> 一般心得</button>
+                             <button class="hof-tab" data-rank-type="stories" aria-selected="false"><i class="fas fa-bolt"></i> 限時動態</button>
+                             <button class="hof-tab" data-rank-type="good_looking" aria-selected="false"><i class="fas fa-thumbs-up"></i> 人帥真好</button>
+                             <button class="hof-tab" data-rank-type="good_to_have_you" aria-selected="false"><i class="fas fa-heart"></i> 有你真好</button>
+                        </div>
+                        <div class="hof-list-container">
+                            <ol id="hallOfFameList">
+                                <li class="loading-message">載入中...</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 個人檔案 Modal 結構 -->
+            <div id="profileModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header">
+                        <h2>個人檔案</h2>
+                        <button class="close-modal" aria-label="關閉">×</button>
+                    </div>
+                    <div class="modal-body" id="profileModalBody">
+                        <div class="profile-loading">載入個人檔案中...</div>
+                    </div>
+                </div>
+            </div>
+            <!-- 找美容師 Modal -->
+            <div id="findBeauticianModal" class="modal" role="dialog" aria-modal="true">
+                {# Added draggable="false" #}
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header">
+                        <h2>尋找美容師</h2>
+                        <div class="header-toggle-notes">
+                            <label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="findBeauticianTable"> <span>顯示筆記</span></label>
+                        </div>
+                        <button class="close-modal" aria-label="關閉">×</button>
+                    </div>
+                    <div class="modal-body" data-layout="table">
+                        <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #eee; background: #f8f9fa;">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <input type="search" id="findBeauticianSearchInput" placeholder="輸入美容師姓名..." style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;">
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem 1rem;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="minHeightInput" style="font-size: 0.8rem; margin-bottom: 0.2rem;">身高 (cm)</label>
+                                    <div style="display: flex; gap: 0.3rem;">
+                                        <input type="number" id="minHeightInput" class="filter-input" placeholder="最低" min="0" style="font-size: 0.9rem; padding: 0.3rem;">
+                                        <span style="line-height: 2.1rem;">-</span>
+                                        <input type="number" id="maxHeightInput" class="filter-input" placeholder="最高" min="0" style="font-size: 0.9rem; padding: 0.3rem;">
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="minWeightInput" style="font-size: 0.8rem; margin-bottom: 0.2rem;">體重 (kg)</label>
+                                    <div style="display: flex; gap: 0.3rem;">
+                                        <input type="number" id="minWeightInput" class="filter-input" placeholder="最低" min="0" style="font-size: 0.9rem; padding: 0.3rem;">
+                                        <span style="line-height: 2.1rem;">-</span>
+                                        <input type="number" id="maxWeightInput" class="filter-input" placeholder="最高" min="0" style="font-size: 0.9rem; padding: 0.3rem;">
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="cupSelectMin" style="font-size: 0.8rem; margin-bottom: 0.2rem;">罩杯</label>
+                                    <div style="display: flex; gap: 0.3rem;">
+                                        <select id="cupSelectMin" class="filter-input" style="font-size: 0.9rem; padding: 0.3rem; height: 2.1rem; flex: 1;">
+                                            <option value="">最低</option>
+                                            <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option><option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option><option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option><option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option>
+                                        </select>
+                                        <span style="line-height: 2.1rem;">-</span>
+                                        <select id="cupSelectMax" class="filter-input" style="font-size: 0.9rem; padding: 0.3rem; height: 2.1rem; flex: 1;">
+                                            <option value="">最高</option>
+                                             <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option><option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option><option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option><option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="minFeeInput" style="font-size: 0.8rem; margin-bottom: 0.2rem;">台費 (元)</label>
+                                    <div style="display: flex; gap: 0.3rem;">
+                                        <input type="number" id="minFeeInput" class="filter-input" placeholder="最低" min="0" step="100" style="font-size: 0.9rem; padding: 0.3rem;">
+                                         <span style="line-height: 2.1rem;">-</span>
+                                        <input type="number" id="maxFeeInput" class="filter-input" placeholder="最高" min="0" step="100" style="font-size: 0.9rem; padding: 0.3rem;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <section class="top-section">
+                            <div class="photo-area" id="findBeauticianPhotoArea">
+                                <p style="color:#888;font-size:0.9rem;">請進行搜尋或篩選</p>
+                            </div>
+                            <div class="intro-area" id="findBeauticianIntroArea">
+                                <div class="intro-top"><p id="findBeauticianIntroductionContent">結果將顯示於下方</p></div>
+                            </div>
+                        </section>
+                        <div class="table-wrapper">
+                            <table class="header-table">
+                                <thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead>
+                            </table>
+                            <div class="body-wrapper">
+                                <table class="body-table" id="findBeauticianTable">
+                                    <tbody>
+                                        <tr class="empty-table-message"><td colspan="5">請輸入姓名或使用篩選器</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <!-- Modal 結束 -->
 
             {# --- 聊天室 Modal --- #}
             {% if user.is_authenticated %}
                 <div id="chatModal" class="modal" role="dialog" aria-modal="true">
-                    {# 使用 _chat_panel.html 模板片段來渲染聊天室內容 #}
-                    {% include "chat/_chat_panel.html" %}
+                    {# Added draggable="false" #}
+                    <div class="modal-content" draggable="false">
+                        <div class="modal-header"> {# Sticky Header #}
+                            <h2>公共聊天室</h2>
+                            <button class="close-modal chat-close-button" aria-label="關閉聊天室">×</button>
+                        </div>
+                        <div id="chat-messages" class="modal-body"> {# Scrollable Body #}
+                            <div class="chat-message system">連接中...</div>
+                        </div>
+                        <div class="chat-input-area modal-footer"> {# Sticky Footer #}
+                            <input type="text" id="chat-message-input" placeholder="輸入訊息..." autocomplete="off" disabled>
+                            <button id="chat-message-submit" disabled><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
                 </div>
             {% endif %}
             {# --- 聊天室 Modal 結束 --- #}
@@ -1046,7 +1157,7 @@
       const csrfToken = getCookie('csrftoken');
     </script>
     <script>
-      // --- myapp 主要 JavaScript 邏輯 (保持不變) ---
+      // --- myapp 主要 JavaScript 邏輯 ---
       document.addEventListener('DOMContentLoaded', function() {
         const bottomOverlay = document.getElementById('bottomOverlay');
         const isLoggedIn = USER_ID !== null;
@@ -1145,7 +1256,7 @@
                       const pendingButton = Array.from(dropdown.querySelectorAll('button')).find(btn => btn.textContent.includes('待約'));
                       if (pendingButton) { pendingButton.textContent = shouldAdd ? "移除待約" : "加入待約"; }
                   }
-                  if (data.message) { /* Don't alert here, causes interruption */ console.log(data.message); }
+                  if (data.message) { alert(data.message); }
               } else {
                   if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
                   alert(data.error || '操作失敗');
@@ -1185,20 +1296,6 @@
                               let noteRow = tbody.querySelector(`tr.note-row[data-animal-id="${currentAnimalId}"]`);
                               let needsReload = !noteRow;
                               if (noteRow) { const noteBox = noteRow.querySelector('.note-box'); if (noteBox) noteBox.textContent = decodedNoteContent; }
-                              else { // If note row doesn't exist, create it (simpler than full reload sometimes)
-                                const dataRow = tbody.querySelector(`tr[data-animal-id="${currentAnimalId}"]:not(.note-row)`);
-                                if(dataRow){
-                                     const newNoteRow = document.createElement('tr');
-                                     newNoteRow.className = 'note-row';
-                                     newNoteRow.dataset.animalId = currentAnimalId;
-                                     newNoteRow.innerHTML = `<td colspan="5"><div class="note-box">${decodedNoteContent}</div></td>`;
-                                     dataRow.parentNode.insertBefore(newNoteRow, dataRow.nextSibling);
-                                     needsReload = false; // No reload needed now
-                                } else {
-                                    needsReload = true; // Data row might not be there, force reload
-                                }
-                              }
-
                               if (needsReload || ['myNotesModal', 'dailyScheduleModal', 'findBeauticianModal'].includes(modalId)) {
                                   if (modalId === 'myNotesModal') { const activeHallLink = openModalElement.querySelector('#myNotesHallMenu a.active'); loadFilteredNotes(activeHallLink ? activeHallLink.dataset.hallId : 'all'); }
                                   else if (modalId === 'dailyScheduleModal') { const activeHallLink = openModalElement.querySelector('#dailyHallMenu a.active'); if (activeHallLink) loadFilteredDailySchedule(activeHallLink.dataset.hallId); }
@@ -1216,8 +1313,7 @@
                       }
                   });
                   if(modal) closeModal(modal);
-                  // alert(data.message || '筆記已儲存'); // Avoid alert
-                  console.log(data.message || '筆記已儲存');
+                  alert(data.message || '筆記已儲存');
               } else { alert(data.error || '儲存失敗'); }
           })
           .catch(err => { console.error("Save/Update Note Error:", err); alert(`儲存筆記時發生錯誤: ${err.message}`); });
@@ -1244,8 +1340,7 @@
                       }
                   });
                   if(modal) closeModal(modal);
-                  // alert(data.message || '筆記已刪除'); // Avoid alert
-                  console.log(data.message || '筆記已刪除');
+                  alert(data.message || '筆記已刪除');
               } else { alert(data.error || '刪除失敗'); }
           })
           .catch(err => { console.error("Delete Note Error:", err); alert(`刪除筆記時發生錯誤: ${err.message}`); }); }
@@ -1294,7 +1389,7 @@
             const submitUrl = (submissionType === 'story') ? "{% url 'myapp:add_story_review' %}" : "{% url 'myapp:add_review' %}";
             fetch(submitUrl, { method: "POST", body: formData, headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'} })
             .then(res => { if (!res.ok) { return res.json().then(err => { let errorMsg = err.error || `伺服器錯誤 ${res.status}`; if (err.errors) { errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', '); } throw new Error(errorMsg); }).catch(() => { throw new Error(`伺服器錯誤 ${res.status}`); }); } return res.json(); })
-            .then(data => { if(data.success) { /* alert(data.message || '提交成功，待審核'); */ console.log(data.message || '提交成功，待審核'); if(modal) closeModal(modal); if (submissionType === 'review') { const latestModal = document.getElementById('latestReviewModal'); if (latestModal && latestModal.style.display === 'block') { loadModalContent('latestReviewModal'); } const recoModal = document.getElementById('dailyRecommendationModal'); if (recoModal && recoModal.style.display === 'block') { loadModalContent('dailyRecommendationModal'); } const scheduleModal = document.getElementById('dailyScheduleModal'); if (scheduleModal && scheduleModal.style.display === 'block') { const activeHallLink = scheduleModal.querySelector('#dailyHallMenu a.active'); if (activeHallLink) { loadFilteredDailySchedule(activeHallLink.dataset.hallId); } } const hofModal = document.getElementById('hallOfFameModal'); if (hofModal && hofModal.style.display === 'block') { loadHallOfFameData(); } } } else { alert(data.error || '提交失敗'); } })
+            .then(data => { if(data.success) { alert(data.message || '提交成功，待審核'); if(modal) closeModal(modal); if (submissionType === 'review') { const latestModal = document.getElementById('latestReviewModal'); if (latestModal && latestModal.style.display === 'block') { loadModalContent('latestReviewModal'); } const recoModal = document.getElementById('dailyRecommendationModal'); if (recoModal && recoModal.style.display === 'block') { loadModalContent('dailyRecommendationModal'); } const scheduleModal = document.getElementById('dailyScheduleModal'); if (scheduleModal && scheduleModal.style.display === 'block') { const activeHallLink = scheduleModal.querySelector('#dailyHallMenu a.active'); if (activeHallLink) { loadFilteredDailySchedule(activeHallLink.dataset.hallId); } } const hofModal = document.getElementById('hallOfFameModal'); if (hofModal && hofModal.style.display === 'block') { loadHallOfFameData(); } } } else { alert(data.error || '提交失敗'); } })
             .catch(err => { console.error(`Submit ${submissionType} Error:`, err); alert(`提交時發生錯誤: ${err.message}`); });
         });
 
@@ -1375,7 +1470,7 @@
         };
         const closeModal = (modalElement) => { if (modalElement && modalElement.id !== 'imageLightbox') { modalElement.style.display = 'none'; const anyModalOpen = document.querySelector('.modal[style*="display: block"]:not(#imageLightbox)'); if (!anyModalOpen) { document.body.style.overflow = ''; } } };
 
-        // --- showStoryDetail function ---
+        // --- showStoryDetail function (修正版 V13) ---
         function showStoryDetail(storyId) {
             const modal = document.getElementById('storyDetailModal'); const headerDiv = document.getElementById('storyDetailHeader'); const contentDiv = document.getElementById('storyDetailContent'); if (!modal || !headerDiv || !contentDiv) return;
             headerDiv.innerHTML = '<div class="story-loading-message">載入動態標頭中...</div>'; contentDiv.innerHTML = '<div class="story-loading-message">載入動態內容中...</div>'; openModal('storyDetailModal');
@@ -1388,6 +1483,7 @@
                     headerDiv.innerHTML = ` <div class="story-detail-header-info"> ${story.animal_photo_url ? `<img src="${story.animal_photo_url}" alt="${story.animal_name}">` : '<span class="placeholder" style="font-size: 2.5rem; color:#ccc;">👤</span>'} <div class="text-info"> <span class="animal-name">${story.animal_name || '未知美容師'}</span> <div> ${story.hall_name ? `<span class="hall-name">${story.hall_name}</span>` : ''} ${story.remaining_time ? `<span class="remaining-time">${story.remaining_time}</span>` : ''} </div> </div> </div> `;
                     const createDetailLine = (label, value) => { if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) return ''; let displayValue = value; if (['臉蛋', '氣質', '尺度'].includes(label) && typeof value === 'string') { displayValue = value.split(',').map(s => s.trim()).filter(s => s).join(', '); } if (label === '罩杯' && typeof value === 'object') { displayValue = `${value.cup || ''}${value.cup && value.cup_size ? ' - ' : ''}${value.cup_size || ''}`.trim(); if (!displayValue) return ''; } if ((label === '音樂' || label === '體育') && typeof value === 'object') { displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim(); if (!displayValue) return ''; } const valueSpan = document.createElement('span'); valueSpan.className = 'review-value'; const decodedDisplayValue = decodeUnicodeEscapes(displayValue); valueSpan.textContent = decodedDisplayValue; return `<div class="review-line"><span class="review-label">${label}:</span>${valueSpan.outerHTML}</div>`; };
                     contentDiv.innerHTML = ` <div class="review-card" data-story-review-id="${story.id}" data-author-id="${story.author_id || 'none'}"> <div class="review-header"> <div class="review-user-info"> <span class="review-user">${story.user_name || '匿名用戶'}</span> ${userTitleSpan} </div> <span class="review-date">發布於 ${story.approved_at_display || '不久前'}</span> </div> <div class="review-body"> ${createDetailLine('年紀', story.age)} ${createDetailLine('顏值', story.looks)} ${createDetailLine('臉蛋', story.face)} ${createDetailLine('氣質', story.temperament)} ${createDetailLine('體態', story.physique)} ${createDetailLine('罩杯', { cup: story.cup, cup_size: story.cup_size })} ${createDetailLine('膚質', story.skin_texture)} ${createDetailLine('膚色', story.skin_color)} ${createDetailLine('音樂', { type: story.music, price: story.music_price })} ${createDetailLine('體育', { type: story.sports, price: story.sports_price })} ${createDetailLine('尺度', story.scale)} ${createDetailLine('心得', story.content)} ${feedbackButtonsHTML} </div> </div> `;
+                                      //                                                                                                                                                                                          ^^^^^^^^^^^^^^^^^^ 修正了這裡使用 story.sports_price
                 } else { throw new Error(data.error || '無法獲取動態詳情'); }
             })
             .catch(error => { console.error("Error loading story detail:", error); headerDiv.innerHTML = `<div class="story-loading-message">錯誤</div>`; contentDiv.innerHTML = `<div class="story-loading-message">無法載入動態內容: ${error.message}</div>`; });
@@ -1456,7 +1552,7 @@
         // --- Debounce function ---
         function debounce(func, wait) { let timeout; return function executedFunction(...args) { const later = () => { clearTimeout(timeout); func(...args); }; clearTimeout(timeout); timeout = setTimeout(later, wait); }; }
 
-        // --- Function to perform the actual search AJAX call ---
+        // --- Function to perform the actual search AJAX call (修正版 V13) ---
         function performBeauticianSearch() {
             const modal = document.getElementById('findBeauticianModal'); if (!modal) return;
             const tbody = modal.querySelector('#findBeauticianTable tbody');
@@ -1492,11 +1588,13 @@
             fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
                 .then(response => {
                     if (!response.ok) {
+                        // 保持之前的錯誤處理邏輯，它本身語法應該沒問題
                         return response.json().catch(() => null).then(errData => {
                             throw new Error(errData?.error || `伺服器錯誤 ${response.status}`);
                         });
                     }
                     const ct = response.headers.get('content-type');
+                    // 修正：先檢查 ct 是否存在，再檢查 includes
                     if (!ct || !ct.includes('application/json')) {
                         throw new TypeError('伺服器未返回 JSON');
                     }
@@ -1605,34 +1703,10 @@
         const dragPreventHandler = (event) => {
             const target = event.target;
             const style = window.getComputedStyle(target);
-            // Check user-select on the element itself and its parents
-            let currentElement = target;
-            let isSelectable = false;
-            while (currentElement && currentElement !== document.body) {
-                const currentStyle = window.getComputedStyle(currentElement);
-                const userSelect = currentStyle.userSelect || currentStyle.webkitUserSelect || currentStyle.mozUserSelect || currentStyle.msUserSelect;
-                if (userSelect === 'text' || userSelect === 'auto' || userSelect === 'element') {
-                    isSelectable = true;
-                    break;
-                }
-                if (userSelect === 'none') {
-                    isSelectable = false;
-                    // Don't necessarily break, parent might allow selection
-                }
-                 currentElement = currentElement.parentElement;
-            }
-
+            const isSelectable = ['text', 'auto'].includes(style.userSelect) || ['text', 'auto'].includes(style.webkitUserSelect);
             const isFormElement = target.closest('input, textarea, select');
-            // Simplify allowed containers check
-            const isSpecificallyAllowedContainer = target.closest('.modal-body[data-layout="table"] .body-table td, .portal-content p, .introduction, .review-value, #viewNoteContent, #chat-messages .chat-message span:not(.chat-message-header):not(.chat-message-time), .note-box, #profileModal .modal-body, .quoted-message-preview');
-
-            if (isFormElement || (isSpecificallyAllowedContainer && isSelectable)) {
-                 /* Allow drag */
-                 // console.log("Drag allowed on:", target);
-            } else {
-                // console.log("Drag prevented on:", target);
-                event.preventDefault();
-            }
+            const isSpecificallyAllowedContainer = target.closest('.body-table td, .portal-content p, .introduction, .review-value, #viewNoteContent, #chat-messages .chat-message, .note-box, #profileModal .modal-body');
+            if (isFormElement || (isSpecificallyAllowedContainer && isSelectable)) { /* Allow drag */ } else { event.preventDefault(); }
         };
         const mainContent = document.querySelector('.content'); if (mainContent) { mainContent.addEventListener('dragstart', dragPreventHandler); mainContent.setAttribute('draggable', 'false'); }
         const modalContents = document.querySelectorAll('.modal-content'); modalContents.forEach(mc => { mc.addEventListener('dragstart', dragPreventHandler); mc.setAttribute('draggable', 'false'); });
@@ -1641,7 +1715,7 @@
         loadActiveStories();
         setInterval(loadActiveStories, 60000);
 
-        console.log("MyApp main script loaded (V18 - Uniform Timestamp/Reply Button)."); // Updated version comment
+        console.log("MyApp main script loaded (V13 - JS Syntax Fix)."); // Updated version number
 
       }); // myapp 的 DOMContentLoaded 結束
     </script>
