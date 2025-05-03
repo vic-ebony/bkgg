@@ -1,298 +1,286 @@
-# D:\bkgg\mybackend\chat\consumers.py (修改後 - 處理和發送引用資訊)
+# D:\bkgg\mybackend\chat\consumers.py (V_Final_Corrected - 使用 'message' 欄位)
 
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.db import database_sync_to_async # <--- 必須導入
-from django.utils import timezone
-from django.conf import settings
 import logging
+from datetime import timedelta
+from collections import defaultdict
 
-# --- 導入我們的聊天模型 ---
-from .models import ChatMessage # <--- 導入模型
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from asgiref.sync import sync_to_async
+from django.db.models import Count, Q # 確保 Q 被導入
 
-logger = logging.getLogger(__name__)
+# --- 模型和工具函數導入 (修改為你的實際路徑) ---
+try:
+    # 假設模型和工具函數都在 'myapp' app 中
+    from myapp.models import Review, StoryReview, UserTitleRule
+    from myapp.utils import get_user_title_from_count
+    # 導入 ChatMessage 模型
+    from chat.models import ChatMessage # 使用你提供的正確路徑
+    MODELS_IMPORTED = True
+    logger = logging.getLogger(__name__)
+    logger.info("Successfully imported models and utils for chat consumer.")
+except ImportError as e:
+    logger = logging.getLogger(__name__)
+    logger.error(f"FATAL: Error importing models/utils in chat/consumers.py: {e}. Chat functionality might be limited.", exc_info=True)
+    MODELS_IMPORTED = False
+    def get_user_title_from_count(count): return None
+    ChatMessage = None # Define as None if import fails
+# --- ------------------------------------ ---
 
-# --- 定義要加載的歷史訊息數量 ---
-HISTORY_MESSAGE_COUNT = 20 # 可以根據需要調整
+User = get_user_model()
 
 class ChatConsumer(AsyncWebsocketConsumer):
-    """
-    處理全域聊天室的 WebSocket 連接，包含訊息儲存、歷史記錄加載和引用回覆。
-    """
     async def connect(self):
-        logger.info(">>> ChatConsumer connect method started.")
-        self.user = self.scope["user"]
-        logger.info(f">>> User attempting connect: {self.user}")
-
-        if not self.user.is_authenticated:
-            logger.warning(">>> Unauthenticated user detected. Closing connection.")
+        self.user = self.scope.get('user')
+        if not self.user or not self.user.is_authenticated:
+            logger.warning("Unauthenticated user connection attempt denied.")
             await self.close()
             return
 
-        self.room_group_name = 'global_chat'
-        self.username = self.user.first_name or self.user.username
-        logger.info(f">>> User '{self.username}' authenticated. Joining group '{self.room_group_name}'.")
+        self.room_group_name = 'public_chat' # Or your group logic
+        logger.info(f"User {self.user.username} connecting to group '{self.room_group_name}'.")
 
-        # 加入群組
         try:
-            await self.channel_layer.group_add(
-                self.room_group_name,
-                self.channel_name
-            )
-            logger.info(f">>> Successfully added channel {self.channel_name} to group {self.room_group_name}.")
+            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         except Exception as e:
-             logger.error(f">>> ERROR adding channel to group: {e}", exc_info=True)
+             logger.error(f"Error adding user {self.user.username} to group '{self.room_group_name}': {e}", exc_info=True)
              await self.close()
              return
 
-        # 接受連接
-        try:
-             await self.accept()
-             logger.info(f">>> WebSocket connection ACCEPTED for user '{self.username}'.")
-        except Exception as e:
-             logger.error(f">>> ERROR accepting WebSocket connection: {e}", exc_info=True)
-             # 嘗試從群組中移除
-             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-             return
-
-        # --- 連接成功後，加載並發送歷史訊息 ---
-        logger.info(f">>> Fetching recent chat history for user '{self.username}'...")
-        try:
-            # (可選) 發送一個系統訊息提示正在加載歷史
-            await self.send(text_data=json.dumps({
-                'type': 'system',
-                'message': '--- 載入最近訊息 ---',
-                'timestamp': timezone.now().isoformat(),
-                # 'message_id': None # 系統訊息通常沒有 ID
-            }))
-
-            recent_messages = await self.fetch_recent_messages()
-            # 按照時間順序 (舊到新) 發送歷史訊息
-            for msg_data in recent_messages:
-                 await self.send(text_data=json.dumps(msg_data))
-
-            logger.info(f">>> Sent {len(recent_messages)} history messages to user '{self.username}'.")
-
-            # (可選) 發送一個系統訊息提示歷史加載完畢
-            await self.send(text_data=json.dumps({
-                'type': 'system',
-                'message': '--- 訊息結束 ---',
-                'timestamp': timezone.now().isoformat(),
-                # 'message_id': None
-            }))
-
-        except Exception as e:
-            logger.error(f">>> ERROR fetching/sending chat history for user '{self.username}': {e}", exc_info=True)
-        # --- 歷史訊息處理結束 ---
-
-
-        # 向群組廣播用戶加入訊息 (放在發送歷史之後，這樣其他人才會看到加入訊息)
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_system_message',
-                'message': f"{self.username} 加入了聊天室。"
-                # 'message_id': None # 系統訊息
-            }
-        )
+        await self.accept()
+        logger.info(f"User {self.user.username} connected successfully.")
+        await self.send_recent_messages() # Send history upon connection
 
     async def disconnect(self, close_code):
-        # ... (disconnect 方法保持不變) ...
-        if hasattr(self, 'user') and self.user.is_authenticated:
-            logger.info(f"User '{self.username}' (ID: {self.user.id}) disconnected from chat group '{self.room_group_name}'. Code: {close_code}")
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'chat_system_message',
-                    'message': f"{self.username} 離開了聊天室。"
-                    # 'message_id': None # 系統訊息
-                }
-            )
-            await self.channel_layer.group_discard(
-                self.room_group_name,
-                self.channel_name
-            )
+        logger.info(f"User {self.user.username if hasattr(self, 'user') and self.user else 'Unknown'} disconnecting (Code: {close_code}).")
+        if hasattr(self, 'room_group_name') and self.room_group_name:
+            try:
+                await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+            except Exception as e:
+                logger.error(f"Error removing user from group '{self.room_group_name}': {e}", exc_info=True)
 
-    async def receive(self, text_data):
-        if not self.user.is_authenticated:
-            logger.warning("Received message from unauthenticated connection. Ignoring.")
-            return
-
+    # --- 異步獲取用戶稱號 ---
+    @sync_to_async
+    def _get_user_title(self, user):
+        if not MODELS_IMPORTED or not user or not user.is_authenticated: return None
         try:
-            text_data_json = json.loads(text_data)
-            message = text_data_json.get('message', '').strip()
-            reply_to_id = text_data_json.get('reply_to_id') # <--- 獲取回覆 ID
-
-            if message:
-                logger.debug(f"Received message from '{self.username}': '{message}' (Reply to: {reply_to_id})")
-
-                # --- 將訊息儲存到資料庫 ---
-                saved_message = await self.save_chat_message(self.user, message, reply_to_id) # <--- 傳遞 reply_to_id
-                if not saved_message:
-                    logger.error(f"Failed to save message from {self.username}. Aborting broadcast.")
-                    # 可以選擇向發送者發送錯誤訊息
-                    await self.send(text_data=json.dumps({
-                        'type': 'system',
-                        'message': '錯誤：訊息儲存失敗，無法發送。',
-                        'timestamp': timezone.now().isoformat()
-                    }))
-                    return
-                # --------------------------
-
-                # 準備廣播數據
-                broadcast_data = {
-                    'type': 'chat_user_message',
-                    'message_id': saved_message.id, # <--- 發送儲存後的訊息 ID
-                    'message': message,
-                    'username': self.username,
-                    'user_id': self.user.id,
-                    'timestamp': saved_message.timestamp.isoformat() # 使用儲存後的時間戳
-                }
-
-                # --- 如果是回覆，附加引用信息 ---
-                if saved_message.reply_to_id:
-                    quoted_details = await self.get_quoted_message_details(saved_message.reply_to_id)
-                    if quoted_details:
-                        broadcast_data['reply_to_id'] = saved_message.reply_to_id
-                        broadcast_data['quoted_username'] = quoted_details['username']
-                        broadcast_data['quoted_message_text'] = quoted_details['message']
-                    else:
-                         # 如果原始訊息找不到了，可以選擇不包含引用信息或發送特定標記
-                         logger.warning(f"Could not find original message {saved_message.reply_to_id} to quote for message {saved_message.id}")
-                         # broadcast_data['reply_to_id'] = saved_message.reply_to_id
-                         # broadcast_data['quoted_username'] = "原始訊息"
-                         # broadcast_data['quoted_message_text'] = "[已刪除]"
-                # -----------------------------
-
-                # 向群組廣播訊息
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    broadcast_data # <--- 發送包含 ID 和引用資訊的數據
-                )
-            else:
-                logger.debug(f"Received empty message from '{self.username}'. Ignoring.")
-
-        except json.JSONDecodeError:
-            logger.warning(f"Received invalid JSON from WebSocket: {text_data}")
+            review_count = Review.objects.filter(user=user, approved=True).count()
+            story_review_count = StoryReview.objects.filter(user=user, approved=True).count()
+            total_count = review_count + story_review_count
+            return get_user_title_from_count(total_count)
         except Exception as e:
-            logger.error(f"Error processing received message from '{self.username}': {e}", exc_info=True)
+            logger.error(f"Error calculating title for user {user.username}: {e}", exc_info=True)
+            return None
+    # --- ------------------- ---
 
-    # --- 訊息處理方法 ---
-    async def chat_system_message(self, event):
-        message = event['message']
-        timestamp = event.get('timestamp', timezone.now().isoformat())
-        await self.send(text_data=json.dumps({
-            'type': 'system',
-            'message': message,
-            'timestamp': timestamp,
-            'message_id': event.get('message_id') # 通常為 None
-        }))
-
-    async def chat_user_message(self, event):
-        """處理從 group_send 過來的用戶訊息事件"""
-        await self.send(text_data=json.dumps({
-            'type': 'user',
-            'message_id': event['message_id'], # <--- 包含 message_id
-            'message': event['message'],
-            'username': event['username'],
-            'user_id': event['user_id'],
-            'timestamp': event['timestamp'],
-            # --- 如果是回覆，包含引用信息 ---
-            'reply_to_id': event.get('reply_to_id'),
-            'quoted_username': event.get('quoted_username'),
-            'quoted_message_text': event.get('quoted_message_text'),
-            # -----------------------------
-        }))
-
-    # --- 修改：從資料庫讀取歷史訊息的方法，包含引用處理 ---
-    @database_sync_to_async
-    def fetch_recent_messages(self):
-        """
-        異步地從資料庫獲取最近的 N 條聊天訊息，包含引用資訊。
-        """
-        messages_data = []
+    # --- 異步獲取引用信息 (使用 'message' 欄位) ---
+    @sync_to_async
+    def _get_quoted_message_info(self, message_id):
+        """獲取被引用訊息的用戶名和文本片段"""
+        if not ChatMessage: return None
         try:
-            # 查詢最近的 N 條訊息，按時間倒序排列，並預先加載 user 和 reply_to.user
-            # 使用 prefetch_related 來優化 ForeignKey 的反向查找 (如果需要顯示誰回覆了某條訊息)
-            # 使用 select_related 來優化 ForeignKey 的正向查找 (user, reply_to)
-            recent_messages_qs = ChatMessage.objects.select_related(
-                'user', 'reply_to', 'reply_to__user' # 優化 reply_to 的 user 查找
-            ).order_by('-timestamp')[:HISTORY_MESSAGE_COUNT]
-
-            # 將查詢結果轉換為列表並反轉，得到按時間正序排列的訊息
-            recent_messages_list = reversed(list(recent_messages_qs))
-
-            for msg in recent_messages_list:
-                # 格式化每條訊息
-                username = msg.user.first_name or msg.user.username if msg.user else "未知用戶"
-                msg_entry = {
-                    'type': 'user', # 歷史訊息也標記為 user 類型
-                    'message_id': msg.id, # <--- 添加 message_id
-                    'message': msg.message,
-                    'username': username,
-                    'user_id': msg.user.id if msg.user else None,
-                    'timestamp': msg.timestamp.isoformat()
-                }
-
-                # --- 處理引用的訊息 ---
-                if msg.reply_to: # 檢查 reply_to 是否存在
-                    replied_to_msg = msg.reply_to # 因為 select_related，這裡不會再觸發 DB 查詢
-                    if replied_to_msg:
-                        quoted_username = replied_to_msg.user.first_name or replied_to_msg.user.username if replied_to_msg.user else "未知用戶"
-                        # 截斷訊息
-                        quoted_snippet = (replied_to_msg.message[:30] + '...') if len(replied_to_msg.message) > 30 else replied_to_msg.message
-                        msg_entry['reply_to_id'] = replied_to_msg.id
-                        msg_entry['quoted_username'] = quoted_username
-                        msg_entry['quoted_message_text'] = quoted_snippet
-                    else:
-                         # 理論上 select_related 後 reply_to 不會是 None，但以防萬一
-                         logger.warning(f"History message {msg.id} has reply_to_id {msg.reply_to_id} but reply_to object is None.")
-                # -----------------------
-
-                messages_data.append(msg_entry)
-
-            logger.debug(f"Fetched {len(messages_data)} recent messages from DB.")
+            message = ChatMessage.objects.select_related('user').get(pk=message_id)
+            username = message.user.first_name or message.user.username if message.user else '未知用戶'
+            # *** 使用正確的 'message' 欄位 ***
+            raw_text = message.message or '' # <--- 使用 'message'
+            # *** ------------------------ ***
+            text_snippet = ' '.join(raw_text.splitlines())
+            text_snippet = (text_snippet[:30] + '...') if len(text_snippet) > 30 else text_snippet
+            logger.debug(f"Quote info found: User='{username}', Snippet='{text_snippet}'")
+            return {'username': username, 'text': text_snippet}
+        except ChatMessage.DoesNotExist:
+            logger.warning(f"Quoted message ID {message_id} not found.")
+            return None
         except Exception as e:
-            logger.error(f"Error fetching recent messages: {e}", exc_info=True)
-            # 出錯時返回空列表，避免影響連接
-            messages_data = []
-        return messages_data
+            logger.error(f"Error fetching quoted message info for ID {message_id}: {e}", exc_info=True)
+            return None
+    # --- ------------------------------------ ---
 
-    # --- 修改：儲存訊息到資料庫的方法，包含 reply_to ---
-    @database_sync_to_async
-    def save_chat_message(self, user, message, reply_to_id=None):
-        """
-        異步地將聊天訊息儲存到資料庫，包含處理 reply_to_id。
-        返回儲存的 ChatMessage 物件，如果失敗則返回 None。
-        """
+    # --- 異步保存訊息到數據庫 (使用 'message' 欄位) ---
+    @sync_to_async
+    def _save_message_to_db(self, user, content, reply_to_id=None):
+        """保存聊天訊息到數據庫"""
+        if not ChatMessage: return None
         try:
             reply_to_instance = None
             if reply_to_id:
                 try:
-                    reply_to_instance = ChatMessage.objects.get(id=reply_to_id)
+                    reply_to_instance = ChatMessage.objects.get(pk=reply_to_id)
                 except ChatMessage.DoesNotExist:
-                    logger.warning(f"User {user.username} tried to reply to non-existent message ID {reply_to_id}. Storing message without reply.")
-                    reply_to_id = None # 清除無效的 ID
+                    logger.warning(f"Cannot save reply: Original message ID {reply_to_id} not found.")
+                    reply_to_id = None # Option: Save without reply link
 
-            # 創建訊息，確保時間戳由 default=timezone.now 生成
-            new_message = ChatMessage.objects.create(
+            # *** 使用正確的 'message' 欄位名 ***
+            message = ChatMessage.objects.create(
                 user=user,
-                message=message,
-                reply_to=reply_to_instance # 傳遞查詢到的實例或 None
+                message=content, # <--- 使用 'message'
+                reply_to=reply_to_instance
             )
-            logger.debug(f"Saved message from {user.username} to DB (ID: {new_message.id}, Reply to: {reply_to_id}).")
-            return new_message # 返回創建的物件
+            # *** ------------------------ ***
+            logger.info(f"Saved message ID {message.id} for user {user.username}")
+            return message
         except Exception as e:
-            logger.error(f"Failed to save chat message for {user.username}: {e}", exc_info=True)
-            return None # 失敗時返回 None
+            logger.error(f"Error saving message for user {user.username}: {e}", exc_info=True)
+            return None
+    # --- ------------------------------- ---
 
-    # --- 新增：從資料庫獲取引用訊息詳情的方法 (已移至 Model 中作為靜態方法) ---
-    @database_sync_to_async
-    def get_quoted_message_details(self, message_id):
-        """
-        異步地獲取引用訊息的詳情。
-        使用模型的靜態方法。
-        """
-        return ChatMessage.get_quoted_message_details(message_id)
+    async def receive(self, text_data):
+        if not self.user or not self.user.is_authenticated: return
+        try:
+            text_data_json = json.loads(text_data)
+            message_type = text_data_json.get('type')
+            logger.debug(f"Received data from {self.user.username}: {text_data_json}")
 
-# --- Consumer 結束 ---
+            if message_type == 'request_recent_messages':
+                 logger.info(f"User {self.user.username} requested recent messages.")
+                 await self.send_recent_messages()
+                 return
+
+            # --- 處理普通聊天訊息 ---
+            message_content = text_data_json.get('message', '').strip()
+            reply_to_id = text_data_json.get('reply_to_id')
+
+            if message_content:
+                user_title = await self._get_user_title(self.user)
+
+                quoted_username = None; quoted_message_text = None
+                if reply_to_id:
+                    quoted_info = await self._get_quoted_message_info(reply_to_id)
+                    if quoted_info:
+                        quoted_username = quoted_info.get('username')
+                        quoted_message_text = quoted_info.get('text')
+
+                # --- 保存新訊息到數據庫 ---
+                new_message_instance = await self._save_message_to_db(self.user, message_content, reply_to_id)
+                message_id_for_broadcast = new_message_instance.id if new_message_instance else f"live_{timezone.now().timestamp()}"
+                # --- -------------------- ---
+                timestamp_for_broadcast = timezone.now().isoformat()
+
+                message_data = {
+                    'type': 'user',
+                    'message_id': message_id_for_broadcast,
+                    'message': message_content,
+                    'username': self.user.first_name or self.user.username,
+                    'user_id': self.user.id,
+                    'timestamp': timestamp_for_broadcast,
+                    'user_title': user_title,
+                    'reply_to_id': reply_to_id,
+                    'quoted_username': quoted_username,
+                    'quoted_message_text': quoted_message_text,
+                }
+
+                # --- 廣播訊息 ---
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {'type': 'broadcast_message', 'message_data': message_data}
+                )
+                logger.info(f"Message from {self.user.username} broadcasted.")
+            else:
+                 logger.warning(f"Received empty message from {self.user.username}.")
+
+        except json.JSONDecodeError: logger.error(f"Failed to decode JSON: {text_data}", exc_info=True)
+        except KeyError as e: logger.error(f"Missing key in JSON: {e}. Data: {text_data}", exc_info=True)
+        except Exception as e: logger.error(f"Error in receive: {e}. Data: {text_data}", exc_info=True)
+
+    async def broadcast_message(self, event):
+        message_data = event.get('message_data')
+        if message_data:
+            try:
+                await self.send(text_data=json.dumps(message_data))
+            except Exception as e:
+                 logger.error(f"Error sending message in broadcast_message: {e}", exc_info=True)
+
+    # --- 獲取歷史訊息 (使用 'message' 欄位) ---
+    @sync_to_async
+    def _get_recent_messages_from_db_with_titles(self, limit=50):
+        """獲取最近的聊天記錄，並為每個發言者附加稱號。"""
+        if not MODELS_IMPORTED or not ChatMessage: return []
+        logger.info(f"Fetching recent messages with titles (limit {limit})...")
+        try:
+            # --- 1. 獲取最近的訊息 ---
+            recent_messages_qs = ChatMessage.objects.order_by('-timestamp').select_related('user', 'reply_to', 'reply_to__user')[:limit]
+            recent_messages = list(recent_messages_qs)
+            # --- -------------------- ---
+            if not recent_messages: return []
+
+            # --- 2. 提取用戶 ID ---
+            user_ids = {msg.user.id for msg in recent_messages if msg.user}
+            # --- ---------------- ---
+
+            # --- 3. 批量計算稱號 ---
+            user_titles_map = {}
+            if user_ids:
+                try:
+                    review_counts = Review.objects.filter(user_id__in=user_ids, approved=True).values('user_id').annotate(count=Count('id'))
+                    story_counts = StoryReview.objects.filter(user_id__in=user_ids, approved=True).values('user_id').annotate(count=Count('id'))
+                    user_total_counts = defaultdict(int)
+                    for item in review_counts: user_total_counts[item['user_id']] += item['count']
+                    for item in story_counts: user_total_counts[item['user_id']] += item['count']
+                    for user_id in user_ids:
+                        total_count = user_total_counts.get(user_id, 0)
+                        user_titles_map[user_id] = get_user_title_from_count(total_count)
+                    logger.debug(f"Bulk calculated titles for history: {user_titles_map}")
+                except Exception as e:
+                    logger.error(f"Error calculating titles in bulk for history: {e}", exc_info=True)
+            # --- ----------------- ---
+
+            # --- 4. 格式化訊息 (使用 'message' 欄位) ---
+            formatted_messages = []
+            for msg in reversed(recent_messages): # 從舊到新
+                user_title = user_titles_map.get(msg.user.id) if msg.user else None
+                username = msg.user.first_name or msg.user.username if msg.user else '未知用戶'
+
+                # --- 處理引用信息 (使用 'message' 欄位) ---
+                quoted_username = None; quoted_message_text = None; reply_to_id = None
+                if msg.reply_to:
+                    reply_to_id = msg.reply_to.id
+                    quoted_username = msg.reply_to.user.first_name or msg.reply_to.user.username if msg.reply_to.user else '未知用戶'
+                    # *** 使用正確的 'message' 欄位 ***
+                    raw_quote_text = msg.reply_to.message or '' # <--- 使用 'message'
+                    # *** ------------------------ ---
+                    temp_snippet = ' '.join(raw_quote_text.splitlines())
+                    quoted_message_text = (temp_snippet[:30] + '...') if len(temp_snippet) > 30 else temp_snippet
+                # --- --------------------------------- ---
+
+                formatted_messages.append({
+                    'type': 'user',
+                    'message_id': msg.id,
+                    # *** 使用正確的 'message' 欄位 ***
+                    'message': msg.message, # <--- 使用 'message'
+                    # *** ------------------------ ---
+                    'username': username,
+                    'user_id': msg.user.id if msg.user else None,
+                    'timestamp': msg.timestamp.isoformat(),
+                    'user_title': user_title,
+                    'reply_to_id': reply_to_id,
+                    'quoted_username': quoted_username,
+                    'quoted_message_text': quoted_message_text,
+                })
+            logger.info(f"Formatted {len(formatted_messages)} historical messages.")
+            return formatted_messages
+        except Exception as e:
+             logger.error(f"Error in _get_recent_messages_from_db_with_titles: {e}", exc_info=True)
+             return []
+    # --- ---------------------------------------- ---
+
+    async def send_recent_messages(self):
+        """異步調用獲取並發送歷史訊息的函數"""
+        logger.info(f"Sending recent messages to {self.user.username}...")
+        try:
+            formatted_messages = await self._get_recent_messages_from_db_with_titles()
+            await self.send(text_data=json.dumps({
+                'type': 'message_history',
+                'messages': formatted_messages
+            }))
+            logger.info(f"Sent message_history ({len(formatted_messages)} messages) to {self.user.username}")
+        except Exception as e:
+            logger.error(f"Error in send_recent_messages for {self.user.username}: {e}", exc_info=True)
+            try:
+                await self.send(text_data=json.dumps({
+                    'type': 'system', 'message': '載入歷史訊息時發生錯誤。',
+                    'timestamp': timezone.now().isoformat()
+                }))
+            except Exception: pass
+    # --- -------------------------- ---

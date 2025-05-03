@@ -1,4 +1,4 @@
-{# D:\bkgg\mybackend\myapp\templates\myapp\index.html (完整修改版 V18 - Uniform Timestamp/Reply Button) #}
+{# D:\bkgg\mybackend\myapp\templates\myapp\index.html (完整優化版 V20 - Refactored Views/URLs) #}
 {% load static %}
 {% load my_filters %} {# 確保你的自訂過濾器已載入 #}
 <!DOCTYPE html>
@@ -209,7 +209,7 @@
     .modal-body[data-layout="table"] .intro-top p, /* Top intro paragraph */
     .review-card .review-body, /* Review content area */
     #noteModal #viewNoteContent, /* Note view area */
-    #chat-messages .chat-message span:not(.chat-message-header):not(.chat-message-time), /* Allow selecting message text span */
+    #chat-messages .chat-message span:not(.chat-message-header):not(.chat-message-time):not(.chat-user-title), /* Allow selecting message text span, exclude title */
     #chat-messages .quoted-message-preview, /* Allow selecting quote preview */
     #profileModal .modal-body /* Allow selecting profile text */
     {
@@ -652,7 +652,7 @@
     .profile-error { color: #dc3545; font-style: normal; font-weight: bold; }
     /* --- 個人檔案樣式結束 --- */
 
-    /* --- 聊天室相關樣式 (恢復 V13 佈局 + 保留 V14 引用) --- */
+    /* --- 聊天室相關樣式 --- */
     #chat-toggle-button {
         margin-left: 0.5rem; padding: 0.4rem 0.6rem; position: relative;
     }
@@ -660,31 +660,29 @@
         position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; background-color: red; border-radius: 50%; display: none;
     }
 
-    /* --- 聊天訊息主要樣式 (V13 原始 - inline-flex + align-self) --- */
+    /* --- 聊天訊息主要樣式 (inline-flex + align-self) --- */
     #chat-messages .chat-message {
-      display: inline-flex !important; /* **恢復使用 inline-flex** */
-      flex-direction: column;         /* 內部元素垂直排列 */
-      align-items: flex-start;        /* 內部元素預設靠左對齊 */
-      inline-size: 85% !important;    /* 訊息寬度佔父容器的85% */
-      max-inline-size: 85% !important;/* 最大寬度 */
-      padding: 0.5rem 0.75rem;       /* 內邊距 */
-      border-radius: 15px;           /* 圓角 */
-      margin-bottom: 0.5rem;         /* 訊息間距 */
-      position: relative;            /* 相對定位 for reply btn */
-      box-sizing: border-box;        /* padding/border計入寬度 */
-      padding-bottom: 28px;          /* *** 為下方的 reply 按鈕和時間戳留出空間 *** */
-
-      /* --- 重要的換行規則 (保持不變) --- */
+      display: inline-flex !important;
+      flex-direction: column;
+      align-items: flex-start;
+      inline-size: 85% !important;
+      max-inline-size: 85% !important;
+      padding: 0.5rem 0.75rem;
+      border-radius: 15px;
+      margin-bottom: 0.5rem;
+      position: relative; /* Crucial for absolute positioning children */
+      box-sizing: border-box;
+      padding-bottom: 28px; /* Space for timestamp and reply button */
       white-space: normal !important;
       overflow-wrap: break-word !important;
-      word-break: normal !important; /* 依賴 overflow-wrap */
+      word-break: normal !important;
       line-break: auto;
     }
 
     .chat-message.user {
       background-color: #e0f7fa;
       border: 1px solid #bce8f1;
-      align-self: flex-start; /* **其他用戶訊息靠左** */
+      align-self: flex-start; /* Other users' messages align left */
       border-bottom-left-radius: 3px;
       text-align: left;
     }
@@ -692,16 +690,16 @@
     .chat-message.user.mine {
       background-color: #d4edda;
       border: 1px solid #c3e6cb;
-      align-self: flex-end; /* **自己的訊息氣泡靠右** */
+      align-self: flex-end; /* Your messages align right */
       border-bottom-right-radius: 3px;
       border-bottom-left-radius: 15px;
-      text-align: left; /* 文字本身還是靠左 */
+      text-align: left;
     }
 
-    /* 系統訊息樣式 (基本不變，確保 align-self: center) */
+    /* 系統訊息樣式 */
     .chat-message.system {
       font-style: italic; color: #888; text-align: center; background: none; font-size: 0.85rem;
-      align-self: center; /* **系統訊息居中** */
+      align-self: center; /* System messages centered */
       margin-top: 0.5rem; margin-bottom: 0.5rem; padding: 0.2rem 0.5rem;
       border: none;
       border-radius: 0;
@@ -714,33 +712,55 @@
       word-break: normal !important;
       white-space: normal !important;
       line-break: auto !important;
-      padding-bottom: 0.2rem; /* 系統訊息不需要底部 padding */
-      position: static; /* 系統訊息不需要相對定位 */
+      padding-bottom: 0.2rem; /* System messages don't need extra padding */
+      position: static; /* No absolute positioning needed */
     }
-    /* --- V13 聊天訊息對齊樣式結束 --- */
 
-    /* 訊息頭部樣式 (保持不變) */
-    .chat-message-header {
-        display: block; font-size: 0.8rem; font-weight: bold; color: #555; margin-bottom: 0.2rem;
+    /* *** 訊息頭部 (Username + Title) 容器樣式 *** */
+    .chat-message-header-container {
+        display: flex; /* Use flex to align username and title */
+        align-items: baseline; /* Align text along their baseline */
+        margin-bottom: 0.2rem; /* Spacing below header */
         word-break: inherit;
         overflow-wrap: inherit;
+        flex-wrap: wrap; /* Allow title to wrap below name if needed */
     }
+    /* 用戶名樣式 */
+    .chat-message-header {
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: #555;
+        margin-right: 0.4em; /* Space between name and title */
+        /* No margin-bottom needed here now */
+    }
+    /* *** 新增：用戶稱號樣式 *** */
+    .chat-user-title {
+        font-size: 0.7em; /* Smaller than username */
+        font-weight: normal;
+        color: #007bff; /* Blue color, adjust as needed */
+        /* Optional styling: */
+         background-color: rgba(0, 123, 255, 0.1); /* Light blue background */
+         padding: 0.05em 0.4em; /* Small padding */
+         border-radius: 8px; /* Rounded corners */
+         border: 1px solid rgba(0, 123, 255, 0.3); /* Light blue border */
+        white-space: nowrap; /* Prevent title from wrapping */
+        vertical-align: baseline; /* Align with username */
+        line-height: 1; /* Prevent affecting line height */
+        display: inline-block; /* Needed for padding/border */
+    }
+    /* ****************************** */
 
     /* *** 修改：訊息時間樣式 (統一靠左) *** */
     .chat-message-time {
         font-size: 0.7rem; color: #aaa;
-        position: absolute; /* 絕對定位 */
-        bottom: 5px;        /* 定位到底部偏上 */
-        left: 10px;         /* *** 始終定位到左側 *** */
-        /* right: auto; */    /* 確保右側定位被移除 */
+        position: absolute;
+        bottom: 5px;
+        left: 10px; /* Always position to the left */
+        /* right: auto; */ /* Ensure right alignment is removed */
     }
     /* *** 移除：針對 .mine 的時間戳覆蓋規則 *** */
-    /*
-    .chat-message.mine .chat-message-time {
-         left: auto;
-         right: 10px;
-    }
-    */
+    /* .chat-message.mine .chat-message-time { ... } */
+
 
     /* 輸入框和按鈕樣式 (保持不變) */
     #chat-message-input {
@@ -755,16 +775,15 @@
     #chat-message-submit .fas { vertical-align: middle; }
     /* --- 聊天室樣式結束 --- */
 
-    /* --- 引用回覆相關樣式 (保留 V14) --- */
-
+    /* --- 引用回覆相關樣式 (保持不變) --- */
     /* 引用訊息在輸入框上方的預覽樣式 */
     #reply-quote-display {
         background-color: #f0f0f0;
         padding: 0.3rem 0.6rem;
         border-radius: 5px;
         border: 1px solid #ddd;
-        margin-bottom: 0.4rem; /* 與下方輸入區的間距 */
-        display: none; /* **改為預設隱藏** */
+        margin-bottom: 0.4rem;
+        display: none; /* Default hidden */
         justify-content: space-between;
         align-items: center;
         font-size: 0.85rem;
@@ -772,8 +791,6 @@
         width: 100%;
         box-sizing: border-box;
     }
-     /* JS 會將 display 改為 flex 來顯示 */
-
     #reply-quote-display .reply-quote-content {
         flex-grow: 1;
         overflow: hidden;
@@ -781,34 +798,15 @@
         text-overflow: ellipsis;
         margin-right: 0.5rem;
     }
-    #reply-quote-display .reply-quote-label {
-        color: #777;
-    }
-    #reply-quote-display .reply-quote-user {
-        color: #333;
-        font-weight: bold;
-    }
-    #reply-quote-display .reply-quote-text {
-        color: #444;
-        margin-left: 0.3em;
-    }
-
+    #reply-quote-display .reply-quote-label { color: #777; }
+    #reply-quote-display .reply-quote-user { color: #333; font-weight: bold; }
+    #reply-quote-display .reply-quote-text { color: #444; margin-left: 0.3em; }
     #reply-quote-display .cancel-reply-btn {
-        background: none;
-        border: none;
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: #aaa;
-        cursor: pointer;
-        padding: 0 0.3rem;
-        line-height: 1;
-        flex-shrink: 0;
+        background: none; border: none; font-size: 1.2rem; font-weight: bold;
+        color: #aaa; cursor: pointer; padding: 0 0.3rem; line-height: 1; flex-shrink: 0;
     }
-    #reply-quote-display .cancel-reply-btn:hover {
-        color: #666;
-    }
-
-    /* 在聊天訊息中顯示的引用預覽 (保持不變) */
+    #reply-quote-display .cancel-reply-btn:hover { color: #666; }
+    /* 在聊天訊息中顯示的引用預覽 */
     .quoted-message-preview {
         border-left: 3px solid #adb5bd;
         background-color: rgba(0, 0, 0, 0.04);
@@ -823,65 +821,34 @@
         cursor: pointer;
         transition: background-color 0.2s;
     }
-    .quoted-message-preview:hover {
-        background-color: rgba(0, 0, 0, 0.08);
-    }
-
-    .quoted-message-preview .quoted-user {
-        font-weight: bold;
-        color: #555;
-        display: block;
-        margin-bottom: 0.1rem;
-    }
-
+    .quoted-message-preview:hover { background-color: rgba(0, 0, 0, 0.08); }
+    .quoted-message-preview .quoted-user { font-weight: bold; color: #555; display: block; margin-bottom: 0.1rem; }
     .quoted-message-preview .quoted-text {
-        color: #777;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        line-height: 1.3;
+        color: #777; display: -webkit-box; -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;
     }
     /* --- 引用回覆樣式結束 --- */
 
     /* --- 修改：聊天訊息內聯回覆按鈕樣式 (統一靠右) --- */
     .chat-message .reply-trigger-btn {
-        position: absolute; /* 相對於 .chat-message 定位 */
-        bottom: 4px;       /* 距離底部 */
-        right: 8px;        /* *** 始終定位到右側 *** */
-        /* left: auto; */     /* 確保左側定位被移除 */
-        background: rgba(0, 0, 0, 0.05); /* 半透明背景 */
+        position: absolute;
+        bottom: 4px;
+        right: 8px; /* Always position to the right */
+        /* left: auto; */ /* Ensure left positioning is removed */
+        background: rgba(0, 0, 0, 0.05);
         border: 1px solid rgba(0, 0, 0, 0.1);
-        border-radius: 50%; /* 圓形 */
-        width: 22px;       /* 寬度 */
-        height: 22px;      /* 高度 */
-        padding: 0;        /* 無內邊距 */
-        display: inline-flex; /* 使用 flex 居中圖標 */
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #666;       /* 圖標顏色 */
-        font-size: 0.8rem; /* 圖標大小 */
-        opacity: 0.6;      /* 預設透明度 */
+        border-radius: 50%;
+        width: 22px; height: 22px; padding: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+        cursor: pointer; color: #666; font-size: 0.8rem;
+        opacity: 0.6;
         transition: opacity 0.2s, background-color 0.2s, color 0.2s;
         z-index: 1;
     }
     /* *** 移除：針對 .mine 的回覆按鈕覆蓋規則 *** */
-    /*
-    .chat-message.mine .reply-trigger-btn {
-        right: auto;
-        left: 8px;
-    }
-    */
-    .chat-message:hover .reply-trigger-btn {
-        opacity: 1; /* 懸停時完全顯示 */
-        background-color: rgba(0, 0, 0, 0.1);
-    }
-    .reply-trigger-btn:active {
-        background-color: rgba(0, 0, 0, 0.15);
-        transform: scale(0.95);
-    }
+    /* .chat-message.mine .reply-trigger-btn { ... } */
+    .chat-message:hover .reply-trigger-btn { opacity: 1; background-color: rgba(0, 0, 0, 0.1); }
+    .reply-trigger-btn:active { background-color: rgba(0, 0, 0, 0.15); transform: scale(0.95); }
     /* --- 內聯回覆按鈕樣式結束 --- */
 
   </style>
@@ -995,20 +962,33 @@
              {% endif %}
 
             <!-- Modals -->
-            {# ... (所有其他 Modal 保持不變) ... #}
+            {# --- Login Modal --- #}
             <div id="loginModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"><h2>會員登入</h2><button class="close-modal" aria-label="關閉">×</button></div> <div class="modal-body"> <form id="loginForm" action="{% url 'myapp:login' %}" method="POST"> {% csrf_token %} <div class="form-group"><label for="username">帳號：</label><input type="text" id="username" name="username" placeholder="請輸入帳號" required></div> <div class="form-group"><label for="password">密碼：</label><input type="password" id="password" name="password" placeholder="請輸入密碼" required></div> <button type="submit">登入</button> </form> </div> </div> </div>
+            {# --- Review List Modal --- #}
             <div id="reviewModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"><h2>心得評論</h2><button class="close-modal" aria-label="關閉">×</button></div> <div class="modal-body"> <div id="reviewList"><p>載入中...</p></div> </div> </div> </div>
+            {# --- Story Detail Modal --- #}
             <div id="storyDetailModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>限時動態心得</h2><button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body"> <div id="storyDetailHeader"><div class="story-loading-message">載入中...</div></div> <div id="storyDetailContent"></div> </div> </div> </div>
+            {# --- Review/Story Submit Modal --- #}
             <div id="reviewSubmitModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2 id="reviewSubmitModalTitle">填寫心得</h2><button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body"> <form id="reviewForm"> {% csrf_token %} <input type="hidden" name="submission_type" id="submissionType" value="review"> <input type="hidden" name="animal_id" value=""> <div class="form-group"><label for="age">年紀</label><input type="number" id="age" name="age" placeholder="請輸入大約年紀數字, 不可有中文字"></div> <div class="form-group"><label for="looks">顏值</label><select id="looks" name="looks"><option value="">請選擇</option><option value="S級 (一見難忘)">S級 (一見難忘)</option><option value="A級 (出眾)">A級 (出眾)</option><option value="B級 (優異)">B級 (優異)</option><option value="C級 (中上)">C級 (中上)</option><option value="D級 (大眾)">D級 (大眾)</option><option value="E級 (較平凡)">E級 (較平凡)</option></select></div> <div class="form-group"><label>臉蛋（最多選3個）</label><div id="faceCheckboxes" class="checkbox-group"><label><input type="checkbox" name="face" value="醫美"> 醫美</label><label><input type="checkbox" name="face" value="可愛"> 可愛</label><label><input type="checkbox" name="face" value="甜美"> 甜美</label><label><input type="checkbox" name="face" value="稚嫩"> 稚嫩</label><label><input type="checkbox" name="face" value="呆萌"> 呆萌</label><label><input type="checkbox" name="face" value="清秀"> 清秀</label><label><input type="checkbox" name="face" value="清純"> 清純</label><label><input type="checkbox" name="face" value="仙氣"> 仙氣</label><label><input type="checkbox" name="face" value="艷麗"> 艷麗</label><label><input type="checkbox" name="face" value="性感"> 性感</label><label><input type="checkbox" name="face" value="古典"> 古典</label><label><input type="checkbox" name="face" value="個性"> 個性</label><label><input type="checkbox" name="face" value="鄰家"> 鄰家</label><label><input type="checkbox" name="face" value="大眾"> 大眾</label><label><input type="checkbox" name="face" value="平凡"> 平凡</label><label><input type="checkbox" name="face" value="單眼皮"> 單眼皮</label><label><input type="checkbox" name="face" value="輕熟"> 輕熟</label><label><input type="checkbox" name="face" value="熟女"> 熟女</label></div></div> <div class="form-group"><label>氣質（最多選3個）</label><div id="temperamentCheckboxes" class="checkbox-group"><label><input type="checkbox" name="temperament" value="優雅"> 優雅</label><label><input type="checkbox" name="temperament" value="成熟"> 成熟</label><label><input type="checkbox" name="temperament" value="清新"> 清新</label><label><input type="checkbox" name="temperament" value="自然"> 自然</label><label><input type="checkbox" name="temperament" value="禮貌"> 禮貌</label><label><input type="checkbox" name="temperament" value="女友感"> 女友感</label><label><input type="checkbox" name="temperament" value="女人味"> 女人味</label><label><input type="checkbox" name="temperament" value="OL"> OL</label><label><input type="checkbox" name="temperament" value="台妹"> 台妹</label><label><input type="checkbox" name="temperament" value="普通"> 普通</label></div></div> <div class="form-group"><label for="physique">體態</label><select id="physique" name="physique"><option value="">請選擇體態</option><option value="骨感">骨感</option> <option value="瘦">瘦</option> <option value="瘦有肉">瘦有肉</option> <option value="標準">標準</option> <option value="曲線迷人">曲線迷人</option> <option value="瘦偏肉">瘦偏肉</option> <option value="微肉">微肉</option> <option value="棉花糖">棉花糖</option></select></div> <div class="form-group"> <label for="cup">罩杯類型</label><select id="cup" name="cup"><option value="">請選擇類型</option><option value="天然">天然</option><option value="醫美">醫美</option><option value="自體醫美">自體醫美</option><option value="不確定">不確定</option></select> <label for="cup_size" style="margin-top:0.5rem;">罩杯大小</label><select id="cup_size" name="cup_size"><option value="">請選擇大小</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option><option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option><option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option><option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option></select> </div> <div class="form-group"><label for="skin_texture">膚質</label><select id="skin_texture" name="skin_texture"><option value="">請選擇</option> <option value="絲滑">絲滑</option> <option value="還不錯">還不錯</option> <option value="正常">正常</option> <option value="普通">普通</option></select></div> <div class="form-group"><label for="skin_color">膚色</label><select id="skin_color" name="skin_color"><option value="">請選擇</option> <option value="白皙">白皙</option> <option value="偏白">偏白</option> <option value="正常黃">正常黃</option> <option value="偏黃">偏黃</option> <option value="健康黑">健康黑</option></select></div> <div class="form-group"> <label for="music">音樂</label><select id="music" name="music"><option value="">請選擇</option><option value="未詢問">未詢問</option><option value="無此服務">無此服務</option><option value="可加值">可加值</option><option value="自談">自談</option></select> <input type="number" id="music_price" name="music_price" placeholder="請填寫大約金額(數字)" style="display:none; margin-top:0.5rem;" min="0"> </div> <div class="form-group"> <label for="sports">體育</label><select id="sports" name="sports"><option value="">請選擇</option><option value="未詢問">未詢問</option><option value="無此服務">無此服務</option><option value="可加值">可加值</option><option value="自談">自談</option></select> <input type="number" id="sports_price" name="sports_price" placeholder="請填寫大約金額(數字)" style="display:none; margin-top:0.5rem;" min="0"> </div> <div class="form-group"><label>尺度</label><div id="scaleCheckboxes" class="checkbox-group"><label><input type="checkbox" name="scale" value="三光"> 三光</label> <label><input type="checkbox" name="scale" value="兩光"> 兩光</label> <label><input type="checkbox" name="scale" value="LG"> LG</label> <label><input type="checkbox" name="scale" value="親"> 親</label> <label><input type="checkbox" name="scale" value="舔"> 舔</label> <label><input type="checkbox" name="scale" value="伸"> 伸</label> <label><input type="checkbox" name="scale" value="摸"> 摸</label> <label><input type="checkbox" name="scale" value="磨"> 磨</label></div></div> <div class="form-group"><label for="content">心得</label><textarea name="content" id="content" placeholder="請填寫心得" rows="4" required></textarea></div> </form> </div> <div class="modal-footer"> <button type="submit" form="reviewForm">提交</button> </div> </div> </div>
+            {# --- Pending List Modal --- #}
             <div id="pendingListModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>待約清單</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="pendingTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="pendingPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="pendingIntroArea"><div class="intro-top"><p id="pendingIntroductionContent">載入中...</p></div></div> </section> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="pendingTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
+            {# --- Latest Review Modal --- #}
             <div id="latestReviewModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>最新心得</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="latestReviewTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="latestPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="latestIntroArea"><div class="intro-top"><p id="latestIntroductionContent">載入中...</p></div></div> </section> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="latestReviewTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
+            {# --- Note Add/Edit Modal --- #}
             <div id="noteModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2 id="noteModalTitle">筆記</h2><button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body"> <form id="noteForm" method="POST" style="display:none;"> {% csrf_token %} <input type="hidden" id="noteAnimalId" name="animal_id" value=""> <input type="hidden" id="currentNoteId" name="note_id" value=""> <div class="form-group"><label for="noteContent">筆記內容</label><textarea name="content" id="noteContent" rows="5" placeholder="請輸入筆記內容" required></textarea></div> </form> <div id="viewNoteSection" style="display:none;"> <div class="note-box" id="viewNoteContent"></div> </div> </div> <div class="modal-footer"> <button type="submit" form="noteForm" id="saveNoteBtn" style="display: none;">儲存筆記</button> <div id="viewNoteButtons" style="display: none;"> <button id="editNoteBtn" class="button-secondary">修改筆記</button> <button id="deleteNoteBtn" class="button-danger" data-animal-id="" style="margin-left: 0.5rem;">刪除筆記</button> </div> </div> </div> </div>
+            {# --- My Notes Modal --- #}
             <div id="myNotesModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>我的筆記</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="myNotesTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="myNotesPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">載入中...</p></div></div> </section> <nav class="hall-menu" id="myNotesHallMenu"> <a href="#" data-hall-id="all" class="active">全部</a> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} </nav> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="myNotesTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
+            {# --- Daily Schedule Modal --- #}
             <div id="dailyScheduleModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>每日班表</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="dailyAnimalTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="dailyPhotoArea"><p style="color:#888;font-size:0.9rem;">請點擊下方館別載入班表</p></div> <div class="intro-area" id="dailyIntroArea"><div class="intro-top"><p id="dailyIntroductionContent">點擊下方館別載入介紹</p></div></div> </section> <nav class="hall-menu" id="dailyHallMenu"> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} </nav> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="dailyAnimalTable"> <tbody><tr class="empty-table-message"><td colspan="5">請點擊上方館別載入班表</td></tr></tbody> </table> </div> </div> </div> </div> </div>
+            {# --- Daily Recommendation Modal --- #}
             <div id="dailyRecommendationModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>每日推薦</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="recommendationTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="recommendationPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="recommendationIntroArea"><div class="intro-top"><p id="recommendationIntroductionContent">載入中...</p></div></div> </section> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="recommendationTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
+            {# --- Weekly Schedule Modal --- #}
             <div id="weeklyScheduleModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>每週班表</h2> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body"> <nav class="hall-menu" id="weeklyHallMenu"> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} {% if not halls %} <p style="color:#666; padding: 0.5rem 0.75rem;">沒有可選的館別</p> {% endif %} </nav> <div id="weeklyScheduleImageArea" class="schedule-image-container"> <p>請點擊上方館別查看班表</p> </div> </div> </div> </div>
+            {# --- Hall of Fame Modal --- #}
             <div id="hallOfFameModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <button class="close-modal" aria-label="關閉">×</button> <div class="modal-header"> <h2><i class="fas fa-crown"></i> 紓壓名人堂</h2> </div> <div class="modal-body"> <div class="hof-tabs"> <button class="hof-tab active" data-rank-type="reviews" aria-selected="true"><i class="fas fa-comments"></i> 一般心得</button> <button class="hof-tab" data-rank-type="stories" aria-selected="false"><i class="fas fa-bolt"></i> 限時動態</button> <button class="hof-tab" data-rank-type="good_looking" aria-selected="false"><i class="fas fa-thumbs-up"></i> 人帥真好</button> <button class="hof-tab" data-rank-type="good_to_have_you" aria-selected="false"><i class="fas fa-heart"></i> 有你真好</button> </div> <div class="hof-list-container"> <ol id="hallOfFameList"> <li class="loading-message">載入中...</li> </ol> </div> </div> </div> </div>
+            {# --- Profile Modal --- #}
             <div id="profileModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>個人檔案</h2> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" id="profileModalBody"> <div class="profile-loading">載入個人檔案中...</div> </div> </div> </div>
+            {# --- Find Beautician Modal --- #}
             <div id="findBeauticianModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>尋找美容師</h2> <div class="header-toggle-notes"> <label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="findBeauticianTable"> <span>顯示筆記</span></label> </div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #eee; background: #f8f9fa;"> <div class="form-group" style="margin-bottom: 0.75rem;"> <input type="search" id="findBeauticianSearchInput" placeholder="輸入美容師姓名..." style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;"> </div> <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem 1rem;"> <div class="form-group" style="margin-bottom: 0;"> <label for="minHeightInput" style="font-size: 0.8rem; margin-bottom: 0.2rem;">身高 (cm)</label> <div style="display: flex; gap: 0.3rem;"> <input type="number" id="minHeightInput" class="filter-input" placeholder="最低" min="0" style="font-size: 0.9rem; padding: 0.3rem;"> <span style="line-height: 2.1rem;">-</span> <input type="number" id="maxHeightInput" class="filter-input" placeholder="最高" min="0" style="font-size: 0.9rem; padding: 0.3rem;"> </div> </div> <div class="form-group" style="margin-bottom: 0;"> <label for="minWeightInput" style="font-size: 0.8rem; margin-bottom: 0.2rem;">體重 (kg)</label> <div style="display: flex; gap: 0.3rem;"> <input type="number" id="minWeightInput" class="filter-input" placeholder="最低" min="0" style="font-size: 0.9rem; padding: 0.3rem;"> <span style="line-height: 2.1rem;">-</span> <input type="number" id="maxWeightInput" class="filter-input" placeholder="最高" min="0" style="font-size: 0.9rem; padding: 0.3rem;"> </div> </div> <div class="form-group" style="margin-bottom: 0;"> <label for="cupSelectMin" style="font-size: 0.8rem; margin-bottom: 0.2rem;">罩杯</label> <div style="display: flex; gap: 0.3rem;"> <select id="cupSelectMin" class="filter-input" style="font-size: 0.9rem; padding: 0.3rem; height: 2.1rem; flex: 1;"> <option value="">最低</option> <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option><option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option><option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option><option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option> </select> <span style="line-height: 2.1rem;">-</span> <select id="cupSelectMax" class="filter-input" style="font-size: 0.9rem; padding: 0.3rem; height: 2.1rem; flex: 1;"> <option value="">最高</option> <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option><option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option><option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option><option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option> </select> </div> </div> <div class="form-group" style="margin-bottom: 0;"> <label for="minFeeInput" style="font-size: 0.8rem; margin-bottom: 0.2rem;">台費 (元)</label> <div style="display: flex; gap: 0.3rem;"> <input type="number" id="minFeeInput" class="filter-input" placeholder="最低" min="0" step="100" style="font-size: 0.9rem; padding: 0.3rem;"> <span style="line-height: 2.1rem;">-</span> <input type="number" id="maxFeeInput" class="filter-input" placeholder="最高" min="0" step="100" style="font-size: 0.9rem; padding: 0.3rem;"> </div> </div> </div> </div> <section class="top-section"> <div class="photo-area" id="findBeauticianPhotoArea"> <p style="color:#888;font-size:0.9rem;">請進行搜尋或篩選</p> </div> <div class="intro-area" id="findBeauticianIntroArea"> <div class="intro-top"><p id="findBeauticianIntroductionContent">結果將顯示於下方</p></div> </div> </section> <div class="table-wrapper"> <table class="header-table"> <thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead> </table> <div class="body-wrapper"> <table class="body-table" id="findBeauticianTable"> <tbody> <tr class="empty-table-message"><td colspan="5">請輸入姓名或使用篩選器</td></tr> </tbody> </table> </div> </div> </div> </div> </div>
             <!-- Modal 結束 -->
 
@@ -1039,6 +1019,8 @@
     <script>
       // --- getCookie function ---
       function getCookie(name) { let cookieValue = null; if (document.cookie && document.cookie !== '') { const cookies = document.cookie.split(';'); for (let i = 0; i < cookies.length; i++) { const cookie = cookies[i].trim(); if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; } } } return cookieValue; }
+      // --- Helper to escape HTML entities ---
+      function escapeHtml(unsafe) { if (unsafe === null || unsafe === undefined) return ''; return String(unsafe).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
     </script>
     <script>
       // --- Pass User ID & CSRF Token ---
@@ -1046,7 +1028,7 @@
       const csrfToken = getCookie('csrftoken');
     </script>
     <script>
-      // --- myapp 主要 JavaScript 邏輯 (保持不變) ---
+      // --- myapp 主要 JavaScript 邏輯 (V20 - 已修改 fetch URLs) ---
       document.addEventListener('DOMContentLoaded', function() {
         const bottomOverlay = document.getElementById('bottomOverlay');
         const isLoggedIn = USER_ID !== null;
@@ -1122,7 +1104,7 @@
         function closePlusDropdown() { const dropdown = document.getElementById('plusDropdown'); if(dropdown) dropdown.classList.remove('open'); if(bottomOverlay) bottomOverlay.classList.remove('open'); }
 
         // --- processTimeSlotCellsInContainer function ---
-         function processTimeSlotCellsInContainer(containerElement) { if (!containerElement) return; containerElement.querySelectorAll('.time-cell:not(:has(.time-cell-inner))').forEach(td => { let text = td.textContent.trim(); if (!text) return; let tokens = text.match(/(\d{1,2}:\d{2}(?:-|~)\d{1,2}:\d{2}|\d{1,2}(?:點|時)?(?:半)?(?:-|~)\d{1,2}(?:點|時)?(?:半)?|\d{1,2}:\d{2}|\d{1,2}(?:點|時)?(?:半)?|[\u4e00-\u9fa5A-Za-z]+(?:-|~)?[\u4e00-\u9fa5A-Za-z]*)/g) || []; tokens = tokens.filter(t => t.trim() !== '').map(t => `<span class="time-slot">${t.trim()}</span>`); td.innerHTML = `<div class="time-cell-inner">${tokens.join('')}</div>`; }); }
+         function processTimeSlotCellsInContainer(containerElement) { if (!containerElement) return; containerElement.querySelectorAll('.time-cell:not(:has(.time-cell-inner))').forEach(td => { let text = td.textContent.trim(); if (!text) return; let tokens = text.match(/(\d{1,2}:\d{2}(?:-|~)\d{1,2}:\d{2}|\d{1,2}(?:點|時)?(?:半)?(?:-|~)\d{1,2}(?:點|時)?(?:半)?|\d{1,2}:\d{2}|\d{1,2}(?:點|時)?(?:半)?|[\u4e00-\u9fa5A-Za-z]+(?:-|~)?[\u4e00-\u9fa5A-Za-z]*)/g) || []; tokens = tokens.filter(t => t.trim() !== '').map(t => `<span class="time-slot">${escapeHtml(t.trim())}</span>`); td.innerHTML = `<div class="time-cell-inner">${tokens.join('')}</div>`; }); }
 
          // --- Note Row Handling Functions ---
          function applyNoteVisibility(tbody, shouldShow) { if (!tbody) return; tbody.querySelectorAll('tr.note-row').forEach(noteRow => { noteRow.style.display = shouldShow ? '' : 'none'; }); }
@@ -1139,13 +1121,16 @@
                   updateRowsByAnimalId(animalId, (r) => { r.setAttribute('data-pending', shouldAdd ? "true" : "false"); });
                   if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
                   const pendingModal = document.getElementById('pendingListModal');
-                  if (pendingModal && pendingModal.style.display === 'block') { loadModalContent('pendingListModal'); }
+                  // *** 修改：使用新的獨立 URL 重新載入 ***
+                  if (pendingModal && pendingModal.style.display === 'block') {
+                       loadModalContentDirect("{% url 'myapp:ajax_get_pending_list' %}", 'pendingListModal'); // 使用新輔助函數
+                  }
                   const dropdown = document.getElementById('plusDropdown');
                   if (dropdown?.classList.contains('open')) {
                       const pendingButton = Array.from(dropdown.querySelectorAll('button')).find(btn => btn.textContent.includes('待約'));
                       if (pendingButton) { pendingButton.textContent = shouldAdd ? "移除待約" : "加入待約"; }
                   }
-                  if (data.message) { /* Don't alert here, causes interruption */ console.log(data.message); }
+                  if (data.message) { console.log(data.message); }
               } else {
                   if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
                   alert(data.error || '操作失敗');
@@ -1177,46 +1162,30 @@
                   const currentAnimalId = data.animal_id || animalId;
                   const decodedNoteContent = decodeUnicodeEscapes(data.note_content || '');
                   updateRowsByAnimalId(currentAnimalId, (r) => { if (!r.classList.contains('note-row')) { r.setAttribute('data-note-id', data.note_id); r.setAttribute('data-note-content', decodedNoteContent); } });
+
+                  // *** 修改：重新載入相關的打開的 Modal ***
                   ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal', 'findBeauticianModal'].forEach(modalId => {
                       const openModalElement = document.getElementById(modalId);
                       if (openModalElement && openModalElement.style.display === 'block') {
-                          const tbody = openModalElement.querySelector('.body-table tbody');
-                          if (tbody) {
-                              let noteRow = tbody.querySelector(`tr.note-row[data-animal-id="${currentAnimalId}"]`);
-                              let needsReload = !noteRow;
-                              if (noteRow) { const noteBox = noteRow.querySelector('.note-box'); if (noteBox) noteBox.textContent = decodedNoteContent; }
-                              else { // If note row doesn't exist, create it (simpler than full reload sometimes)
-                                const dataRow = tbody.querySelector(`tr[data-animal-id="${currentAnimalId}"]:not(.note-row)`);
-                                if(dataRow){
-                                     const newNoteRow = document.createElement('tr');
-                                     newNoteRow.className = 'note-row';
-                                     newNoteRow.dataset.animalId = currentAnimalId;
-                                     newNoteRow.innerHTML = `<td colspan="5"><div class="note-box">${decodedNoteContent}</div></td>`;
-                                     dataRow.parentNode.insertBefore(newNoteRow, dataRow.nextSibling);
-                                     needsReload = false; // No reload needed now
-                                } else {
-                                    needsReload = true; // Data row might not be there, force reload
-                                }
-                              }
-
-                              if (needsReload || ['myNotesModal', 'dailyScheduleModal', 'findBeauticianModal'].includes(modalId)) {
-                                  if (modalId === 'myNotesModal') { const activeHallLink = openModalElement.querySelector('#myNotesHallMenu a.active'); loadFilteredNotes(activeHallLink ? activeHallLink.dataset.hallId : 'all'); }
-                                  else if (modalId === 'dailyScheduleModal') { const activeHallLink = openModalElement.querySelector('#dailyHallMenu a.active'); if (activeHallLink) loadFilteredDailySchedule(activeHallLink.dataset.hallId); }
-                                  else if (modalId === 'findBeauticianModal') { const searchInput = openModalElement.querySelector('#findBeauticianSearchInput'); if (searchInput && (searchInput.value || openModalElement.querySelector('.filter-input[value]:not([value=""])'))) { performBeauticianSearch(); } }
-                                  else if (['pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'].includes(modalId)) { if (needsReload) loadModalContent(modalId); }
-                              }
-                              setTimeout(() => {
-                                  const currentTbody = openModalElement.querySelector('.body-table tbody');
-                                  if (currentTbody) {
-                                      const checkbox = openModalElement.querySelector(`.toggle-notes-checkbox`);
-                                      if (checkbox) { syncCheckboxState(checkbox, currentTbody); applyNoteVisibility(currentTbody, checkbox.checked); }
-                                  }
-                              }, 100);
-                          }
+                           console.log(`Note saved/updated, reloading content for open modal: ${modalId}`);
+                           if (modalId === 'myNotesModal') {
+                               const activeHallLink = openModalElement.querySelector('#myNotesHallMenu a.active');
+                               loadFilteredNotes(activeHallLink ? activeHallLink.dataset.hallId : 'all'); // 直接調用
+                           } else if (modalId === 'dailyScheduleModal') {
+                               const activeHallLink = openModalElement.querySelector('#dailyHallMenu a.active');
+                               if (activeHallLink) loadFilteredDailySchedule(activeHallLink.dataset.hallId); // 直接調用
+                           } else if (modalId === 'findBeauticianModal') {
+                               performBeauticianSearch(); // 直接調用
+                           } else if (modalId === 'pendingListModal') {
+                               loadModalContentDirect("{% url 'myapp:ajax_get_pending_list' %}", modalId); // 使用輔助函數和正確 URL
+                           } else if (modalId === 'latestReviewModal') {
+                               loadModalContentDirect("{% url 'myapp:ajax_get_latest_reviews' %}", modalId); // 使用輔助函數和正確 URL
+                           } else if (modalId === 'dailyRecommendationModal') {
+                               loadModalContentDirect("{% url 'myapp:ajax_get_recommendations' %}", modalId); // 使用輔助函數和正確 URL
+                           }
                       }
                   });
                   if(modal) closeModal(modal);
-                  // alert(data.message || '筆記已儲存'); // Avoid alert
                   console.log(data.message || '筆記已儲存');
               } else { alert(data.error || '儲存失敗'); }
           })
@@ -1231,20 +1200,30 @@
               if (data.success) {
                   const targetAnimalId = data.animal_id || animalId;
                   updateRowsByAnimalId(targetAnimalId, (r) => { if (!r.classList.contains('note-row')) { r.removeAttribute('data-note-id'); r.removeAttribute('data-note-content'); } });
+
+                  // *** 修改：重新載入相關的打開的 Modal ***
                   ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal', 'findBeauticianModal'].forEach(modalId => {
-                      const openModalElement = document.getElementById(modalId);
-                      if (openModalElement && openModalElement.style.display === 'block') {
-                          const tbody = openModalElement.querySelector('.body-table tbody');
-                          if (tbody) {
-                              const noteRow = tbody.querySelector(`tr.note-row[data-animal-id="${targetAnimalId}"]`);
-                              if (noteRow) noteRow.remove();
-                              const checkbox = openModalElement.querySelector(`.toggle-notes-checkbox`);
-                              if (checkbox) { syncCheckboxState(checkbox, tbody); }
-                          }
-                      }
+                       const openModalElement = document.getElementById(modalId);
+                       if (openModalElement && openModalElement.style.display === 'block') {
+                           console.log(`Note deleted, reloading content for open modal: ${modalId}`);
+                           if (modalId === 'myNotesModal') {
+                               const activeHallLink = openModalElement.querySelector('#myNotesHallMenu a.active');
+                               loadFilteredNotes(activeHallLink ? activeHallLink.dataset.hallId : 'all'); // 直接調用
+                           } else if (modalId === 'dailyScheduleModal') {
+                               const activeHallLink = openModalElement.querySelector('#dailyHallMenu a.active');
+                               if (activeHallLink) loadFilteredDailySchedule(activeHallLink.dataset.hallId); // 直接調用
+                           } else if (modalId === 'findBeauticianModal') {
+                               performBeauticianSearch(); // 直接調用
+                           } else if (modalId === 'pendingListModal') {
+                               loadModalContentDirect("{% url 'myapp:ajax_get_pending_list' %}", modalId); // 使用輔助函數和正確 URL
+                           } else if (modalId === 'latestReviewModal') {
+                               loadModalContentDirect("{% url 'myapp:ajax_get_latest_reviews' %}", modalId); // 使用輔助函數和正確 URL
+                           } else if (modalId === 'dailyRecommendationModal') {
+                               loadModalContentDirect("{% url 'myapp:ajax_get_recommendations' %}", modalId); // 使用輔助函數和正確 URL
+                           }
+                       }
                   });
                   if(modal) closeModal(modal);
-                  // alert(data.message || '筆記已刪除'); // Avoid alert
                   console.log(data.message || '筆記已刪除');
               } else { alert(data.error || '刪除失敗'); }
           })
@@ -1274,10 +1253,10 @@
                     data.reviews.forEach(review => {
                         const card = document.createElement('div'); card.className = 'review-card';
                         card.dataset.reviewId = review.id; card.dataset.authorId = review.author_id || 'none';
-                        const userTitleSpan = review.user_title ? `<span class="review-user-title">${review.user_title}</span>` : '';
-                        const createReviewLine = (label, value) => { if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) return ''; let displayValue = value; if (['臉蛋', '氣質', '尺度'].includes(label) && typeof value === 'string') { displayValue = value.split(',').map(s => s.trim()).filter(s => s).join(', '); } if (label === '罩杯' && typeof value === 'object') { displayValue = `${value.cup || ''}${value.cup && value.cup_size ? ' - ' : ''}${value.cup_size || ''}`.trim(); if (!displayValue) return ''; } if ((label === '音樂' || label === '體育') && typeof value === 'object') { displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim(); if (!displayValue) return ''; } const valueSpan = document.createElement('span'); valueSpan.className = 'review-value'; const decodedDisplayValue = decodeUnicodeEscapes(displayValue); valueSpan.textContent = decodedDisplayValue; return `<div class="review-line"><span class="review-label">${label}:</span>${valueSpan.outerHTML}</div>`; };
+                        const userTitleSpan = review.user_title ? `<span class="review-user-title">${escapeHtml(review.user_title)}</span>` : '';
+                        const createReviewLine = (label, value) => { if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) return ''; let displayValue = value; if (['臉蛋', '氣質', '尺度'].includes(label) && typeof value === 'string') { displayValue = value.split(',').map(s => s.trim()).filter(s => s).join(', '); } if (label === '罩杯' && typeof value === 'object') { displayValue = `${value.cup || ''}${value.cup && value.cup_size ? ' - ' : ''}${value.cup_size || ''}`.trim(); if (!displayValue) return ''; } if ((label === '音樂' || label === '體育') && typeof value === 'object') { displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim(); if (!displayValue) return ''; } const valueSpan = document.createElement('span'); valueSpan.className = 'review-value'; const decodedDisplayValue = decodeUnicodeEscapes(displayValue); valueSpan.textContent = decodedDisplayValue; return `<div class="review-line"><span class="review-label">${escapeHtml(label)}:</span>${valueSpan.outerHTML}</div>`; };
                         const feedbackButtonsHTML = ` <div class="review-feedback-buttons"> <button class="feedback-btn" data-review-id="${review.id}" data-type="good_to_have_you" ${USER_ID === review.author_id ? 'disabled' : ''}> <i class="fas fa-heart"></i> 有你真好 <span class="feedback-count" id="count-gthy-${review.id}">${review.good_to_have_you_count || 0}</span> </button> <button class="feedback-btn" data-review-id="${review.id}" data-type="good_looking" ${USER_ID === review.author_id ? 'disabled' : ''}> <i class="fas fa-thumbs-up"></i> 人帥真好 <span class="feedback-count" id="count-gl-${review.id}">${review.good_looking_count || 0}</span> </button> </div> `;
-                        card.innerHTML = ` <div class="review-header"> <div class="review-user-info"> <span class="review-user">${review.user || '匿名用戶'}</span> ${userTitleSpan} </div> <span class="review-date">${review.display_date || '日期未知'}</span> </div> <div class="review-body"> ${createReviewLine('年紀', review.age)} ${createReviewLine('顏值', review.looks)} ${createReviewLine('臉蛋', review.face)} ${createReviewLine('氣質', review.temperament)} ${createReviewLine('體態', review.physique)} ${createReviewLine('罩杯', { cup: review.cup, cup_size: review.cup_size })} ${createReviewLine('膚質', review.skin_texture)} ${createReviewLine('膚色', review.skin_color)} ${createReviewLine('音樂', { type: review.music, price: review.music_price })} ${createReviewLine('體育', { type: review.sports, price: review.sports_price })} ${createReviewLine('尺度', review.scale)} ${createReviewLine('心得', review.content)} ${feedbackButtonsHTML} </div> `;
+                        card.innerHTML = ` <div class="review-header"> <div class="review-user-info"> <span class="review-user">${escapeHtml(review.user || '匿名用戶')}</span> ${userTitleSpan} </div> <span class="review-date">${escapeHtml(review.display_date || '日期未知')}</span> </div> <div class="review-body"> ${createReviewLine('年紀', review.age)} ${createReviewLine('顏值', review.looks)} ${createReviewLine('臉蛋', review.face)} ${createReviewLine('氣質', review.temperament)} ${createReviewLine('體態', review.physique)} ${createReviewLine('罩杯', { cup: review.cup, cup_size: review.cup_size })} ${createReviewLine('膚質', review.skin_texture)} ${createReviewLine('膚色', review.skin_color)} ${createReviewLine('音樂', { type: review.music, price: review.music_price })} ${createReviewLine('體育', { type: review.sports, price: review.sports_price })} ${createReviewLine('尺度', review.scale)} ${createReviewLine('心得', review.content)} ${feedbackButtonsHTML} </div> `;
                         reviewList.appendChild(card);
                     });
                 } else { reviewList.innerHTML = '<p>目前沒有相關評論。</p>'; }
@@ -1294,57 +1273,137 @@
             const submitUrl = (submissionType === 'story') ? "{% url 'myapp:add_story_review' %}" : "{% url 'myapp:add_review' %}";
             fetch(submitUrl, { method: "POST", body: formData, headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken, 'Accept': 'application/json'} })
             .then(res => { if (!res.ok) { return res.json().then(err => { let errorMsg = err.error || `伺服器錯誤 ${res.status}`; if (err.errors) { errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', '); } throw new Error(errorMsg); }).catch(() => { throw new Error(`伺服器錯誤 ${res.status}`); }); } return res.json(); })
-            .then(data => { if(data.success) { /* alert(data.message || '提交成功，待審核'); */ console.log(data.message || '提交成功，待審核'); if(modal) closeModal(modal); if (submissionType === 'review') { const latestModal = document.getElementById('latestReviewModal'); if (latestModal && latestModal.style.display === 'block') { loadModalContent('latestReviewModal'); } const recoModal = document.getElementById('dailyRecommendationModal'); if (recoModal && recoModal.style.display === 'block') { loadModalContent('dailyRecommendationModal'); } const scheduleModal = document.getElementById('dailyScheduleModal'); if (scheduleModal && scheduleModal.style.display === 'block') { const activeHallLink = scheduleModal.querySelector('#dailyHallMenu a.active'); if (activeHallLink) { loadFilteredDailySchedule(activeHallLink.dataset.hallId); } } const hofModal = document.getElementById('hallOfFameModal'); if (hofModal && hofModal.style.display === 'block') { loadHallOfFameData(); } } } else { alert(data.error || '提交失敗'); } })
+            .then(data => { if(data.success) { console.log(data.message || '提交成功，待審核'); if(modal) closeModal(modal); if (submissionType === 'review') { const latestModal = document.getElementById('latestReviewModal'); if (latestModal && latestModal.style.display === 'block') { loadModalContentDirect("{% url 'myapp:ajax_get_latest_reviews' %}", 'latestReviewModal'); } const recoModal = document.getElementById('dailyRecommendationModal'); if (recoModal && recoModal.style.display === 'block') { loadModalContentDirect("{% url 'myapp:ajax_get_recommendations' %}", 'dailyRecommendationModal'); } const scheduleModal = document.getElementById('dailyScheduleModal'); if (scheduleModal && scheduleModal.style.display === 'block') { const activeHallLink = scheduleModal.querySelector('#dailyHallMenu a.active'); if (activeHallLink) { loadFilteredDailySchedule(activeHallLink.dataset.hallId); } } const hofModal = document.getElementById('hallOfFameModal'); if (hofModal && hofModal.style.display === 'block') { loadHallOfFameData(); } } } else { alert(data.error || '提交失敗'); } })
             .catch(err => { console.error(`Submit ${submissionType} Error:`, err); alert(`提交時發生錯誤: ${err.message}`); });
         });
 
-        // --- loadFilteredDailySchedule function ---
+        // --- loadFilteredDailySchedule function (已修改 fetch URL) ---
          function loadFilteredDailySchedule(hallId) {
-             const modal = document.getElementById('dailyScheduleModal'); if (!modal) return; const modalBody = modal.querySelector('.modal-body[data-layout="table"]'); const tbody = modalBody?.querySelector('#dailyAnimalTable tbody'); const photoArea = modalBody?.querySelector('#dailyPhotoArea'); const introArea = modalBody?.querySelector('#dailyIntroArea'); const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]');
+             const modal = document.getElementById('dailyScheduleModal'); if (!modal) return;
+             const modalBody = modal.querySelector('.modal-body[data-layout="table"]'); const tbody = modalBody?.querySelector('#dailyAnimalTable tbody');
+             const photoArea = modalBody?.querySelector('#dailyPhotoArea'); const introArea = modalBody?.querySelector('#dailyIntroArea');
+             const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]');
              if (!tbody || !photoArea || !introArea) return;
-             tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>'; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...'); if (checkbox) checkbox.disabled = true;
-             const url = `{% url 'myapp:home' %}?fetch=daily_schedule&hall_id=${hallId}`;
+             tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
+             updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...');
+             if (checkbox) checkbox.disabled = true;
+
+             // *** 使用新的獨立 URL ***
+             const url = `{% url 'myapp:ajax_get_daily_schedule' %}?hall_id=${hallId}`;
+             // ***********************
+
              fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
              .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct?.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
-             .then(data => { if (data.table_html !== undefined) { tbody.innerHTML = data.table_html || '<tr class="empty-table-message"><td colspan="5">此館別目前無班表</td></tr>'; processTimeSlotCellsInContainer(tbody); if (data.first_animal && Object.keys(data.first_animal).length > 0) { updateTopSectionFromData(photoArea, introArea, data.first_animal); } else { updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '此館別目前無班表' : '此館別目前無介紹'); } if (checkbox) { syncCheckboxState(checkbox, tbody); applyNoteVisibility(tbody, checkbox.checked); } } else { tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入班表時發生錯誤'}</td></tr>`; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入介紹時發生錯誤'); if (checkbox) syncCheckboxState(checkbox, tbody); } })
-             .catch(error => { console.error("Daily Schedule Fetch Error:", error); tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">無法連接伺服器載入班表</td></tr>`; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '無法連接伺服器載入介紹'); if (checkbox) syncCheckboxState(checkbox, tbody); });
+             .then(data => {
+                 if (data.table_html !== undefined) {
+                     tbody.innerHTML = data.table_html || '<tr class="empty-table-message"><td colspan="5">此館別目前無班表</td></tr>';
+                     processTimeSlotCellsInContainer(tbody);
+                     if (data.first_animal && Object.keys(data.first_animal).length > 0) {
+                         updateTopSectionFromData(photoArea, introArea, data.first_animal);
+                     } else {
+                         updatePhotoArea(photoArea, null, '');
+                         updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '此館別目前無班表' : '此館別目前無介紹');
+                     }
+                     if (checkbox) { syncCheckboxState(checkbox, tbody); applyNoteVisibility(tbody, checkbox.checked); }
+                 } else {
+                     tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入班表時發生錯誤'}</td></tr>`;
+                     updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入介紹時發生錯誤');
+                     if (checkbox) syncCheckboxState(checkbox, tbody);
+                 }
+             })
+             .catch(error => {
+                 console.error("Daily Schedule Fetch Error:", error);
+                 tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">無法連接伺服器載入班表</td></tr>`;
+                 updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '無法連接伺服器載入介紹');
+                 if (checkbox) syncCheckboxState(checkbox, tbody);
+             });
          }
 
-        // --- loadFilteredNotes function ---
+        // --- loadFilteredNotes function (已修改 fetch URL) ---
          function loadFilteredNotes(hallId) {
-             const modal = document.getElementById('myNotesModal'); if (!modal || !isLoggedIn) { openModal('loginModal'); return; }
-             const modalBody = modal.querySelector('.modal-body[data-layout="table"]'); const tbody = modalBody?.querySelector('#myNotesTable tbody'); const photoArea = modalBody?.querySelector('#myNotesPhotoArea'); const introArea = modalBody?.querySelector('#myNotesIntroArea'); const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="myNotesTable"]');
+             const modal = document.getElementById('myNotesModal'); if (!modal) return; // Button shouldn't show if not logged in anyway
+             const modalBody = modal.querySelector('.modal-body[data-layout="table"]'); const tbody = modalBody?.querySelector('#myNotesTable tbody');
+             const photoArea = modalBody?.querySelector('#myNotesPhotoArea'); const introArea = modalBody?.querySelector('#myNotesIntroArea');
+             const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="myNotesTable"]');
              if (!tbody || !photoArea || !introArea) return;
-             tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>'; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...'); if (checkbox) checkbox.disabled = true;
-             const url = `{% url 'myapp:home' %}?fetch=my_notes&hall_id=${hallId}`;
+             tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
+             updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...');
+             if (checkbox) checkbox.disabled = true;
+
+             // *** 使用新的獨立 URL ***
+             const url = `{% url 'myapp:ajax_get_my_notes' %}?hall_id=${hallId}`;
+             // ***********************
+
              fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
              .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct?.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
-             .then(data => { if (data.table_html !== undefined) { tbody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">${hallId === 'all' ? '尚無筆記' : '此館別尚無筆記'}</td></tr>`; processTimeSlotCellsInContainer(tbody); if (data.first_animal && Object.keys(data.first_animal).length > 0) { updateTopSectionFromData(photoArea, introArea, data.first_animal); } else { updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? (hallId === 'all' ? '尚無筆記' : '此館別尚無筆記') : '無介紹'); } if (checkbox) { syncCheckboxState(checkbox, tbody); applyNoteVisibility(tbody, checkbox.checked); } } else { tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入筆記時發生錯誤'}</td></tr>`; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入介紹時發生錯誤'); if (checkbox) syncCheckboxState(checkbox, tbody); } })
-             .catch(error => { console.error("My Notes Fetch Error:", error); tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">無法連接伺服器載入筆記</td></tr>`; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '無法連接伺服器載入介紹'); if (checkbox) syncCheckboxState(checkbox, tbody); });
+             .then(data => {
+                 if (data.table_html !== undefined) {
+                     tbody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">${hallId === 'all' ? '尚無筆記' : '此館別尚無筆記'}</td></tr>`;
+                     processTimeSlotCellsInContainer(tbody);
+                     if (data.first_animal && Object.keys(data.first_animal).length > 0) {
+                         updateTopSectionFromData(photoArea, introArea, data.first_animal);
+                     } else {
+                         updatePhotoArea(photoArea, null, '');
+                         updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? (hallId === 'all' ? '尚無筆記' : '此館別尚無筆記') : '無介紹');
+                     }
+                     if (checkbox) { syncCheckboxState(checkbox, tbody); applyNoteVisibility(tbody, checkbox.checked); }
+                 } else {
+                     tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入筆記時發生錯誤'}</td></tr>`;
+                     updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入介紹時發生錯誤');
+                     if (checkbox) syncCheckboxState(checkbox, tbody);
+                 }
+             })
+             .catch(error => {
+                 console.error("My Notes Fetch Error:", error);
+                 tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">無法連接伺服器載入筆記</td></tr>`;
+                 updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '無法連接伺服器載入介紹');
+                 if (checkbox) syncCheckboxState(checkbox, tbody);
+             });
          }
 
-        // --- loadModalContent function ---
-        function loadModalContent(modalId) {
+        // --- 新增：輔助函數，直接用 URL 載入 Modal (除了 MyNotes 和 DailySchedule) ---
+        function loadModalContentDirect(ajaxUrl, modalId) {
             const modal = document.getElementById(modalId); if (!modal) return;
-            if (['loginModal', 'reviewModal', 'reviewSubmitModal', 'noteModal', 'storyDetailModal', 'weeklyScheduleModal', 'hallOfFameModal', 'profileModal', 'findBeauticianModal', 'chatModal'].includes(modalId)) return;
-            if (modalId === 'dailyScheduleModal') return; if (modalId === 'myNotesModal') { loadFilteredNotes('all'); return; }
             const modalBody = modal.querySelector('.modal-body[data-layout="table"]'); if (!modalBody) return;
             const tableBody = modalBody.querySelector('.body-table tbody'); const photoArea = modalBody.querySelector('.photo-area'); const introArea = modalBody.querySelector('.intro-area'); const checkbox = modal.querySelector('.toggle-notes-checkbox'); const tableId = checkbox?.dataset.tableId;
-            if (!tableBody || !photoArea || !introArea || !tableId) return;
-            let ajaxUrl = null;
-            if (modalId === 'pendingListModal') ajaxUrl = "{% url 'myapp:home' %}?fetch=pending";
-            else if (modalId === 'latestReviewModal') ajaxUrl = "{% url 'myapp:home' %}?fetch=latest_reviews";
-            else if (modalId === 'dailyRecommendationModal') ajaxUrl = "{% url 'myapp:home' %}?fetch=recommendations";
-            if (!ajaxUrl) return;
+            if (!tableBody || !photoArea || !introArea || !tableId) {
+                console.warn("Required elements not found in modal:", modalId);
+                return;
+            }
+
+            if (!ajaxUrl) { console.error("loadModalContentDirect: URL is missing for modal:", modalId); return; }
+
             tableBody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
             updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入中...'); if (checkbox) checkbox.disabled = true;
+
             fetch(ajaxUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
             .then(response => { if (!response.ok) throw new Error(`HTTP error ${response.status}`); const ct = response.headers.get('content-type'); if (!ct?.includes('application/json')) throw new TypeError('伺服器未返回 JSON'); return response.json(); })
-            .then(data => { if (data.table_html !== undefined) { tableBody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">列表是空的</td></tr>`; processTimeSlotCellsInContainer(tableBody); if (data.first_animal && Object.keys(data.first_animal).length > 0) { updateTopSectionFromData(photoArea, introArea, data.first_animal); } else { updatePhotoArea(photoArea, null, ''); let emptyMsg = "列表是空的"; if (modalId === 'pendingListModal') emptyMsg = '待約清單是空的'; else if (modalId === 'latestReviewModal') emptyMsg = '還沒有任何心得'; else if (modalId === 'dailyRecommendationModal') emptyMsg = '目前沒有推薦的美容師'; updateIntroArea(introArea, emptyMsg); } if (checkbox) { syncCheckboxState(checkbox, tableBody); applyNoteVisibility(tableBody, checkbox.checked); } } else { throw new Error(data.error || '資料格式錯誤'); } })
-            .catch(error => { console.error(`Error loading ${modalId}:`, error); tableBody.innerHTML = `<tr class="empty-table-message"><td colspan="5">載入失敗: ${error.message}</td></tr>`; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入失敗'); if (checkbox) syncCheckboxState(checkbox, tableBody); });
+            .then(data => {
+                if (data.table_html !== undefined) {
+                    tableBody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">列表是空的</td></tr>`;
+                    processTimeSlotCellsInContainer(tableBody);
+                    if (data.first_animal && Object.keys(data.first_animal).length > 0) {
+                        updateTopSectionFromData(photoArea, introArea, data.first_animal);
+                    } else {
+                        updatePhotoArea(photoArea, null, '');
+                        let emptyMsg = "列表是空的";
+                        if (modalId === 'pendingListModal') emptyMsg = '待約清單是空的';
+                        else if (modalId === 'latestReviewModal') emptyMsg = '還沒有任何心得';
+                        else if (modalId === 'dailyRecommendationModal') emptyMsg = '目前沒有推薦的美容師';
+                        updateIntroArea(introArea, emptyMsg);
+                    }
+                    if (checkbox) { syncCheckboxState(checkbox, tableBody); applyNoteVisibility(tableBody, checkbox.checked); }
+                } else { throw new Error(data.error || '資料格式錯誤'); }
+            })
+            .catch(error => {
+                console.error(`Error loading ${modalId} directly:`, error);
+                tableBody.innerHTML = `<tr class="empty-table-message"><td colspan="5">載入失敗: ${error.message}</td></tr>`;
+                updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '載入失敗');
+                if (checkbox) syncCheckboxState(checkbox, tableBody);
+            });
         }
 
-        // --- Modal Open/Close Functions ---
+        // --- Modal Open/Close Functions (已修改觸發載入邏輯) ---
         const openModal = (modalId) => {
             const modal = document.getElementById(modalId); if (!modal) return false;
             const modalBody = modal.querySelector('.modal-body'); if(modalBody && ['reviewModal', 'reviewSubmitModal', 'noteModal', 'storyDetailModal', 'hallOfFameModal', 'profileModal', 'chatModal'].includes(modalId)) { modalBody.scrollTop = 0; }
@@ -1364,13 +1423,18 @@
             if (modalId === 'reviewSubmitModal' && !document.getElementById('plusDropdown')?.classList.contains('open')) { const modalTitle = document.getElementById('reviewSubmitModalTitle'); const hiddenTypeInput = document.getElementById('submissionType'); if(modalTitle) modalTitle.textContent = "填寫心得"; if(hiddenTypeInput) hiddenTypeInput.value = "review"; }
             if (modalId === 'chatModal') { const messagesContainer = document.getElementById('chat-messages'); if (messagesContainer) { setTimeout(() => { messagesContainer.scrollTop = messagesContainer.scrollHeight; }, 50); } }
             modal.style.display = 'block'; document.body.style.overflow = 'hidden';
-            const needsAjaxLoadOnOpen = ['pendingListModal', 'latestReviewModal', 'dailyRecommendationModal'];
-            if (needsAjaxLoadOnOpen.includes(modalId)) { loadModalContent(modalId); }
+
+            // *** 修改：按需觸發直接載入 ***
+            if (modalId === 'pendingListModal') { loadModalContentDirect("{% url 'myapp:ajax_get_pending_list' %}", modalId); }
+            else if (modalId === 'latestReviewModal') { loadModalContentDirect("{% url 'myapp:ajax_get_latest_reviews' %}", modalId); }
+            else if (modalId === 'dailyRecommendationModal') { loadModalContentDirect("{% url 'myapp:ajax_get_recommendations' %}", modalId); }
+            // --- (其他 Modal 的載入邏輯保持不變，因為它們有自己的觸發方式或內部邏輯) ---
             else if (modalId === 'dailyScheduleModal') { const firstHallLink = modal.querySelector('#dailyHallMenu a:first-of-type'); const tbody = modal.querySelector('#dailyAnimalTable tbody'); const photoArea = modal.querySelector('#dailyPhotoArea'); const introArea = modal.querySelector('#dailyIntroArea'); const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]'); if (tbody && photoArea && introArea) { tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請點擊下方館別載入班表</td></tr>'; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '點擊下方館別載入介紹'); if (checkbox) syncCheckboxState(checkbox, tbody); modal.querySelectorAll('#dailyHallMenu a').forEach(link => link.classList.remove('active')); if (firstHallLink) { setTimeout(() => { firstHallLink.classList.add('active'); loadFilteredDailySchedule(firstHallLink.dataset.hallId); }, 50); } else { tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">目前沒有任何館別可顯示</td></tr>'; updatePhotoArea(photoArea, null, '無館別'); updateIntroArea(introArea, '目前沒有任何館別可顯示'); if (checkbox) syncCheckboxState(checkbox, tbody); } } else { console.error("Daily schedule elements missing on open"); } }
             else if (modalId === 'myNotesModal') { const hallMenu = modal.querySelector('#myNotesHallMenu'); if (hallMenu) { hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active')); const allLink = hallMenu.querySelector('a[data-hall-id="all"]'); if (allLink) allLink.classList.add('active'); } loadFilteredNotes('all'); }
             else if (modalId === 'weeklyScheduleModal') { const firstHallLink = modal.querySelector('#weeklyHallMenu a:first-of-type'); if (firstHallLink) { setTimeout(() => { firstHallLink.click(); }, 50); } else { const imageArea = document.getElementById('weeklyScheduleImageArea'); if (imageArea) imageArea.innerHTML = '<p>目前沒有任何館別可顯示</p>'; } }
             else if (modalId === 'hallOfFameModal') { loadHallOfFameData(); }
             else if (modalId === 'profileModal') { if (isLoggedIn) { loadProfileData(); } else { const profileBody = document.getElementById('profileModalBody'); if (profileBody) profileBody.innerHTML = '<div class="profile-error">請先登入以查看個人檔案。</div>'; } }
+
             return true;
         };
         const closeModal = (modalElement) => { if (modalElement && modalElement.id !== 'imageLightbox') { modalElement.style.display = 'none'; const anyModalOpen = document.querySelector('.modal[style*="display: block"]:not(#imageLightbox)'); if (!anyModalOpen) { document.body.style.overflow = ''; } } };
@@ -1383,11 +1447,11 @@
             .then(response => { if (!response.ok) { return response.json().catch(() => null).then(errData => { throw new Error(errData?.error || `HTTP error ${response.status}`); }); } const contentType = response.headers.get("content-type"); if (!contentType?.includes("application/json")) { throw new TypeError("伺服器未返回有效的 JSON"); } return response.json(); })
             .then(data => {
                 if (data.success && data.story) {
-                    const story = data.story; const userTitleSpan = story.user_title ? `<span class="review-user-title">${story.user_title}</span>` : '';
+                    const story = data.story; const userTitleSpan = story.user_title ? `<span class="review-user-title">${escapeHtml(story.user_title)}</span>` : '';
                     const feedbackButtonsHTML = ` <div class="review-feedback-buttons"> <button class="feedback-btn" data-story-review-id="${story.id}" data-type="good_to_have_you" ${USER_ID === story.author_id ? 'disabled' : ''}> <i class="fas fa-heart"></i> 有你真好 <span class="feedback-count" id="count-story-gthy-${story.id}">${story.good_to_have_you_count || 0}</span> </button> <button class="feedback-btn" data-story-review-id="${story.id}" data-type="good_looking" ${USER_ID === story.author_id ? 'disabled' : ''}> <i class="fas fa-thumbs-up"></i> 人帥真好 <span class="feedback-count" id="count-story-gl-${story.id}">${story.good_looking_count || 0}</span> </button> </div> `;
-                    headerDiv.innerHTML = ` <div class="story-detail-header-info"> ${story.animal_photo_url ? `<img src="${story.animal_photo_url}" alt="${story.animal_name}">` : '<span class="placeholder" style="font-size: 2.5rem; color:#ccc;">👤</span>'} <div class="text-info"> <span class="animal-name">${story.animal_name || '未知美容師'}</span> <div> ${story.hall_name ? `<span class="hall-name">${story.hall_name}</span>` : ''} ${story.remaining_time ? `<span class="remaining-time">${story.remaining_time}</span>` : ''} </div> </div> </div> `;
-                    const createDetailLine = (label, value) => { if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) return ''; let displayValue = value; if (['臉蛋', '氣質', '尺度'].includes(label) && typeof value === 'string') { displayValue = value.split(',').map(s => s.trim()).filter(s => s).join(', '); } if (label === '罩杯' && typeof value === 'object') { displayValue = `${value.cup || ''}${value.cup && value.cup_size ? ' - ' : ''}${value.cup_size || ''}`.trim(); if (!displayValue) return ''; } if ((label === '音樂' || label === '體育') && typeof value === 'object') { displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim(); if (!displayValue) return ''; } const valueSpan = document.createElement('span'); valueSpan.className = 'review-value'; const decodedDisplayValue = decodeUnicodeEscapes(displayValue); valueSpan.textContent = decodedDisplayValue; return `<div class="review-line"><span class="review-label">${label}:</span>${valueSpan.outerHTML}</div>`; };
-                    contentDiv.innerHTML = ` <div class="review-card" data-story-review-id="${story.id}" data-author-id="${story.author_id || 'none'}"> <div class="review-header"> <div class="review-user-info"> <span class="review-user">${story.user_name || '匿名用戶'}</span> ${userTitleSpan} </div> <span class="review-date">發布於 ${story.approved_at_display || '不久前'}</span> </div> <div class="review-body"> ${createDetailLine('年紀', story.age)} ${createDetailLine('顏值', story.looks)} ${createDetailLine('臉蛋', story.face)} ${createDetailLine('氣質', story.temperament)} ${createDetailLine('體態', story.physique)} ${createDetailLine('罩杯', { cup: story.cup, cup_size: story.cup_size })} ${createDetailLine('膚質', story.skin_texture)} ${createDetailLine('膚色', story.skin_color)} ${createDetailLine('音樂', { type: story.music, price: story.music_price })} ${createDetailLine('體育', { type: story.sports, price: story.sports_price })} ${createDetailLine('尺度', story.scale)} ${createDetailLine('心得', story.content)} ${feedbackButtonsHTML} </div> </div> `;
+                    headerDiv.innerHTML = ` <div class="story-detail-header-info"> ${story.animal_photo_url ? `<img src="${escapeHtml(story.animal_photo_url)}" alt="${escapeHtml(story.animal_name)}">` : '<span class="placeholder" style="font-size: 2.5rem; color:#ccc;">👤</span>'} <div class="text-info"> <span class="animal-name">${escapeHtml(story.animal_name || '未知美容師')}</span> <div> ${story.hall_name ? `<span class="hall-name">${escapeHtml(story.hall_name)}</span>` : ''} ${story.remaining_time ? `<span class="remaining-time">${escapeHtml(story.remaining_time)}</span>` : ''} </div> </div> </div> `;
+                    const createDetailLine = (label, value) => { if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) return ''; let displayValue = value; if (['臉蛋', '氣質', '尺度'].includes(label) && typeof value === 'string') { displayValue = value.split(',').map(s => s.trim()).filter(s => s).join(', '); } if (label === '罩杯' && typeof value === 'object') { displayValue = `${value.cup || ''}${value.cup && value.cup_size ? ' - ' : ''}${value.cup_size || ''}`.trim(); if (!displayValue) return ''; } if ((label === '音樂' || label === '體育') && typeof value === 'object') { displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim(); if (!displayValue) return ''; } const valueSpan = document.createElement('span'); valueSpan.className = 'review-value'; const decodedDisplayValue = decodeUnicodeEscapes(displayValue); valueSpan.textContent = decodedDisplayValue; return `<div class="review-line"><span class="review-label">${escapeHtml(label)}:</span>${valueSpan.outerHTML}</div>`; };
+                    contentDiv.innerHTML = ` <div class="review-card" data-story-review-id="${story.id}" data-author-id="${story.author_id || 'none'}"> <div class="review-header"> <div class="review-user-info"> <span class="review-user">${escapeHtml(story.user_name || '匿名用戶')}</span> ${userTitleSpan} </div> <span class="review-date">發布於 ${escapeHtml(story.approved_at_display || '不久前')}</span> </div> <div class="review-body"> ${createDetailLine('年紀', story.age)} ${createDetailLine('顏值', story.looks)} ${createDetailLine('臉蛋', story.face)} ${createDetailLine('氣質', story.temperament)} ${createDetailLine('體態', story.physique)} ${createDetailLine('罩杯', { cup: story.cup, cup_size: story.cup_size })} ${createDetailLine('膚質', story.skin_texture)} ${createDetailLine('膚色', story.skin_color)} ${createDetailLine('音樂', { type: story.music, price: story.music_price })} ${createDetailLine('體育', { type: story.sports, price: story.sports_price })} ${createDetailLine('尺度', story.scale)} ${createDetailLine('心得', story.content)} ${feedbackButtonsHTML} </div> </div> `;
                 } else { throw new Error(data.error || '無法獲取動態詳情'); }
             })
             .catch(error => { console.error("Error loading story detail:", error); headerDiv.innerHTML = `<div class="story-loading-message">錯誤</div>`; contentDiv.innerHTML = `<div class="story-loading-message">無法載入動態內容: ${error.message}</div>`; });
@@ -1402,9 +1466,9 @@
                 rankings.forEach(user => {
                     const li = document.createElement('li'); if (user.rank >= 1 && user.rank <= 3) { li.classList.add(`rank-${user.rank}`); }
                     let iconClass = 'fas fa-trophy'; if (user.rank === 1) iconClass = 'fas fa-medal'; else if (user.rank === 2) iconClass = 'fas fa-award'; else if (user.rank === 3) iconClass = 'fas fa-star';
-                    const userTitleSpan = user.user_title ? `<span class="hof-user-title">${user.user_title}</span>` : '';
+                    const userTitleSpan = user.user_title ? `<span class="hof-user-title">${escapeHtml(user.user_title)}</span>` : '';
                     let countLabel = "次"; if (rankType === 'reviews') countLabel = "篇心得"; else if (rankType === 'stories') countLabel = "篇動態"; else if (rankType === 'good_looking') countLabel = "次人帥"; else if (rankType === 'good_to_have_you') countLabel = "次真好";
-                    li.innerHTML = ` <span class="rank"><i class="${iconClass}"></i> #${user.rank}</span> <span class="user-name">${user.user_name} ${userTitleSpan}</span> <span class="review-count">${user.count || 0} ${countLabel}</span> `;
+                    li.innerHTML = ` <span class="rank"><i class="${iconClass}"></i> #${user.rank}</span> <span class="user-name">${escapeHtml(user.user_name)} ${userTitleSpan}</span> <span class="review-count">${user.count || 0} ${escapeHtml(countLabel)}</span> `;
                     listElement.appendChild(li);
                 });
             } else { listElement.innerHTML = '<li class="empty-message">此排行暫無數據</li>'; }
@@ -1444,10 +1508,10 @@
             .then(response => { if (!response.ok) { return response.json().catch(() => null).then(errData => { throw new Error(errData?.error || `HTTP error ${response.status}`); }); } const contentType = response.headers.get("content-type"); if (!contentType?.includes("application/json")) { throw new TypeError("伺服器未返回有效的 JSON"); } return response.json(); })
             .then(data => {
                 if (data.success && data.profile_data) {
-                    const p = data.profile_data; const titleBadge = p.user_title ? `<span class="profile-modal-title-badge">${p.user_title}</span>` : '';
+                    const p = data.profile_data; const titleBadge = p.user_title ? `<span class="profile-modal-title-badge">${escapeHtml(p.user_title)}</span>` : '';
                     const pendingUsed = (typeof p.pending_count === 'number') ? p.pending_count : '?'; const pendingMax = (typeof p.max_pending_limit === 'number') ? p.max_pending_limit : '?'; const pendingDisplay = (pendingUsed !== '?' && pendingMax !== '?') ? `${pendingUsed} / ${pendingMax}` : pendingUsed;
                     const notesUsed = (typeof p.notes_count === 'number') ? p.notes_count : '?'; const notesMax = (typeof p.max_notes_limit === 'number') ? p.max_notes_limit : '?'; const notesDisplay = (notesUsed !== '?' && notesMax !== '?') ? `${notesUsed} / ${notesMax}` : notesUsed;
-                    profileBody.innerHTML = ` <div class="profile-modal-header"> <h3>${p.first_name || p.username}</h3> ${titleBadge} </div> <div class="profile-modal-stats"> <div class="profile-stat-item"> <strong>${p.approved_reviews_count !== undefined ? p.approved_reviews_count : '?'}</strong> <span><i class="fas fa-comments"></i> 一般心得</span> </div> <div class="profile-stat-item"> <strong>${p.approved_stories_count !== undefined ? p.approved_stories_count : '?'}</strong> <span><i class="fas fa-bolt"></i> 限時心得</span> </div> <div class="profile-stat-item"> <strong>${p.good_to_have_you_received !== undefined ? p.good_to_have_you_received : '?'}</strong> <span><i class="fas fa-heart" style="color: #e83e8c;"></i> 收到的「有你真好」</span> </div> <div class="profile-stat-item"> <strong>${p.good_looking_received !== undefined ? p.good_looking_received : '?'}</strong> <span><i class="fas fa-thumbs-up" style="color: #17a2b8;"></i> 收到的「人帥真好」</span> </div> <div class="profile-stat-item"> <strong>${pendingDisplay}</strong> <span><i class="fas fa-calendar-check"></i> 待約清單 (已用/上限)</span> </div> <div class="profile-stat-item"> <strong>${notesDisplay}</strong> <span><i class="fas fa-sticky-note"></i> 我的筆記 (已用/上限)</span> </div> </div> `;
+                    profileBody.innerHTML = ` <div class="profile-modal-header"> <h3>${escapeHtml(p.first_name || p.username)}</h3> ${titleBadge} </div> <div class="profile-modal-stats"> <div class="profile-stat-item"> <strong>${p.approved_reviews_count !== undefined ? p.approved_reviews_count : '?'}</strong> <span><i class="fas fa-comments"></i> 一般心得</span> </div> <div class="profile-stat-item"> <strong>${p.approved_stories_count !== undefined ? p.approved_stories_count : '?'}</strong> <span><i class="fas fa-bolt"></i> 限時心得</span> </div> <div class="profile-stat-item"> <strong>${p.good_to_have_you_received !== undefined ? p.good_to_have_you_received : '?'}</strong> <span><i class="fas fa-heart" style="color: #e83e8c;"></i> 收到的「有你真好」</span> </div> <div class="profile-stat-item"> <strong>${p.good_looking_received !== undefined ? p.good_looking_received : '?'}</strong> <span><i class="fas fa-thumbs-up" style="color: #17a2b8;"></i> 收到的「人帥真好」</span> </div> <div class="profile-stat-item"> <strong>${escapeHtml(pendingDisplay)}</strong> <span><i class="fas fa-calendar-check"></i> 待約清單 (已用/上限)</span> </div> <div class="profile-stat-item"> <strong>${escapeHtml(notesDisplay)}</strong> <span><i class="fas fa-sticky-note"></i> 我的筆記 (已用/上限)</span> </div> </div> `;
                 } else { throw new Error(data.error || '無法載入個人檔案資料'); }
             })
             .catch(error => { console.error("Load Profile Data Error:", error); profileBody.innerHTML = `<div class="profile-error">無法載入個人檔案: ${error.message}</div>`; });
@@ -1459,74 +1523,20 @@
         // --- Function to perform the actual search AJAX call ---
         function performBeauticianSearch() {
             const modal = document.getElementById('findBeauticianModal'); if (!modal) return;
-            const tbody = modal.querySelector('#findBeauticianTable tbody');
-            const photoArea = modal.querySelector('#findBeauticianPhotoArea');
-            const introArea = modal.querySelector('#findBeauticianIntroArea');
-            const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="findBeauticianTable"]');
-            const searchInput = modal.querySelector('#findBeauticianSearchInput');
-            const minHeightInput = modal.querySelector('#minHeightInput');
-            const maxHeightInput = modal.querySelector('#maxHeightInput');
-            const minWeightInput = modal.querySelector('#minWeightInput');
-            const maxWeightInput = modal.querySelector('#maxWeightInput');
-            const cupSelectMin = modal.querySelector('#cupSelectMin');
-            const cupSelectMax = modal.querySelector('#cupSelectMax');
-            const minFeeInput = modal.querySelector('#minFeeInput');
-            const maxFeeInput = modal.querySelector('#maxFeeInput');
+            const tbody = modal.querySelector('#findBeauticianTable tbody'); const photoArea = modal.querySelector('#findBeauticianPhotoArea'); const introArea = modal.querySelector('#findBeauticianIntroArea'); const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="findBeauticianTable"]'); const searchInput = modal.querySelector('#findBeauticianSearchInput'); const minHeightInput = modal.querySelector('#minHeightInput'); const maxHeightInput = modal.querySelector('#maxHeightInput'); const minWeightInput = modal.querySelector('#minWeightInput'); const maxWeightInput = modal.querySelector('#maxWeightInput'); const cupSelectMin = modal.querySelector('#cupSelectMin'); const cupSelectMax = modal.querySelector('#cupSelectMax'); const minFeeInput = modal.querySelector('#minFeeInput'); const maxFeeInput = modal.querySelector('#maxFeeInput');
             if (!tbody || !photoArea || !introArea || !searchInput || !minHeightInput || !maxHeightInput || !minWeightInput || !maxWeightInput || !cupSelectMin || !cupSelectMax || !minFeeInput || !maxFeeInput) return;
-            const searchTerm = searchInput.value.trim();
-            const minHeight = minHeightInput.value.trim();
-            const maxHeight = maxHeightInput.value.trim();
-            const minWeight = minWeightInput.value.trim();
-            const maxWeight = maxWeightInput.value.trim();
-            const cupMin = cupSelectMin.value;
-            const cupMax = cupSelectMax.value;
-            const minFee = minFeeInput.value.trim();
-            const maxFee = maxFeeInput.value.trim();
-            const hasKeyword = searchTerm.length > 0;
-            const hasFilters = minHeight || maxHeight || minWeight || maxWeight || cupMin || cupMax || minFee || maxFee;
+            const searchTerm = searchInput.value.trim(); const minHeight = minHeightInput.value.trim(); const maxHeight = maxHeightInput.value.trim(); const minWeight = minWeightInput.value.trim(); const maxWeight = maxWeightInput.value.trim(); const cupMin = cupSelectMin.value; const cupMax = cupSelectMax.value; const minFee = minFeeInput.value.trim(); const maxFee = maxFeeInput.value.trim();
+            const hasKeyword = searchTerm.length > 0; const hasFilters = minHeight || maxHeight || minWeight || maxWeight || cupMin || cupMax || minFee || maxFee;
             if (!hasKeyword && !hasFilters) { tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請輸入姓名或使用篩選器</td></tr>'; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '請輸入姓名或使用篩選器'); if (checkbox) syncCheckboxState(checkbox, tbody); return; }
             tbody.innerHTML = '<tr class="loading-message"><td colspan="5">搜尋中...</td></tr>'; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '搜尋中...'); if (checkbox) checkbox.disabled = true;
             const params = new URLSearchParams(); if (searchTerm) params.append('q', searchTerm); if (minHeight) params.append('min_height', minHeight); if (maxHeight) params.append('max_height', maxHeight); if (minWeight) params.append('min_weight', minWeight); if (maxWeight) params.append('max_weight', maxWeight); if (cupMin) params.append('cup_min', cupMin); if (cupMax) params.append('cup_max', cupMax); if (minFee) params.append('min_fee', minFee); if (maxFee) params.append('max_fee', maxFee);
             const url = `{% url 'myapp:ajax_search_beauticians' %}?${params.toString()}`;
-
             fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().catch(() => null).then(errData => {
-                            throw new Error(errData?.error || `伺服器錯誤 ${response.status}`);
-                        });
-                    }
-                    const ct = response.headers.get('content-type');
-                    if (!ct || !ct.includes('application/json')) {
-                        throw new TypeError('伺服器未返回 JSON');
-                    }
-                    return response.json();
-                })
+                .then(response => { if (!response.ok) { return response.json().catch(() => null).then(errData => { throw new Error(errData?.error || `伺服器錯誤 ${response.status}`); }); } const ct = response.headers.get('content-type'); if (!ct || !ct.includes('application/json')) { throw new TypeError('伺服器未返回 JSON'); } return response.json(); })
                 .then(data => {
-                    if (data.table_html !== undefined) {
-                        tbody.innerHTML = data.table_html || '<tr class="empty-table-message"><td colspan="5">找不到符合條件的美容師</td></tr>';
-                        processTimeSlotCellsInContainer(tbody);
-                        if (data.first_animal && Object.keys(data.first_animal).length > 0) {
-                            updateTopSectionFromData(photoArea, introArea, data.first_animal);
-                        } else {
-                            updatePhotoArea(photoArea, null, '');
-                            updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '找不到符合條件的美容師' : '找不到介紹');
-                        }
-                        if (checkbox) {
-                            syncCheckboxState(checkbox, tbody);
-                            applyNoteVisibility(tbody, checkbox.checked);
-                        }
-                    } else {
-                        throw new Error(data.error || '資料格式錯誤');
-                    }
+                    if (data.table_html !== undefined) { tbody.innerHTML = data.table_html || '<tr class="empty-table-message"><td colspan="5">找不到符合條件的美容師</td></tr>'; processTimeSlotCellsInContainer(tbody); if (data.first_animal && Object.keys(data.first_animal).length > 0) { updateTopSectionFromData(photoArea, introArea, data.first_animal); } else { updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '找不到符合條件的美容師' : '找不到介紹'); } if (checkbox) { syncCheckboxState(checkbox, tbody); applyNoteVisibility(tbody, checkbox.checked); } } else { throw new Error(data.error || '資料格式錯誤'); }
                  })
-                .catch(error => {
-                   console.error("Beautician Search Error:", error);
-                   tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">搜尋失敗: ${error.message}</td></tr>`;
-                   updatePhotoArea(photoArea, null, '');
-                   updateIntroArea(introArea, '搜尋失敗');
-                   if (checkbox) syncCheckboxState(checkbox, tbody);
-                });
+                .catch(error => { console.error("Beautician Search Error:", error); tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">搜尋失敗: ${error.message}</td></tr>`; updatePhotoArea(photoArea, null, ''); updateIntroArea(introArea, '搜尋失敗'); if (checkbox) syncCheckboxState(checkbox, tbody); });
         }
 
         // --- Debounced search handler ---
@@ -1534,9 +1544,7 @@
 
         // --- Event Listener Setup ---
         document.addEventListener('click', function(e) {
-            const target = e.target;
-            const targetClosest = (selector) => target.closest(selector);
-
+            const target = e.target; const targetClosest = (selector) => target.closest(selector);
             if (targetClosest('.hof-tab')) { e.preventDefault(); const rankType = targetClosest('.hof-tab').dataset.rankType; const tabsContainer = targetClosest('.hof-tabs'); if (rankType && tabsContainer && !targetClosest('.hof-tab').classList.contains('active')) { tabsContainer.querySelectorAll('.hof-tab').forEach(tab => { tab.classList.remove('active'); tab.setAttribute('aria-selected', 'false'); }); targetClosest('.hof-tab').classList.add('active'); targetClosest('.hof-tab').setAttribute('aria-selected', 'true'); displayRanking(rankType); } return; }
             if (targetClosest('#btnProfileHeader')) { if (isLoggedIn) { openModal('profileModal'); } else { openModal('loginModal'); } return; }
             if (targetClosest('.feedback-btn')) { e.preventDefault(); handleFeedbackClick(targetClosest('.feedback-btn')); return; }
@@ -1555,7 +1563,7 @@
             if (targetClosest('.review-count-btn')) { e.stopPropagation(); const animalId = targetClosest('.review-count-btn').dataset.animalId; if (animalId) { loadReviews(animalId); openModal('reviewModal'); } return; }
             if (targetClosest('#dailyHallMenu a')) { e.preventDefault(); const menu = targetClosest('#dailyHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); targetClosest('#dailyHallMenu a').classList.add('active'); loadFilteredDailySchedule(targetClosest('#dailyHallMenu a').dataset.hallId); return; }
             if (targetClosest('#myNotesHallMenu a')) { e.preventDefault(); const menu = targetClosest('#myNotesHallMenu'); menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); targetClosest('#myNotesHallMenu a').classList.add('active'); loadFilteredNotes(targetClosest('#myNotesHallMenu a').dataset.hallId); return; }
-            if (targetClosest('#weeklyHallMenu a')) { e.preventDefault(); const menu = targetClosest('#weeklyHallMenu'); const hallId = targetClosest('#weeklyHallMenu a').dataset.hallId; const imageArea = document.getElementById('weeklyScheduleImageArea'); if (!hallId || !imageArea) return; menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); targetClosest('#weeklyHallMenu a').classList.add('active'); imageArea.innerHTML = '<p>載入中...</p>'; fetch(`/ajax/weekly_schedule/?hall_id=${hallId}`, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(d => { imageArea.innerHTML = ''; if (d.success && d.schedule_urls?.length > 0) { d.schedule_urls.forEach((url, i) => { const img = document.createElement('img'); img.src = url; img.alt = `${d.hall_name || '館別'} 班表 ${i + 1}`; imageArea.appendChild(img); }); } else { imageArea.innerHTML = `<p>${d.message || d.error || '無法載入班表'}</p>`; } }).catch(err => { imageArea.innerHTML = `<p style="color: red;">無法連接: ${err.message}</p>`; }); return; }
+            if (targetClosest('#weeklyHallMenu a')) { e.preventDefault(); const menu = targetClosest('#weeklyHallMenu'); const hallId = targetClosest('#weeklyHallMenu a').dataset.hallId; const imageArea = document.getElementById('weeklyScheduleImageArea'); if (!hallId || !imageArea) return; menu.querySelectorAll('a').forEach(item => item.classList.remove('active')); targetClosest('#weeklyHallMenu a').classList.add('active'); imageArea.innerHTML = '<p>載入中...</p>'; fetch(`/ajax/weekly_schedule/?hall_id=${hallId}`, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(d => { imageArea.innerHTML = ''; if (d.success && d.schedule_urls?.length > 0) { d.schedule_urls.forEach((url, i) => { const img = document.createElement('img'); img.src = escapeHtml(url); img.alt = `${escapeHtml(d.hall_name || '館別')} 班表 ${i + 1}`; imageArea.appendChild(img); }); } else { imageArea.innerHTML = `<p>${escapeHtml(d.message || d.error || '無法載入班表')}</p>`; } }).catch(err => { imageArea.innerHTML = `<p style="color: red;">無法連接: ${escapeHtml(err.message)}</p>`; }); return; }
             const scheduleImage = targetClosest('#weeklyScheduleImageArea img'); const profileImage = targetClosest('.photo-area img'); if (scheduleImage || profileImage) { const imageToShow = scheduleImage || profileImage; const lightbox = document.getElementById('imageLightbox'); const lightboxImg = document.getElementById('lightboxImage'); if (lightbox && lightboxImg) { lightboxImg.src = imageToShow.src; lightboxImg.alt = imageToShow.alt || "放大圖片"; lightbox.style.display = 'flex'; document.body.style.overflow = 'hidden'; } return; }
             const lightbox = document.getElementById('imageLightbox'); if (lightbox && lightbox.style.display === 'flex' && (target.id === 'closeLightbox' || target.id === 'imageLightbox')) { lightbox.style.display = 'none'; const lightboxImg = document.getElementById('lightboxImage'); if (lightboxImg) lightboxImg.src = ''; const anyModalOpen = document.querySelector('.modal[style*="display: block"]'); if (!anyModalOpen) { document.body.style.overflow = ''; } return; } if (target.id === 'lightboxImage') return;
             const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)'); if (tableRow && !targetClosest('.plus-menu-btn, .review-count-btn, a, button, input, select, textarea, .feedback-btn')) { const modal = tableRow.closest('.modal'); if(modal?.querySelector('.modal-body[data-layout="table"] .top-section')){ const photoArea = modal.querySelector('.photo-area'); const introArea = modal.querySelector('.intro-area'); if (photoArea && introArea) { updateTopSectionFromRow(photoArea, introArea, tableRow); } } return; }
@@ -1590,50 +1598,19 @@
                     data.stories.forEach(story => {
                         const itemDiv = document.createElement('div'); itemDiv.className = 'story-item'; itemDiv.dataset.storyId = story.id; itemDiv.dataset.animalId = story.animal_id;
                         const photoDiv = document.createElement('div'); photoDiv.className = 'story-item-photo';
-                        if (story.animal_photo_url) { const img = document.createElement('img'); img.src = story.animal_photo_url; img.alt = story.animal_name; img.onerror = function() { this.parentNode.innerHTML = '<span class="placeholder">👤</span>'; }; photoDiv.appendChild(img); } else { const p = document.createElement('span'); p.className = 'placeholder'; p.textContent = '👤'; photoDiv.appendChild(p); }
-                        const nameSpan = document.createElement('span'); nameSpan.className = 'story-item-name'; nameSpan.textContent = story.animal_name;
-                        const hallSpan = document.createElement('span'); hallSpan.className = 'story-item-hall'; hallSpan.textContent = story.hall_name;
-                        const timeSpan = document.createElement('span'); timeSpan.className = 'story-item-time'; timeSpan.textContent = story.remaining_time;
+                        if (story.animal_photo_url) { const img = document.createElement('img'); img.src = escapeHtml(story.animal_photo_url); img.alt = escapeHtml(story.animal_name); img.onerror = function() { this.parentNode.innerHTML = '<span class="placeholder">👤</span>'; }; photoDiv.appendChild(img); } else { const p = document.createElement('span'); p.className = 'placeholder'; p.textContent = '👤'; photoDiv.appendChild(p); }
+                        const nameSpan = document.createElement('span'); nameSpan.className = 'story-item-name'; nameSpan.textContent = escapeHtml(story.animal_name);
+                        const hallSpan = document.createElement('span'); hallSpan.className = 'story-item-hall'; hallSpan.textContent = escapeHtml(story.hall_name);
+                        const timeSpan = document.createElement('span'); timeSpan.className = 'story-item-time'; timeSpan.textContent = escapeHtml(story.remaining_time);
                         itemDiv.appendChild(photoDiv); itemDiv.appendChild(nameSpan); itemDiv.appendChild(hallSpan); itemDiv.appendChild(timeSpan); storyPanel.appendChild(itemDiv);
                     });
                 } else { storyPanel.innerHTML = '<div class="story-loading-message">目前沒有限時動態</div>'; }
             })
-            .catch(error => { console.error("[loadActiveStories] Fetch/Processing Error:", error); storyPanel.innerHTML = `<div class="story-loading-message" style="color: red;">無法載入動態: ${error.message}</div>`; });
+            .catch(error => { console.error("[loadActiveStories] Fetch/Processing Error:", error); storyPanel.innerHTML = `<div class="story-loading-message" style="color: red;">無法載入動態: ${escapeHtml(error.message)}</div>`; });
         }
 
-        // --- Prevent dragging on main content and modal content panels via JavaScript ---
-        const dragPreventHandler = (event) => {
-            const target = event.target;
-            const style = window.getComputedStyle(target);
-            // Check user-select on the element itself and its parents
-            let currentElement = target;
-            let isSelectable = false;
-            while (currentElement && currentElement !== document.body) {
-                const currentStyle = window.getComputedStyle(currentElement);
-                const userSelect = currentStyle.userSelect || currentStyle.webkitUserSelect || currentStyle.mozUserSelect || currentStyle.msUserSelect;
-                if (userSelect === 'text' || userSelect === 'auto' || userSelect === 'element') {
-                    isSelectable = true;
-                    break;
-                }
-                if (userSelect === 'none') {
-                    isSelectable = false;
-                    // Don't necessarily break, parent might allow selection
-                }
-                 currentElement = currentElement.parentElement;
-            }
-
-            const isFormElement = target.closest('input, textarea, select');
-            // Simplify allowed containers check
-            const isSpecificallyAllowedContainer = target.closest('.modal-body[data-layout="table"] .body-table td, .portal-content p, .introduction, .review-value, #viewNoteContent, #chat-messages .chat-message span:not(.chat-message-header):not(.chat-message-time), .note-box, #profileModal .modal-body, .quoted-message-preview');
-
-            if (isFormElement || (isSpecificallyAllowedContainer && isSelectable)) {
-                 /* Allow drag */
-                 // console.log("Drag allowed on:", target);
-            } else {
-                // console.log("Drag prevented on:", target);
-                event.preventDefault();
-            }
-        };
+        // --- Prevent dragging ---
+        const dragPreventHandler = (event) => { const target = event.target; let allowDrag = false; let current = target; while (current && current !== document.body) { const userSelectStyle = window.getComputedStyle(current).webkitUserSelect || window.getComputedStyle(current).userSelect; if (['text', 'auto', 'element'].includes(userSelectStyle)) { if (target.closest('input, textarea, select') || target.closest('.modal-body[data-layout="table"] .body-table td, .portal-content p, .introduction, .review-value, #viewNoteContent, #chat-messages .chat-message span:not(.chat-message-header):not(.chat-message-time):not(.chat-user-title), .note-box, #profileModal .modal-body, .quoted-message-preview')) { allowDrag = true; } else if (!target.closest('input, textarea, select')) { allowDrag = false; } break; } else if (userSelectStyle === 'none') { allowDrag = false; break; } current = current.parentElement; } if (target.closest('input, textarea, select')) { allowDrag = true; } if (!allowDrag) { event.preventDefault(); } };
         const mainContent = document.querySelector('.content'); if (mainContent) { mainContent.addEventListener('dragstart', dragPreventHandler); mainContent.setAttribute('draggable', 'false'); }
         const modalContents = document.querySelectorAll('.modal-content'); modalContents.forEach(mc => { mc.addEventListener('dragstart', dragPreventHandler); mc.setAttribute('draggable', 'false'); });
 
@@ -1641,7 +1618,7 @@
         loadActiveStories();
         setInterval(loadActiveStories, 60000);
 
-        console.log("MyApp main script loaded (V18 - Uniform Timestamp/Reply Button)."); // Updated version comment
+        console.log("MyApp main script loaded (V20 - Refactored Views/URLs)."); // 更新版本註解
 
       }); // myapp 的 DOMContentLoaded 結束
     </script>

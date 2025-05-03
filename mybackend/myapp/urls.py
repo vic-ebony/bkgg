@@ -1,11 +1,12 @@
 # D:\bkgg\mybackend\myapp\urls.py
+# --- 優化後的版本 ---
 from django.urls import path
 from . import views # 確保導入 views
 
 app_name = 'myapp' # 建議定義
 
 urlpatterns = [
-    # --- Home view 現在處理多種 AJAX 請求 ---
+    # --- 初始頁面視圖 (只渲染頁面) ---
     path('', views.home, name='home'),
 
     # --- 用戶認證 ---
@@ -37,12 +38,19 @@ urlpatterns = [
     # --- 個人檔案 AJAX URL ---
     path('ajax/profile_data/', views.ajax_get_profile_data, name='ajax_get_profile_data'),
 
-    # --- 新增的搜尋 AJAX URL ---
+    # --- 搜尋 AJAX URL ---
     path('ajax/search_beauticians/', views.ajax_search_beauticians, name='ajax_search_beauticians'),
-    # --- ------------------- ---
 
-    # --- 如果你需要上傳圖片班表的功能，取消註釋下面這行 ---
-    # path('upload_schedule_image/', views.upload_schedule_image_view, name='upload_schedule_image'),
+    # --- 新增：每日班表的獨立 AJAX URL ---
+    path('ajax/daily_schedule/', views.ajax_get_daily_schedule, name='ajax_get_daily_schedule'),
+
+    # --- 新增：其他常用列表的獨立 AJAX URLs (取代 home view 的 fetch 參數) ---
+    # 注意：這些路徑可能與你原有的部分重複，請確保每個功能只有一個 URL
+    # 如果你原本就有這些路徑，那這裡不需要再加，只需確保 JS 使用它們
+    path('ajax/pending/', views.ajax_get_pending_list, name='ajax_get_pending_list'),
+    path('ajax/my_notes/', views.ajax_get_my_notes, name='ajax_get_my_notes'),
+    path('ajax/latest_reviews/', views.ajax_get_latest_reviews, name='ajax_get_latest_reviews'),
+    path('ajax/recommendations/', views.ajax_get_recommendations, name='ajax_get_recommendations'),
 
     # --- Admin Merge URL is handled by admin.py get_urls ---
 ]
