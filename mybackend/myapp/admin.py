@@ -1,90 +1,104 @@
-# D:\bkgg\mybackend\myapp\admin.py
-# --- 完整程式碼 (更新 HallAdmin) ---
+# D:\bkgg\mybackend\myapp\admin.py (完整版 - 解決循環導入 & 更新顯示)
 
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.urls import reverse, path
 from django.http import HttpResponseRedirect
-from .models import (
-    Hall, Animal, Review, PendingAppointment, Note, Announcement,
-    StoryReview, WeeklySchedule, UserTitleRule, ReviewFeedback,
-    UserProfile, SiteConfiguration
-)
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-# 如果 merge_transfer_animal_view 在 myapp.views, 確保導入
-# from .views import merge_transfer_animal_view
-# 如果它在別處，則從正確位置導入
-# 假設它在 myapp/views.py
+from django.apps import apps # <<<--- 導入 apps
+import logging # <<<--- 導入 logging
+
+# --- merge_transfer_animal_view import ---
 try:
     from .views import merge_transfer_animal_view
 except ImportError:
-    # Fallback or error handling if the view is not found
-    # This prevents server startup failure if the view is temporarily missing
     merge_transfer_animal_view = None
     print("WARNING: merge_transfer_animal_view not found in myapp.views. Merge action may fail.")
-
 
 # --- solo admin import ---
 try:
     from solo.admin import SingletonModelAdmin
     DJANGO_SOLO_INSTALLED = True
 except ImportError:
-    SingletonModelAdmin = admin.ModelAdmin # Fallback
+    SingletonModelAdmin = admin.ModelAdmin
     DJANGO_SOLO_INSTALLED = False
+
+# --- Get models using apps.get_model ---
+# Do this after imports and before they are used in register or inline
+UserProfile = apps.get_model('myapp', 'UserProfile')
+Hall = apps.get_model('myapp', 'Hall')
+Animal = apps.get_model('myapp', 'Animal')
+Review = apps.get_model('myapp', 'Review')
+PendingAppointment = apps.get_model('myapp', 'PendingAppointment')
+Note = apps.get_model('myapp', 'Note')
+Announcement = apps.get_model('myapp', 'Announcement')
+StoryReview = apps.get_model('myapp', 'StoryReview')
+WeeklySchedule = apps.get_model('myapp', 'WeeklySchedule')
+UserTitleRule = apps.get_model('myapp', 'UserTitleRule')
+ReviewFeedback = apps.get_model('myapp', 'ReviewFeedback')
+SiteConfiguration = apps.get_model('myapp', 'SiteConfiguration')
 # --- ---
 
 
-# --- UserProfile Inline Admin (保持不變) ---
+# --- UserProfile Inline Admin ---
 class UserProfileInline(admin.StackedInline):
-    model = UserProfile
+    model = UserProfile # Now UserProfile is defined above
     can_delete = False
-    verbose_name_plural = '使用者檔案 (次數與上限)'
+    verbose_name_plural = '使用者檔案 (慾望幣)'
     fk_name = 'user'
-    fields = ('pending_list_limit', 'max_pending_limit', 'notes_limit', 'max_notes_limit')
-    readonly_fields = ('max_pending_limit', 'max_notes_limit')
+    fields = ('desire_coins',)
+    readonly_fields = ()
 # --- ---
 
-# --- User Admin (保持不變) ---
+# --- User Admin (Updated) ---
 class UserAdmin(BaseUserAdmin):
     inlines = (UserProfileInline,)
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff',
-                    'get_pending_limit_display', 'get_notes_limit_display')
+                    'get_desire_coins_display')
     list_select_related = ('profile',)
 
-    @admin.display(description='待約 (剩餘/上限)')
-    def get_pending_limit_display(self, instance):
-        try: return f"{instance.profile.pending_list_limit} / {instance.profile.max_pending_limit}"
-        except UserProfile.DoesNotExist: return 'N/A'
+    @admin.display(description='慾望幣', ordering='profile__desire_coins')
+    def get_desire_coins_display(self, instance):
+        logger = logging.getLogger(__name__) # Get logger if needed
+        try:
+            if hasattr(instance, 'profile') and instance.profile:
+                return instance.profile.desire_coins
+            else:
+                 # Fallback fetch if profile wasn't prefetched
+                 profile = UserProfile.objects.filter(user=instance).first()
+                 return profile.desire_coins if profile else 0
+        except Exception as e:
+             logger.warning(f"Error getting desire coins for {instance.username}: {e}")
+             return '錯誤'
+    # --- ---
 
-    @admin.display(description='筆記 (剩餘/上限)')
-    def get_notes_limit_display(self, instance):
-         try: return f"{instance.profile.notes_limit} / {instance.profile.max_notes_limit}"
-         except UserProfile.DoesNotExist: return 'N/A'
-
-admin.site.unregister(User)
+# Unregister and re-register User with the updated UserAdmin
+# Ensure User is unregistered before registering again if UserAdmin is redefined
+try:
+    admin.site.unregister(User)
+except admin.sites.NotRegistered:
+    pass # Ignore if it wasn't registered before (e.g., during initial setup)
 admin.site.register(User, UserAdmin)
 # --- User Admin 結束 ---
 
 
-# --- Hall Admin (更新以包含 address) ---
+# --- Hall Admin ---
 @admin.register(Hall)
 class HallAdmin(admin.ModelAdmin):
-    list_display = ('name', 'order', 'is_active', 'is_visible', 'schedule_format_type') # list_display 可選加入 address
+    list_display = ('name', 'order', 'is_active', 'is_visible', 'schedule_format_type')
     list_filter = ('is_active', 'is_visible', 'schedule_format_type')
     list_editable = ('order', 'is_active', 'is_visible')
-    search_fields = ('name', 'address') # <<<--- 加入 address 到搜尋
+    search_fields = ('name', 'address')
     fieldsets = (
-        (None, {
-            'fields': ('name', 'order', 'address') # <<<--- 加入 address 到表單
-        }),
+        (None, {'fields': ('name', 'order', 'address')}),
         ('狀態與可見性', {'fields': ('is_active', 'is_visible')}),
         ('班表與解析', {'fields': ('schedule_format_type',)}),
     )
 # --- Hall Admin 結束 ---
 
 
-# --- Animal Admin (保持不變) ---
+# --- Animal Admin ---
 @admin.register(Animal)
 class AnimalAdmin(admin.ModelAdmin):
     list_display = ('name', 'hall_display', 'fee', 'is_active', 'is_featured', 'aliases_display', 'order')
@@ -106,7 +120,6 @@ class AnimalAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         urls = super().get_urls()
-        # Make sure merge_transfer_animal_view is imported correctly
         if merge_transfer_animal_view:
             custom_urls = [
                 path(
@@ -116,8 +129,7 @@ class AnimalAdmin(admin.ModelAdmin):
                 )
             ]
             return custom_urls + urls
-        return urls # Return original urls if view import failed
-
+        return urls
 
     @admin.display(description='館別', ordering='hall__name')
     def hall_display(self, obj):
@@ -141,7 +153,6 @@ class AnimalAdmin(admin.ModelAdmin):
 
     @admin.action(description='合併/轉移選定的美容師資料')
     def merge_transfer_animal(self, request, queryset):
-        # Check if the view function exists before proceeding
         if not merge_transfer_animal_view:
             self.message_user(request, "合併視圖未正確載入，無法執行操作。", messages.ERROR)
             return HttpResponseRedirect(request.get_full_path())
@@ -160,7 +171,7 @@ class AnimalAdmin(admin.ModelAdmin):
 # --- Animal Admin 結束 ---
 
 
-# --- Review Admin (保持不變) ---
+# --- Review Admin ---
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     list_filter = ('approved', 'reward_granted', 'animal__hall__is_active', 'animal__hall', 'animal', 'user')
@@ -173,7 +184,7 @@ class ReviewAdmin(admin.ModelAdmin):
 # --- Review Admin 結束 ---
 
 
-# --- PendingAppointment Admin (保持不變) ---
+# --- PendingAppointment Admin ---
 @admin.register(PendingAppointment)
 class PendingAppointmentAdmin(admin.ModelAdmin):
     list_display = ('user', 'animal', 'added_at')
@@ -183,7 +194,7 @@ class PendingAppointmentAdmin(admin.ModelAdmin):
 # --- PendingAppointment Admin 結束 ---
 
 
-# --- Note Admin (保持不變) ---
+# --- Note Admin ---
 @admin.register(Note)
 class NoteAdmin(admin.ModelAdmin):
     list_display = ('user', 'animal', 'updated_at')
@@ -194,7 +205,7 @@ class NoteAdmin(admin.ModelAdmin):
 # --- Note Admin 結束 ---
 
 
-# --- Announcement Admin (保持不變) ---
+# --- Announcement Admin ---
 @admin.register(Announcement)
 class AnnouncementAdmin(admin.ModelAdmin):
     list_display = ('title', 'content_summary', 'is_active', 'updated_at')
@@ -210,7 +221,7 @@ class AnnouncementAdmin(admin.ModelAdmin):
 # --- Announcement Admin 結束 ---
 
 
-# --- StoryReview Admin (保持不變) ---
+# --- StoryReview Admin ---
 @admin.register(StoryReview)
 class StoryReviewAdmin(admin.ModelAdmin):
     list_display = ('animal', 'user', 'created_at', 'approved', 'approved_at', 'expires_at', 'is_story_active_display', 'reward_granted')
@@ -228,11 +239,12 @@ class StoryReviewAdmin(admin.ModelAdmin):
 
     @admin.display(boolean=True, description='目前有效')
     def is_story_active_display(self, obj):
-        return obj.is_active
+        # Make sure the StoryReview model has the 'is_active' property defined
+        return obj.is_active if hasattr(obj, 'is_active') else False
 # --- StoryReview Admin 結束 ---
 
 
-# --- WeeklySchedule Admin (保持不變) ---
+# --- WeeklySchedule Admin ---
 @admin.register(WeeklySchedule)
 class WeeklyScheduleAdmin(admin.ModelAdmin):
     list_display = ('hall', 'order', 'schedule_image_preview', 'updated_at')
@@ -252,7 +264,7 @@ class WeeklyScheduleAdmin(admin.ModelAdmin):
 # --- WeeklySchedule Admin 結束 ---
 
 
-# --- UserTitleRule Admin (保持不變) ---
+# --- UserTitleRule Admin ---
 @admin.register(UserTitleRule)
 class UserTitleRuleAdmin(admin.ModelAdmin):
     list_display = ('title_name', 'min_review_count', 'is_active')
@@ -263,7 +275,7 @@ class UserTitleRuleAdmin(admin.ModelAdmin):
 # --- UserTitleRule Admin 結束 ---
 
 
-# --- ReviewFeedback Admin (保持不變) ---
+# --- ReviewFeedback Admin ---
 @admin.register(ReviewFeedback)
 class ReviewFeedbackAdmin(admin.ModelAdmin):
     list_display = ('user', 'get_target_review_display', 'feedback_type', 'created_at')
@@ -280,7 +292,7 @@ class ReviewFeedbackAdmin(admin.ModelAdmin):
 # --- ReviewFeedback Admin 結束 ---
 
 
-# --- SiteConfiguration Admin (保持不變) ---
+# --- SiteConfiguration Admin ---
 if DJANGO_SOLO_INSTALLED:
     admin.site.register(SiteConfiguration, SingletonModelAdmin)
 else:

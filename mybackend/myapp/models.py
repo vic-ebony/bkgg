@@ -1,13 +1,14 @@
-# D:\bkgg\mybackend\myapp\models.py
-# --- 完整程式碼 (已加入 Hall.address) ---
+# D:\bkgg\mybackend\myapp\models.py (完整版 - 已移除 Signals)
 
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from django.db.models.signals import pre_save, post_save # Removed pre_delete as it wasn't used for Hall
-from django.dispatch import receiver
+# --- 不再需要 signal import ---
+# from django.db.models.signals import pre_save, post_save
+# from django.dispatch import receiver
+# --- ---
 from django.db import transaction
-from django.db.models import Q, Count, F, Case, When, Value, OuterRef, Subquery
+from django.db.models import Q, Count, F, Case, When, Value, OuterRef, Subquery # 保留 F
 from django.core.exceptions import ValidationError
 from datetime import timedelta
 import logging
@@ -24,7 +25,13 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# --- Hall Model (加入 address 欄位) ---
+# --- 常量 ---
+# 可以定義在這裡，也可以只在 signals.py 定義，只要 UserProfile 的 default 能取到即可
+INITIAL_COIN_GRANT = 10
+# --- ---
+
+
+# --- Hall Model ---
 class Hall(models.Model):
     name = models.CharField("館別名稱", max_length=100)
     order = models.PositiveIntegerField("排序", default=0)
@@ -35,9 +42,7 @@ class Hall(models.Model):
         db_index=True,
         help_text="勾選此項，該館別按鈕才會顯示在前端頁面。取消勾選可隱藏按鈕，但不影響後台操作或資料關聯。"
     )
-    # --- 新增地址欄位 ---
     address = models.TextField("地址", blank=True, null=True, help_text="輸入館別的完整地址，將用於複製訊息。")
-    # --- ------------- ---
     SCHEDULE_FORMAT_CHOICES = [
         ('format_a', '格式A (舊LINE格式)'),
         ('chatanghui', '茶湯會格式'),
@@ -74,11 +79,7 @@ class Hall(models.Model):
         format_display = self.get_schedule_format_type_display()
         status_parts.append(f"格式: {format_display}")
         status_str = ", ".join(status_parts)
-        # 地址可以選擇性地加入 __str__ 顯示
-        # address_info = f" | 地址: {self.address[:15]}..." if self.address else ""
-        # return f"{self.name} ({status_str}{address_info})"
         return f"{self.name} ({status_str})"
-
 
     def clean(self):
         if not self.is_active and self.is_visible:
@@ -90,7 +91,7 @@ class Hall(models.Model):
 # --- Hall Model 結束 ---
 
 
-# --- Animal Model (保持不變) ---
+# --- Animal Model ---
 class Animal(models.Model):
     name = models.CharField("姓名", max_length=100, db_index=True)
     hall = models.ForeignKey(
@@ -152,7 +153,7 @@ class Animal(models.Model):
 # --- Animal Model 結束 ---
 
 
-# --- Review Model (保持不變) ---
+# --- Review Model ---
 class Review(models.Model):
     animal = models.ForeignKey(Animal, related_name="reviews", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
@@ -181,7 +182,7 @@ class Review(models.Model):
     created_at = models.DateTimeField("建立時間", default=timezone.now)
     approved = models.BooleanField("已審核", default=False, db_index=True)
     approved_at = models.DateTimeField("審核時間", null=True, blank=True, db_index=True)
-    reward_granted = models.BooleanField("已獎勵次數", default=False, help_text="標記此心得是否已觸發增加使用次數")
+    reward_granted = models.BooleanField("已獎勵", default=False, help_text="標記此心得是否已觸發增加慾望幣")
 
     class Meta:
         ordering = ['-approved_at', '-created_at']
@@ -198,7 +199,7 @@ class Review(models.Model):
 # --- Review Model 結束 ---
 
 
-# --- PendingAppointment Model (保持不變) ---
+# --- PendingAppointment Model ---
 class PendingAppointment(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='pending_appointments')
     animal = models.ForeignKey(Animal, on_delete=models.CASCADE, related_name='pending_users')
@@ -217,7 +218,7 @@ class PendingAppointment(models.Model):
 # --- PendingAppointment Model 結束 ---
 
 
-# --- Note Model (保持不變) ---
+# --- Note Model ---
 class Note(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notes')
     animal = models.ForeignKey(Animal, on_delete=models.CASCADE, related_name='notes')
@@ -238,7 +239,7 @@ class Note(models.Model):
 # --- Note Model 結束 ---
 
 
-# --- Announcement Model (保持不變) ---
+# --- Announcement Model ---
 class Announcement(models.Model):
     title = models.CharField("標題", max_length=200, blank=True, null=True)
     content = models.TextField("公告內容")
@@ -256,7 +257,7 @@ class Announcement(models.Model):
 # --- Announcement Model 結束 ---
 
 
-# --- StoryReview Model (保持不變) ---
+# --- StoryReview Model ---
 class StoryReview(models.Model):
     animal = models.ForeignKey(Animal, related_name="story_reviews", on_delete=models.CASCADE, verbose_name="美容師")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='story_reviews', verbose_name="用戶")
@@ -279,7 +280,7 @@ class StoryReview(models.Model):
     approved = models.BooleanField("已審核", default=False, db_index=True)
     approved_at = models.DateTimeField("審核時間", null=True, blank=True, db_index=True)
     expires_at = models.DateTimeField("過期時間", null=True, blank=True, db_index=True)
-    reward_granted = models.BooleanField("已獎勵次數", default=False, help_text="標記此心得是否已觸發增加使用次數")
+    reward_granted = models.BooleanField("已獎勵", default=False, help_text="標記此心得是否已觸發增加慾望幣")
 
     class Meta:
         ordering = ['-approved_at', '-created_at']
@@ -313,7 +314,7 @@ class StoryReview(models.Model):
 # --- StoryReview Model 結束 ---
 
 
-# --- WeeklySchedule Model (保持不變) ---
+# --- WeeklySchedule Model ---
 class WeeklySchedule(models.Model):
     hall = models.ForeignKey(Hall, on_delete=models.CASCADE, verbose_name="館別", related_name='weekly_schedules')
     schedule_image = models.ImageField("班表圖片", upload_to='weekly_schedules/', help_text="請上傳班表圖片",)
@@ -335,7 +336,7 @@ class WeeklySchedule(models.Model):
 # --- WeeklySchedule Model 結束 ---
 
 
-# --- UserTitleRule Model (保持不變) ---
+# --- UserTitleRule Model ---
 class UserTitleRule(models.Model):
     title_name = models.CharField( "稱號名稱", max_length=50, unique=True, help_text="例如：新手上路、評論達人" )
     min_review_count = models.PositiveIntegerField( "最低心得數", unique=True, help_text="使用者累積的已審核心得總數達到此數量(包含)即可獲得此稱號" )
@@ -347,7 +348,7 @@ class UserTitleRule(models.Model):
 # --- UserTitleRule Model 結束 ---
 
 
-# --- ReviewFeedback Model (保持不變) ---
+# --- ReviewFeedback Model ---
 class ReviewFeedback(models.Model):
     FEEDBACK_CHOICES = [ ('good_to_have_you', '有你真好'), ('good_looking', '人帥真好'), ]
     user = models.ForeignKey( settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='given_feedback', verbose_name="回饋者" )
@@ -363,24 +364,28 @@ class ReviewFeedback(models.Model):
 # --- ReviewFeedback Model 結束 ---
 
 
-# --- UserProfile Model (保持不變) ---
+# --- UserProfile Model (Updated) ---
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
-    pending_list_limit = models.PositiveIntegerField("待約清單剩餘次數", default=10)
-    notes_limit = models.PositiveIntegerField("我的筆記剩餘次數", default=10)
-    max_pending_limit = models.PositiveIntegerField("待約清單最大上限", default=10, help_text="使用者當前可用的待約總額度")
-    max_notes_limit = models.PositiveIntegerField("我的筆記最大上限", default=10, help_text="使用者當前可用的筆記總額度")
+    desire_coins = models.PositiveIntegerField("慾望幣餘額", default=INITIAL_COIN_GRANT, help_text="用於執行特定操作的貨幣")
+
+    # --- Old limit fields are removed ---
+    # pending_list_limit = ...
+    # notes_limit = ...
+    # max_pending_limit = ...
+    # max_notes_limit = ...
+    # --- ---
 
     class Meta:
         verbose_name = "使用者檔案"
         verbose_name_plural = "使用者檔案"
 
     def __str__(self):
-        return f"{self.user.username}'s Profile (Pending:{self.pending_list_limit}/{self.max_pending_limit}, Notes:{self.notes_limit}/{self.max_notes_limit})"
+        return f"{self.user.username}'s Profile (慾望幣: {self.desire_coins})"
 # --- UserProfile Model 結束 ---
 
 
-# --- SiteConfiguration 模型 (保持不變) ---
+# --- SiteConfiguration Model ---
 class SiteConfiguration(SingletonModel):
     site_logo = models.ImageField("網站 Logo (頁首左上角)", upload_to='site_config/', blank=True, null=True, help_text="建議使用透明背景的 PNG 圖片，高度約 40-50px")
 
@@ -390,120 +395,6 @@ class SiteConfiguration(SingletonModel):
     class Meta:
         verbose_name = "網站設定"
         verbose_name_plural = "網站設定"
-# --- SiteConfiguration 模型結束 ---
+# --- SiteConfiguration Model 結束 ---
 
-
-# --- Signals (保持不變 - 合併後的版本) ---
-
-# 1. 自動創建 UserProfile
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        initial_pending_limit = 10
-        initial_notes_limit = 10
-        UserProfile.objects.create(
-            user=instance,
-            pending_list_limit=initial_pending_limit,
-            notes_limit=initial_notes_limit,
-            max_pending_limit=initial_pending_limit,
-            max_notes_limit=initial_notes_limit
-        )
-        logger.info(f"UserProfile created for {instance.username} with initial limits (Remaining/Max): P={initial_pending_limit}/{initial_pending_limit}, N={initial_notes_limit}/{initial_notes_limit}")
-
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def save_user_profile(sender, instance, **kwargs):
-    if hasattr(instance, 'profile'):
-        try:
-            if instance.profile.max_pending_limit < instance.profile.pending_list_limit:
-                instance.profile.max_pending_limit = instance.profile.pending_list_limit
-            if instance.profile.max_notes_limit < instance.profile.notes_limit:
-                instance.profile.max_notes_limit = instance.profile.notes_limit
-            instance.profile.save()
-        except Exception as e:
-            logger.error(f"Error saving profile for user {instance.username} in save_user_profile signal: {e}", exc_info=True)
-    else:
-        create_user_profile(sender=sender, instance=instance, created=True)
-
-
-# 2. 合併 Review 的 pre_save 和獎勵邏輯
-@receiver(pre_save, sender=Review)
-def handle_review_pre_save_and_reward(sender, instance, **kwargs):
-    original_instance = None
-    try:
-        if instance.pk:
-            original_instance = sender.objects.get(pk=instance.pk)
-    except sender.DoesNotExist: pass
-
-    approved_changed_to_true = False
-    if original_instance:
-        if not original_instance.approved and instance.approved:
-            approved_changed_to_true = True
-            if not instance.approved_at: instance.approved_at = timezone.now()
-            logger.info(f"[PRE_SAVE] Review {instance.pk}: Approved status changed to True. Setting approved_at to {instance.approved_at}")
-        elif original_instance.approved and not instance.approved:
-            instance.approved_at = None; instance.reward_granted = False
-            logger.info(f"[PRE_SAVE] Review {instance.pk}: Approved status changed to False. Clearing approved_at and reward_granted.")
-    elif instance.approved:
-        approved_changed_to_true = True
-        if not instance.approved_at: instance.approved_at = timezone.now()
-        logger.info(f"[PRE_SAVE] Review (New): Created as approved. Setting approved_at to {instance.approved_at}")
-
-    if approved_changed_to_true and not instance.reward_granted:
-        try:
-            profile = UserProfile.objects.get(user=instance.user)
-            profile.pending_list_limit = F('pending_list_limit') + 3
-            profile.notes_limit = F('notes_limit') + 3
-            profile.max_pending_limit = F('max_pending_limit') + 3
-            profile.max_notes_limit = F('max_notes_limit') + 3
-            profile.save(update_fields=['pending_list_limit', 'notes_limit', 'max_pending_limit', 'max_notes_limit'])
-            instance.reward_granted = True
-            logger.info(f"[PRE_SAVE] Review {instance.pk or '(New)'}: Granting +3 uses (Remaining & Max) to {instance.user.username}. Reward Granted flag set.")
-        except UserProfile.DoesNotExist: logger.error(f"[PRE_SAVE] UserProfile not found for user {instance.user.username} (ID: {instance.user.id}) when attempting reward for Review {instance.pk or '(New)'}")
-        except Exception as e: logger.error(f"[PRE_SAVE] Error attempting reward for Review {instance.pk or '(New)'} user {instance.user.username}: {e}", exc_info=True)
-
-
-# 3. 合併 StoryReview 的 pre_save 和獎勵邏輯
-@receiver(pre_save, sender=StoryReview)
-def handle_story_pre_save_and_reward(sender, instance, **kwargs):
-    original_instance = None
-    try:
-        if instance.pk: original_instance = sender.objects.get(pk=instance.pk)
-    except sender.DoesNotExist: pass
-
-    approved_changed_to_true = False
-    if original_instance:
-        if not original_instance.approved and instance.approved:
-            approved_changed_to_true = True
-            if not instance.approved_at: instance.approved_at = timezone.now()
-            if instance.approved_at and not instance.expires_at: instance.expires_at = instance.approved_at + timedelta(hours=24)
-            logger.info(f"[PRE_SAVE] StoryReview {instance.pk}: Approved change True. Set approved_at: {instance.approved_at}, expires_at: {instance.expires_at}")
-        elif original_instance.approved and not instance.approved:
-            instance.approved_at = None; instance.expires_at = None; instance.reward_granted = False
-            logger.info(f"[PRE_SAVE] StoryReview {instance.pk}: Approved change False. Cleared times and reward_granted.")
-    elif instance.approved:
-        approved_changed_to_true = True
-        if not instance.approved_at: instance.approved_at = timezone.now()
-        if instance.approved_at and not instance.expires_at: instance.expires_at = instance.approved_at + timedelta(hours=24)
-        logger.info(f"[PRE_SAVE] StoryReview (New): Created approved. Set approved_at: {instance.approved_at}, expires_at: {instance.expires_at}")
-
-    current_approved_at = instance.approved_at or (timezone.now() if approved_changed_to_true else None)
-    current_expires_at = instance.expires_at or (current_approved_at + timedelta(hours=24) if current_approved_at else None)
-    is_valid_for_reward = (approved_changed_to_true and not instance.reward_granted and current_expires_at and current_expires_at > timezone.now())
-
-    if is_valid_for_reward:
-        try:
-            profile = UserProfile.objects.get(user=instance.user)
-            profile.pending_list_limit = F('pending_list_limit') + 1
-            profile.notes_limit = F('notes_limit') + 1
-            profile.max_pending_limit = F('max_pending_limit') + 1
-            profile.max_notes_limit = F('max_notes_limit') + 1
-            profile.save(update_fields=['pending_list_limit', 'notes_limit', 'max_pending_limit', 'max_notes_limit'])
-            instance.reward_granted = True
-            logger.info(f"[PRE_SAVE] StoryReview {instance.pk or '(New)'}: Granting +1 uses (Rem & Max) to {instance.user.username}. Reward Granted flag set.")
-        except UserProfile.DoesNotExist: logger.error(f"[PRE_SAVE] UserProfile not found for user {instance.user.username} (ID: {instance.user.id}) when attempting reward for StoryReview {instance.pk or '(New)'}")
-        except Exception as e: logger.error(f"[PRE_SAVE] Error attempting reward for StoryReview {instance.pk or '(New)'} user {instance.user.username}: {e}", exc_info=True)
-    elif approved_changed_to_true and not instance.reward_granted:
-         expiry_status = "Not Set" if not current_expires_at else ("Expired" if current_expires_at <= timezone.now() else "Valid")
-         logger.warning(f"[PRE_SAVE] StoryReview {instance.pk or '(New)'}: Approved change True but NO reward granted. Reason: reward_granted={instance.reward_granted}, expiry_status={expiry_status} (Expires: {current_expires_at})")
-
-# --- Signals 結束 ---
+# --- NO @receiver functions below this line ---

@@ -68,6 +68,37 @@ document.addEventListener('DOMContentLoaded', function() {
         rows.forEach(row => updateCallback(row));
     }
 
+    // --- updateCoinDisplay function (NEW) ---
+    function updateCoinDisplay(newBalance) {
+        if (newBalance === undefined || newBalance === null || newBalance === '未知') {
+             console.warn("updateCoinDisplay called with invalid balance:", newBalance);
+             return;
+        }
+        const balanceStr = String(newBalance);
+
+        // 1. Update Profile Modal if open
+        const profileModal = document.getElementById('profileModal');
+        if (profileModal && profileModal.style.display === 'block') {
+             const coinStatItem = profileModal.querySelector('#profileDesireCoinStat strong');
+             if (coinStatItem) {
+                 coinStatItem.textContent = balanceStr;
+             } else {
+                 // If not found (maybe modal not fully rendered), try reloading profile data
+                 console.warn("Coin display element not found in profile modal, attempting reload.");
+                 if (isLoggedIn) loadProfileData();
+             }
+        }
+
+        // 2. Update Header display (if element exists)
+        const headerCoinSpan = document.getElementById('headerDesireCoins');
+        if (headerCoinSpan) {
+             headerCoinSpan.textContent = balanceStr;
+        }
+
+        // 3. (Optional) Update any other coin displays you might add
+    }
+
+
     // --- showPlusDropdown function ---
     function showPlusDropdown(triggerBtn) {
         const dropdown = document.getElementById('plusDropdown');
@@ -297,12 +328,20 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: new URLSearchParams({ 'animal_id': animalId })
         })
-        .then(response => {
+        .then(async response => { // Make async to handle potential JSON body in errors
             if (!response.ok) {
-                // Try to parse error from JSON response
-                return response.json().then(err => {
-                    throw new Error(err.error || `伺服器錯誤 ${response.status}`);
-                });
+                let errorMsg = `伺服器錯誤 ${response.status}`;
+                try {
+                    const errData = await response.json();
+                    errorMsg = errData.error || errorMsg; // Use specific error if available
+                } catch (e) {
+                     // Ignore JSON parsing error if body is empty or not JSON
+                }
+                // Check specifically for insufficient funds status code (403)
+                if (response.status === 403) {
+                     errorMsg = errorMsg.includes("慾望幣不足") ? errorMsg : "慾望幣不足，無法執行此操作。";
+                }
+                throw new Error(errorMsg); // Throw the constructed error message
             }
             return response.json();
         })
@@ -316,9 +355,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.pending_count !== undefined) {
                     updatePendingCount(data.pending_count);
                 }
+                 // *** Update Coin Display ***
+                 if (data.remaining_coins !== undefined) {
+                     updateCoinDisplay(data.remaining_coins);
+                 }
                 // Refresh pending list modal if open
                 const pendingModal = document.getElementById('pendingListModal');
-                if (pendingModal && pendingModal.style.display === 'block') {
+                if (pendingModal && pendingModal.style.display === 'block' && URLS.ajax_get_pending_list) {
                      // *** Use the new direct loading function ***
                      loadModalContentDirect(URLS.ajax_get_pending_list, 'pendingListModal');
                 }
@@ -330,17 +373,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         pendingButton.textContent = shouldAdd ? "移除待約" : "加入待約";
                     }
                 }
-                // Optional: Show success message (e.g., using a toast notification library)
-                 if (data.message) { console.log(data.message); } // Or display it to the user
+                 // Optional: Show success message (e.g., using a toast notification library)
+                  if (data.message) {
+                     console.log(data.message); // Or display it more prominently
+                     // Example using a simple alert: alert(data.message);
+                  }
             } else {
-                // Handle failure, update count if provided
-                 if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
+                // Handle backend failure (e.g., validation error not caught by !response.ok)
+                if (data.pending_count !== undefined) { updatePendingCount(data.pending_count); }
+                // Update coin display even on failure if provided
+                 if (data.remaining_coins !== undefined) { updateCoinDisplay(data.remaining_coins); }
                 alert(data.error || '操作失敗');
             }
          })
         .catch(error => {
             console.error("Toggle Pending Error:", error);
+            // Display the specific error message (e.g., "慾望幣不足...")
             alert(`操作待約時發生錯誤: ${error.message}`);
+            // Consider reloading profile data to get the correct coin count after an error
+            // if (isLoggedIn) loadProfileData();
         });
     }
 
@@ -437,11 +488,24 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: formData
         })
-        .then(res => {
+        .then(async res => { // Use async for potential error body parsing
             if (!res.ok) {
-                return res.json().then(err => {
-                    throw new Error(err.error || `伺服器錯誤 ${res.status}`);
-                });
+                let errorMsg = `伺服器錯誤 ${res.status}`;
+                let remainingCoinsOnError = undefined;
+                 try {
+                     const errData = await res.json();
+                     errorMsg = errData.error || errorMsg;
+                     remainingCoinsOnError = errData.remaining_coins; // Get coins from error response if available
+                 } catch (e) { /* Ignore json parse error */ }
+
+                 if (res.status === 403) { // Specifically handle 403 Forbidden (likely insufficient coins)
+                     errorMsg = errorMsg.includes("慾望幣不足") ? errorMsg : "慾望幣不足，無法執行此操作。";
+                     // Optionally update coin display with the value from error response
+                      if (remainingCoinsOnError !== undefined) {
+                           updateCoinDisplay(remainingCoinsOnError);
+                      }
+                 }
+                 throw new Error(errorMsg); // Throw the final error message
             }
             return res.json();
         })
@@ -457,6 +521,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         r.setAttribute('data-note-content', decodedNoteContent); // Use decoded content
                     }
                 });
+
+                 // *** Update Coin Display ***
+                 if (data.remaining_coins !== undefined) {
+                     updateCoinDisplay(data.remaining_coins);
+                 }
 
                 // Refresh relevant open modals
                 ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal', 'findBeauticianModal'].forEach(modalId => {
@@ -484,13 +553,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if(modal) closeModal(modal);
                 console.log(data.message || '筆記已儲存');
+                 // Example using alert: alert(data.message || '筆記已儲存');
             } else {
+                // Handle backend failure response
+                 // Update coin display even on failure if provided
+                 if (data.remaining_coins !== undefined) { updateCoinDisplay(data.remaining_coins); }
                 alert(data.error || '儲存失敗');
             }
         })
         .catch(err => {
             console.error("Save/Update Note Error:", err);
             alert(`儲存筆記時發生錯誤: ${err.message}`);
+            // Consider reloading profile to ensure coin display is accurate after error
+             // if (isLoggedIn) loadProfileData();
         });
     });
 
@@ -521,11 +596,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: formData
             })
-            .then(res => {
+            .then(async res => { // async for error body parsing
                 if (!res.ok) {
-                    return res.json().then(err => {
-                        throw new Error(err.error || `伺服器錯誤 ${res.status}`);
-                    });
+                    let errorMsg = `伺服器錯誤 ${res.status}`;
+                    let remainingCoinsOnError = undefined;
+                     try {
+                         const errData = await res.json();
+                         errorMsg = errData.error || errorMsg;
+                         remainingCoinsOnError = errData.remaining_coins;
+                     } catch (e) { /* Ignore */ }
+                     // Update coin display even on failure if possible
+                     if (remainingCoinsOnError !== undefined) { updateCoinDisplay(remainingCoinsOnError); }
+                     throw new Error(errorMsg);
                 }
                 return res.json();
             })
@@ -540,6 +622,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             r.removeAttribute('data-note-content');
                         }
                     });
+
+                     // *** Update Coin Display ***
+                     if (data.remaining_coins !== undefined) {
+                         updateCoinDisplay(data.remaining_coins);
+                     }
 
                     // Refresh relevant open modals
                      ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal', 'findBeauticianModal'].forEach(modalId => {
@@ -566,13 +653,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     if(modal) closeModal(modal);
                     console.log(data.message || '筆記已刪除');
+                     // Example: alert(data.message || '筆記已刪除');
                 } else {
+                    // Handle backend failure
+                     if (data.remaining_coins !== undefined) { updateCoinDisplay(data.remaining_coins); }
                     alert(data.error || '刪除失敗');
                 }
             })
             .catch(err => {
                 console.error("Delete Note Error:", err);
                 alert(`刪除筆記時發生錯誤: ${err.message}`);
+                // Consider reloading profile to ensure coin display is accurate
+                 // if (isLoggedIn) loadProfileData();
             });
         }
     });
@@ -868,7 +960,13 @@ document.addEventListener('DOMContentLoaded', function() {
                       const hofModal = document.getElementById('hallOfFameModal');
                       if (hofModal && hofModal.style.display === 'block') { loadHallOfFameData(); }
                  }
-                 // (No specific refresh needed for story reviews yet, maybe loadActiveStories?)
+                 // Refresh active stories if a story was submitted
+                 if (submissionType === 'story') {
+                     loadActiveStories();
+                 }
+                 // Refresh profile data as review count might have changed (affecting title/coins eventually)
+                 if (isLoggedIn) { loadProfileData(); }
+
 
             } else {
                 alert(data.error || '提交失敗');
@@ -1263,7 +1361,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
          else if (modalId === 'profileModal') {
             if (isLoggedIn) {
-                loadProfileData();
+                loadProfileData(); // Load profile data when modal opens
             } else {
                  // Show login prompt if trying to access profile when not logged in
                  const profileBody = document.getElementById('profileModalBody');
@@ -1632,15 +1730,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const p = data.profile_data;
                 const titleBadge = p.user_title ? `<span class="profile-modal-title-badge">${escapeHtml(p.user_title)}</span>` : '';
 
-                // Format used/max counts, handling potential non-numeric values
-                const pendingUsed = (typeof p.pending_count === 'number') ? p.pending_count : '?';
-                const pendingMax = (typeof p.max_pending_limit === 'number') ? p.max_pending_limit : '?';
-                const pendingDisplay = (pendingUsed !== '?' && pendingMax !== '?') ? `${pendingUsed} / ${pendingMax}` : pendingUsed;
-
-                const notesUsed = (typeof p.notes_count === 'number') ? p.notes_count : '?';
-                const notesMax = (typeof p.max_notes_limit === 'number') ? p.max_notes_limit : '?';
-                const notesDisplay = (notesUsed !== '?' && notesMax !== '?') ? `${notesUsed} / ${notesMax}` : notesUsed;
-
+                // *** Updated HTML for Desire Coins ***
+                const desireCoins = (p.desire_coins !== undefined && p.desire_coins !== null) ? p.desire_coins : '讀取失敗';
 
                 profileBody.innerHTML = `
                     <div class="profile-modal-header">
@@ -1648,6 +1739,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${titleBadge}
                     </div>
                     <div class="profile-modal-stats">
+                        <div class="profile-stat-item" id="profileDesireCoinStat">
+                            <strong>${escapeHtml(desireCoins)}</strong>
+                            <span><i class="fas fa-coins" style="color: #fd7e14;"></i> 慾望幣餘額</span>
+                        </div>
                         <div class="profile-stat-item">
                             <strong>${p.approved_reviews_count !== undefined ? p.approved_reviews_count : '?'}</strong>
                             <span><i class="fas fa-comments"></i> 一般心得</span>
@@ -1665,15 +1760,19 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span><i class="fas fa-thumbs-up" style="color: #17a2b8;"></i> 收到的「人帥真好」</span>
                         </div>
                          <div class="profile-stat-item">
-                            <strong>${escapeHtml(pendingDisplay)}</strong>
-                            <span><i class="fas fa-calendar-check"></i> 待約清單 (已用/上限)</span>
+                             <strong>${p.pending_count !== undefined ? p.pending_count : '?'}</strong>
+                            <span><i class="fas fa-calendar-check"></i> 待約數量</span>
                         </div>
                          <div class="profile-stat-item">
-                            <strong>${escapeHtml(notesDisplay)}</strong>
-                            <span><i class="fas fa-sticky-note"></i> 我的筆記 (已用/上限)</span>
+                             <strong>${p.notes_count !== undefined ? p.notes_count : '?'}</strong>
+                            <span><i class="fas fa-sticky-note"></i> 筆記數量</span>
                         </div>
                     </div>
                 `;
+
+                // Update any other coin displays (e.g., header)
+                 updateCoinDisplay(p.desire_coins);
+
             } else {
                 throw new Error(data.error || '無法載入個人檔案資料');
             }
@@ -1681,6 +1780,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error("Load Profile Data Error:", error);
             profileBody.innerHTML = `<div class="profile-error">無法載入個人檔案: ${error.message}</div>`;
+            // Clear header coin display on error
+            updateCoinDisplay('?');
         });
     }
 
@@ -2303,7 +2404,26 @@ document.addEventListener('DOMContentLoaded', function() {
     loadActiveStories(); // Load stories on page load
     setInterval(loadActiveStories, 60000); // Refresh stories every minute
 
+    // Fetch initial profile data if logged in, to populate coin display early
+    if (isLoggedIn && URLS.ajax_get_profile_data) {
+         // Don't put loading state in modal, just fetch in background
+         fetch(URLS.ajax_get_profile_data, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+             .then(response => response.ok ? response.json() : Promise.reject('Failed initial profile load'))
+             .then(data => {
+                 if (data.success && data.profile_data && data.profile_data.desire_coins !== undefined) {
+                     updateCoinDisplay(data.profile_data.desire_coins); // Update display on page load
+                     console.log("Initial coin balance fetched:", data.profile_data.desire_coins);
+                 } else {
+                     console.warn("Initial profile fetch successful but no coin data.");
+                 }
+             })
+             .catch(error => {
+                 console.error("Error fetching initial profile data:", error);
+                 updateCoinDisplay('?'); // Show error state for coins
+             });
+    }
 
-    console.log("MyApp main script loaded (V20 - Refactored Views/URLs).");
+
+    console.log("MyApp main script loaded (V20 - Desire Coins Fix).");
 
 }); // End of DOMContentLoaded listener
