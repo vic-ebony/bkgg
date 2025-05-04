@@ -1,4 +1,4 @@
-# D:\bkgg\mybackend\myapp\views.py
+# D:\bkgg\mybackend\myapp\views.py (完整版 - 修改 render_animal_rows, 新增搶約專區視圖)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
@@ -11,10 +11,13 @@ from django.db.models.functions import Coalesce
 from django.db import transaction # Ensure transaction is imported
 from django.views.decorators.http import require_POST, require_GET
 from django.template.loader import render_to_string
+from datetime import date # <<<--- 導入 date
+
 # Import necessary models
 from .models import (
     Animal, Hall, Review, PendingAppointment, Note, Announcement,
-    StoryReview, WeeklySchedule, ReviewFeedback, UserTitleRule, UserProfile, # Ensure UserProfile is imported
+    StoryReview, WeeklySchedule, ReviewFeedback, UserTitleRule, UserProfile,
+    PreBookingSlot, # <<<--- 導入 PreBookingSlot
     SiteConfiguration
 )
 import traceback
@@ -68,21 +71,32 @@ PENDING_ACTION_COST = 1
 NOTE_ACTION_COST = 1
 # --- ---
 
-# --- render_animal_rows function (Unchanged from previous version) ---
-def render_animal_rows(request, animals_qs, fetch_daily_slots=False):
-    """Renders HTML table rows for a queryset of Animals."""
-    animal_daily_slots = {}
+# --- render_animal_rows function (MODIFIED - Added slots_override_dict) ---
+def render_animal_rows(request, animals_qs, fetch_daily_slots=False, slots_override_dict=None):
+    """
+    Renders HTML table rows for a queryset of Animals.
+    Optionally uses slots_override_dict instead of fetching daily slots.
+    """
+    animal_slots_for_template = {}
     animal_ids_on_page = [a.id for a in animals_qs if a]
 
-    if fetch_daily_slots and SCHEDULE_PARSER_ENABLED and DailySchedule is not None and animal_ids_on_page:
+    if slots_override_dict is not None:
+        # Use provided slots directly
+        animal_slots_for_template = slots_override_dict
+        logger.debug(f"Using slots_override_dict for animal IDs: {list(animal_slots_for_template.keys())}")
+    elif fetch_daily_slots and SCHEDULE_PARSER_ENABLED and DailySchedule is not None and animal_ids_on_page:
+        # Fetch daily slots if override not provided and daily schedule is enabled
         try:
             daily_schedules_qs = DailySchedule.objects.filter(
                 animal_id__in=animal_ids_on_page
             ).values('animal_id', 'time_slots')
-            animal_daily_slots = {schedule['animal_id']: schedule['time_slots'] for schedule in daily_schedules_qs}
-            logger.debug(f"Fetched daily slots for animal IDs: {list(animal_daily_slots.keys())}")
+            animal_slots_for_template = {schedule['animal_id']: schedule['time_slots'] for schedule in daily_schedules_qs}
+            logger.debug(f"Fetched daily slots for animal IDs: {list(animal_slots_for_template.keys())}")
         except Exception as slot_err:
             logger.error(f"Error fetching daily slots inside render_animal_rows: {slot_err}", exc_info=True)
+    else:
+        logger.debug("No slots override provided and daily slots not fetched.")
+
 
     pending_ids = set()
     notes_by_animal = {}
@@ -108,12 +122,19 @@ def render_animal_rows(request, animals_qs, fetch_daily_slots=False):
                 logger.error(f"Error counting reviews for animal {animal_instance.id}: {count_err}", exc_info=True)
                 review_count = 0
         animal_id_str = str(animal_instance.id)
-        today_slots_for_template = animal_daily_slots.get(animal_instance.id)
+
+        # Get slots from the prepared dictionary (either override or daily)
+        time_slots_to_use = animal_slots_for_template.get(animal_instance.id)
+
         note_instance = notes_by_animal.get(animal_id_str)
         row_context = {
-            'animal': animal_instance, 'user': request.user, 'today_slots': today_slots_for_template,
-            'is_pending': animal_id_str in pending_ids, 'note': note_instance, 'review_count': review_count,
-            'animal_data': {
+            'animal': animal_instance,
+            'user': request.user,
+            'today_slots': time_slots_to_use, # Use the determined slots
+            'is_pending': animal_id_str in pending_ids,
+            'note': note_instance,
+            'review_count': review_count,
+            'animal_data': { # Still useful for JS, might not need all keys anymore
                  'photo_url': animal_instance.photo.url if animal_instance.photo else '',
                  'introduction': animal_instance.introduction or '',
                  'note_id': note_instance.id if note_instance else '',
@@ -129,7 +150,7 @@ def render_animal_rows(request, animals_qs, fetch_daily_slots=False):
             rendered_rows_html_list.append(f'<tr><td colspan="5" style="color:red; font-style:italic;">渲染錯誤: {animal_instance.name} (ID: {animal_instance.id})</td></tr>')
     return "".join(rendered_rows_html_list)
 
-# --- ajax_get_daily_schedule (Unchanged) ---
+# --- ajax_get_daily_schedule (Ensure it calls render_animal_rows correctly) ---
 @require_GET
 def ajax_get_daily_schedule(request):
     """處理每日班表數據的 AJAX 請求"""
@@ -161,11 +182,15 @@ def ajax_get_daily_schedule(request):
                 approved_review_count=Count('reviews', filter=Q(reviews__approved=True))
             )
         )
+        # Note: We fetch DailySchedule here to get the *animals* that have a schedule today.
+        # The actual time slots will be re-fetched *inside* render_animal_rows if needed.
         daily_schedules_qs = DailySchedule.objects.filter(hall_id=hall_id_int).prefetch_related(prefetch_animal).order_by('animal__order', 'animal__name')
         animals_for_render = [ds.animal for ds in daily_schedules_qs if ds.animal]
         logger.debug(f"[AJAX Daily] Found {len(animals_for_render)} active animals for Hall ID {hall_id_int}")
 
-        table_html = render_animal_rows(request, animals_for_render, fetch_daily_slots=True)
+        # *** MODIFIED CALL: Ensure fetch_daily_slots=True and no override ***
+        table_html = render_animal_rows(request, animals_for_render, fetch_daily_slots=True, slots_override_dict=None)
+        # *** ***
 
         first_animal_data = {}
         if animals_for_render:
@@ -261,7 +286,7 @@ def home(request):
 # --- Home View 結束 ---
 
 
-# --- AJAX Views (Pending, Notes, Latest Reviews, Recommendations - Unchanged) ---
+# --- AJAX Views (Pending, Notes, Latest Reviews, Recommendations - Ensure correct render_animal_rows call) ---
 @login_required
 @require_GET
 def ajax_get_pending_list(request):
@@ -274,7 +299,8 @@ def ajax_get_pending_list(request):
         animals_dict = {a.id: a for a in animals_qs}
         animals_list_ordered = [animals_dict.get(pa.animal_id) for pa in pending_appointments_qs if pa.animal_id in animals_dict]
         logger.debug(f"[AJAX Pending] Found {len(animals_list_ordered)} active animals for user {request.user.username}.")
-        table_html = render_animal_rows(request, animals_list_ordered, fetch_daily_slots=True)
+        # *** MODIFIED CALL: Fetch daily slots, no override ***
+        table_html = render_animal_rows(request, animals_list_ordered, fetch_daily_slots=True, slots_override_dict=None)
         first_animal_data = {}
         if animals_list_ordered:
             first_animal = animals_list_ordered[0]
@@ -313,7 +339,8 @@ def ajax_get_my_notes(request):
             animals_dict = {a.id: a for a in animals_qs}
             animals_list_ordered = [animals_dict.get(note.animal_id) for note in notes_qs if note.animal_id in animals_dict]
             logger.debug(f"[AJAX Notes] Found {len(animals_list_ordered)} animals with notes.")
-        table_html = render_animal_rows(request, animals_list_ordered, fetch_daily_slots=True)
+        # *** MODIFIED CALL: Fetch daily slots, no override ***
+        table_html = render_animal_rows(request, animals_list_ordered, fetch_daily_slots=True, slots_override_dict=None)
         first_animal_data = {}
         if animals_list_ordered:
             first_animal = animals_list_ordered[0]
@@ -334,7 +361,8 @@ def ajax_get_latest_reviews(request):
         latest_reviewed_animals_qs = Animal.objects.filter(is_active=True, hall__is_active=True, reviews__approved=True).annotate(latest_approved_time=Subquery(latest_approved_time_subquery), latest_created_time=Subquery(latest_created_time_subquery), approved_review_count=Count('reviews', filter=Q(reviews__approved=True))).filter(latest_approved_time__isnull=False).select_related('hall').order_by('-latest_approved_time', '-latest_created_time')[:20]
         results_list = list(latest_reviewed_animals_qs)
         logger.debug(f"[AJAX LatestReviews] Found {len(results_list)} animals.")
-        table_html = render_animal_rows(request, results_list, fetch_daily_slots=True)
+        # *** MODIFIED CALL: Fetch daily slots, no override ***
+        table_html = render_animal_rows(request, results_list, fetch_daily_slots=True, slots_override_dict=None)
         first_animal_data = {}
         if results_list:
              first_animal = results_list[0]
@@ -354,7 +382,8 @@ def ajax_get_recommendations(request):
         recommended_animals_qs = Animal.objects.filter(is_active=True, is_recommended=True, hall__is_active=True).select_related('hall').annotate(approved_review_count=Count('reviews', filter=Q(reviews__approved=True))).order_by('hall__order', 'order', 'name')
         results_list = list(recommended_animals_qs)
         logger.debug(f"[AJAX Recommendations] Found {len(results_list)} animals.")
-        table_html = render_animal_rows(request, results_list, fetch_daily_slots=True)
+        # *** MODIFIED CALL: Fetch daily slots, no override ***
+        table_html = render_animal_rows(request, results_list, fetch_daily_slots=True, slots_override_dict=None)
         first_animal_data = {}
         if results_list:
              first_animal = results_list[0]
@@ -1265,7 +1294,7 @@ def ajax_get_profile_data(request):
         return JsonResponse({'success': False, 'error': '讀取個人檔案資料時發生錯誤', 'profile_data': profile_data}, status=500)
 
 
-# --- 搜尋 View (Unchanged) ---
+# --- 搜尋 View (Ensure correct render_animal_rows call) ---
 @require_GET
 def ajax_search_beauticians(request):
     term = request.GET.get('q', '').strip()
@@ -1325,7 +1354,8 @@ def ajax_search_beauticians(request):
         result_count = len(search_results)
         logger.debug(f"Found {result_count} beauticians (limit {results_limit})")
 
-        table_html = render_animal_rows(request, search_results, fetch_daily_slots=True)
+        # *** MODIFIED CALL: Fetch daily slots, no override ***
+        table_html = render_animal_rows(request, search_results, fetch_daily_slots=True, slots_override_dict=None)
 
         first_animal_data = {}
         if search_results:
@@ -1335,6 +1365,96 @@ def ajax_search_beauticians(request):
         if not table_html.strip() and result_count == 0: table_html = '<tr class="empty-table-message"><td colspan="5">找不到符合條件的美容師</td></tr>'
         return JsonResponse({'table_html': table_html, 'first_animal': first_animal_data})
     except Exception as e: logger.error(f"Error during search AJAX for term '{term}': {e}", exc_info=True); error_html = '<tr class="empty-table-message"><td colspan="5">搜尋時發生內部錯誤</td></tr>'; return JsonResponse({'table_html': error_html, 'first_animal': {}}, status=500)
+
+
+# --- START: New Pre-booking Zone AJAX Views --- NEW ---
+
+@require_GET
+def ajax_get_pre_booking_dates(request):
+    """獲取搶約專區可用的日期列表 (今天及未來)"""
+    today = date.today()
+    try:
+        # 查詢 PreBookingSlot 中今天及未來的日期，去重並排序
+        dates_qs = PreBookingSlot.objects.filter(
+            date__gte=today,
+            animal__is_active=True # 只考慮活躍美容師的日期
+        ).filter(
+            Q(animal__hall__isnull=True) | Q(animal__hall__is_active=True) # 活躍館別或未分館
+        ).values_list('date', flat=True).distinct().order_by('date')
+
+        # 轉換為 'YYYY-MM-DD' 格式的列表
+        available_dates = [d.isoformat() for d in dates_qs]
+        logger.info(f"[AJAX PreBooking Dates] Found {len(available_dates)} available dates >= {today.isoformat()}")
+        return JsonResponse({'success': True, 'dates': available_dates})
+    except Exception as e:
+        logger.error(f"[AJAX PreBooking Dates] Error fetching available dates: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': '無法獲取可用日期'}, status=500)
+
+@require_GET
+def ajax_get_pre_booking_slots(request):
+    """獲取指定日期的搶約專區美容師及時段"""
+    date_str = request.GET.get('date')
+    logger.debug(f"[AJAX PreBooking Slots] Received request, date_str: {date_str}")
+
+    if not date_str:
+        logger.warning("[AJAX PreBooking Slots] Request missing date.")
+        return JsonResponse({'error': '請求缺少日期參數 (date)'}, status=400)
+
+    try:
+        selected_date = date.fromisoformat(date_str)
+        logger.info(f"[AJAX PreBooking Slots] Fetching slots for Date: {selected_date.isoformat()}")
+    except (ValueError, TypeError):
+        logger.warning(f"[AJAX PreBooking Slots] Invalid date format: {date_str}")
+        return JsonResponse({'error': '無效的日期格式 (需要 YYYY-MM-DD)'}, status=400)
+
+    try:
+        # 查詢指定日期的 PreBookingSlot 記錄
+        pre_booking_slots_qs = PreBookingSlot.objects.filter(
+            date=selected_date,
+            animal__is_active=True # 只顯示活躍的美容師
+        ).filter(
+            Q(animal__hall__isnull=True) | Q(animal__hall__is_active=True) # 活躍館別或未分館
+        ).select_related(
+            'animal', 'animal__hall'
+        ).annotate(
+            approved_review_count=Count('animal__reviews', filter=Q(animal__reviews__approved=True)) # Annotate review count on animal
+        ).order_by(
+            'animal__hall__order', 'animal__order', 'animal__name'
+        )
+
+        animals_for_render = []
+        slots_override = {}
+        for slot in pre_booking_slots_qs:
+            if slot.animal: # 確保關聯的 animal 存在
+                animals_for_render.append(slot.animal)
+                slots_override[slot.animal.id] = slot.time_slots # 建立 animal_id -> time_slots 的字典
+
+        logger.debug(f"[AJAX PreBooking Slots] Found {len(animals_for_render)} active animals for Date {selected_date.isoformat()}")
+
+        # *** MODIFIED CALL: Pass the slots_override_dict ***
+        table_html = render_animal_rows(request, animals_for_render, fetch_daily_slots=False, slots_override_dict=slots_override)
+        # *** ***
+
+        first_animal_data = {}
+        if animals_for_render:
+            first_animal_obj = animals_for_render[0]
+            try:
+                first_animal_data = {
+                    'photo_url': first_animal_obj.photo.url if first_animal_obj.photo else '',
+                    'name': first_animal_obj.name or '',
+                    'introduction': first_animal_obj.introduction or ''
+                }
+            except Exception as e:
+                logger.warning(f"[AJAX PreBooking Slots] Error getting first animal data (Animal ID {first_animal_obj.id}): {e}")
+
+        return JsonResponse({'table_html': table_html, 'first_animal': first_animal_data})
+
+    except Exception as e:
+        logger.error(f"[AJAX PreBooking Slots] Error processing for Date {date_str}: {e}", exc_info=True)
+        error_html = f'<tr class="empty-table-message"><td colspan="5">載入搶約時段時發生內部錯誤</td></tr>'
+        return JsonResponse({'table_html': error_html, 'first_animal': {}}, status=500)
+
+# --- END: New Pre-booking Zone AJAX Views ---
 
 
 # --- Admin Merge/Transfer View (Unchanged) ---

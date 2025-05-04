@@ -1,3 +1,5 @@
+// D:\bkgg\mybackend\myapp\static\myapp\js\main.js (完整版 - 包含搶約專區邏輯)
+
 // --- Helper functions (moved from inline script) ---
 function getCookie(name) {
     let cookieValue = null;
@@ -90,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // 2. Update Header display (if element exists)
-        const headerCoinSpan = document.getElementById('headerDesireCoins');
+        const headerCoinSpan = document.getElementById('headerDesireCoins'); // Assuming you add this ID to a span in the header
         if (headerCoinSpan) {
              headerCoinSpan.textContent = balanceStr;
         }
@@ -528,7 +530,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  }
 
                 // Refresh relevant open modals
-                ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal', 'findBeauticianModal'].forEach(modalId => {
+                ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal', 'findBeauticianModal', 'preBookingModal'].forEach(modalId => { // Added preBookingModal
                       const openModalElement = document.getElementById(modalId);
                       if (openModalElement && openModalElement.style.display === 'block') {
                            console.log(`Note saved/updated, reloading content for open modal: ${modalId}`);
@@ -546,6 +548,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                loadModalContentDirect(URLS.ajax_get_latest_reviews, modalId);
                            } else if (modalId === 'dailyRecommendationModal' && URLS.ajax_get_recommendations) {
                                loadModalContentDirect(URLS.ajax_get_recommendations, modalId);
+                           } else if (modalId === 'preBookingModal') { // Refresh pre-booking slots if open
+                               const activeDateLink = openModalElement.querySelector('#preBookingDateMenu a.active');
+                               if (activeDateLink) loadPreBookingSlots(activeDateLink.dataset.date);
                            }
                        }
                 });
@@ -629,7 +634,7 @@ document.addEventListener('DOMContentLoaded', function() {
                      }
 
                     // Refresh relevant open modals
-                     ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal', 'findBeauticianModal'].forEach(modalId => {
+                     ['myNotesModal', 'pendingListModal', 'latestReviewModal', 'dailyRecommendationModal', 'dailyScheduleModal', 'findBeauticianModal', 'preBookingModal'].forEach(modalId => { // Added preBookingModal
                            const openModalElement = document.getElementById(modalId);
                            if (openModalElement && openModalElement.style.display === 'block') {
                                console.log(`Note deleted, reloading content for open modal: ${modalId}`);
@@ -647,6 +652,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                    loadModalContentDirect(URLS.ajax_get_latest_reviews, modalId);
                                } else if (modalId === 'dailyRecommendationModal' && URLS.ajax_get_recommendations) {
                                    loadModalContentDirect(URLS.ajax_get_recommendations, modalId);
+                               } else if (modalId === 'preBookingModal') { // Refresh pre-booking slots if open
+                                   const activeDateLink = openModalElement.querySelector('#preBookingDateMenu a.active');
+                                   if (activeDateLink) loadPreBookingSlots(activeDateLink.dataset.date);
                                }
                            }
                      });
@@ -1210,9 +1218,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // --- Modal Open/Close Functions ---
-    const openModal = (modalId) => {
-        const modal = document.getElementById(modalId);
-        if (!modal) return false; // Modal doesn't exist
+    const closeModal = (modalElement) => {
+        // Ensure we are closing a modal and not the lightbox accidentally
+        if (modalElement && modalElement.id !== 'imageLightbox') {
+            modalElement.style.display = 'none';
+            // Only restore body scroll if NO OTHER modals are open
+            const anyModalOpen = document.querySelector('.modal[style*="display: block"]:not(#imageLightbox)');
+            if (!anyModalOpen) {
+                document.body.style.overflow = ''; // Restore scroll
+            }
+        }
+    };
+
+    // --- Modified openModal ---
+    const openModal = (modalId) => { // Redefine or modify existing
+         const modal = document.getElementById(modalId);
+         if (!modal) return false; // Modal doesn't exist
 
         // Scroll specific modal bodies to top on open
         const modalBody = modal.querySelector('.modal-body');
@@ -1286,6 +1307,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  setTimeout(() => { messagesContainer.scrollTop = messagesContainer.scrollHeight; }, 50);
             }
         }
+        // --- END Modal Specific Initializations ---
 
 
         // Display the modal
@@ -1368,20 +1390,12 @@ document.addEventListener('DOMContentLoaded', function() {
                  if (profileBody) profileBody.innerHTML = '<div class="profile-error">請先登入以查看個人檔案。</div>';
             }
         }
+        else if (modalId === 'preBookingModal') { // <<<--- NEW: Load dates for Pre-Booking Modal
+            loadPreBookingDates();
+        }
+        // --- END Trigger data loading ---
 
         return true; // Indicate modal was opened
-    };
-
-    const closeModal = (modalElement) => {
-        // Ensure we are closing a modal and not the lightbox accidentally
-        if (modalElement && modalElement.id !== 'imageLightbox') {
-            modalElement.style.display = 'none';
-            // Only restore body scroll if NO OTHER modals are open
-            const anyModalOpen = document.querySelector('.modal[style*="display: block"]:not(#imageLightbox)');
-            if (!anyModalOpen) {
-                document.body.style.overflow = ''; // Restore scroll
-            }
-        }
     };
 
 
@@ -1918,6 +1932,160 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Debounced search handler ---
     const debouncedSearch = debounce(performBeauticianSearch, 300); // 300ms delay
 
+
+    // --- START: New Pre-booking Zone Functions --- NEW ---
+
+    // Function to format YYYY-MM-DD date string to MM/DD (週X)
+    function formatDateForDisplay(dateString) {
+        try {
+            const date = new Date(dateString + 'T00:00:00'); // Ensure parsing as local date
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            const weekday = weekdays[date.getDay()];
+            return `${month}/${day} (週${weekday})`;
+        } catch (e) {
+            console.error("Error formatting date:", dateString, e);
+            return dateString; // Fallback
+        }
+    }
+
+    // Function to load available dates for the Pre-booking modal
+    function loadPreBookingDates() {
+        const dateMenu = document.getElementById('preBookingDateMenu');
+        const modal = document.getElementById('preBookingModal');
+        const tbody = modal?.querySelector('#preBookingTable tbody');
+        const photoArea = modal?.querySelector('#preBookingPhotoArea');
+        const introArea = modal?.querySelector('#preBookingIntroArea');
+
+        if (!dateMenu || !modal || !tbody || !photoArea || !introArea) {
+            console.error("Pre-booking modal date menu or other elements missing.");
+            return;
+        }
+
+        dateMenu.innerHTML = '<p style="color:#666; padding: 0.5rem 0.75rem;">載入可預約日期中...</p>';
+        tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請點擊上方日期載入可預約時段</td></tr>';
+        updatePhotoArea(photoArea, null, '');
+        updateIntroArea(introArea, '請點擊上方日期載入介紹');
+
+        const url = URLS.ajax_get_pre_booking_dates;
+        if (!url) {
+            console.error("Pre-booking dates URL not found");
+            dateMenu.innerHTML = `<p style="color: red; padding: 0.5rem 0.75rem;">錯誤：URL配置錯誤</p>`;
+            return;
+        }
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const ct = response.headers.get('content-type');
+                if (!ct?.includes('application/json')) throw new TypeError('伺服器未返回 JSON');
+                return response.json();
+            })
+            .then(data => {
+                dateMenu.innerHTML = ''; // Clear loading message
+                if (data.success && data.dates?.length > 0) {
+                    data.dates.forEach(dateStr => {
+                        const link = document.createElement('a');
+                        link.href = '#';
+                        link.dataset.date = dateStr;
+                        link.textContent = formatDateForDisplay(dateStr);
+                        dateMenu.appendChild(link);
+                    });
+                    // Automatically click the first date to load its slots
+                    const firstLink = dateMenu.querySelector('a');
+                    if (firstLink) {
+                        // Use setTimeout to allow the DOM to update before simulating click
+                        setTimeout(() => {
+                           firstLink.click();
+                        }, 0);
+                    } else {
+                         tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">沒有找到可預約的日期</td></tr>';
+                    }
+                } else {
+                    dateMenu.innerHTML = '<p style="color:#666; padding: 0.5rem 0.75rem;">目前沒有可預約的日期</p>';
+                     tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">目前沒有可預約的日期</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error("Error loading pre-booking dates:", error);
+                dateMenu.innerHTML = `<p style="color: red; padding: 0.5rem 0.75rem;">無法載入日期: ${error.message}</p>`;
+                 tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">無法載入可預約時段</td></tr>`;
+            });
+    }
+
+    // Function to load slots for a specific pre-booking date
+    function loadPreBookingSlots(dateString) {
+        const modal = document.getElementById('preBookingModal');
+        if (!modal) return;
+
+        const tbody = modal.querySelector('#preBookingTable tbody');
+        const photoArea = modal.querySelector('#preBookingPhotoArea');
+        const introArea = modal.querySelector('#preBookingIntroArea');
+        const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="preBookingTable"]');
+
+        if (!tbody || !photoArea || !introArea) {
+            console.error("Pre-booking modal elements missing for slot loading.");
+            return;
+        }
+
+        // Set loading state
+        tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
+        updatePhotoArea(photoArea, null, '');
+        updateIntroArea(introArea, '載入中...');
+        if (checkbox) checkbox.disabled = true;
+
+        const baseUrl = URLS.ajax_get_pre_booking_slots;
+        if (!baseUrl) {
+            console.error("Pre-booking slots URL not found");
+            tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">錯誤：URL配置錯誤</td></tr>`;
+            if (checkbox) checkbox.disabled = false;
+            return;
+        }
+        const url = `${baseUrl}?date=${dateString}`;
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const ct = response.headers.get('content-type');
+                if (!ct?.includes('application/json')) throw new TypeError('伺服器未返回 JSON');
+                return response.json();
+            })
+            .then(data => {
+                if (data.table_html !== undefined) {
+                    tbody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">此日期目前無可預約時段</td></tr>`;
+                    // IMPORTANT: We use the time_slots from the override dict passed by the view
+                    // The processTimeSlotCellsInContainer function just formats what's already in the TD
+                    processTimeSlotCellsInContainer(tbody);
+
+                    // Update top section
+                    if (data.first_animal && Object.keys(data.first_animal).length > 0) {
+                        updateTopSectionFromData(photoArea, introArea, data.first_animal);
+                    } else {
+                        updatePhotoArea(photoArea, null, '');
+                        updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '此日期目前無可預約時段' : '此日期無介紹');
+                    }
+                    // Sync notes checkbox
+                    if (checkbox) {
+                        syncCheckboxState(checkbox, tbody);
+                        applyNoteVisibility(tbody, checkbox.checked);
+                    }
+                } else {
+                    throw new Error(data.error || '資料格式錯誤');
+                }
+            })
+            .catch(error => {
+                console.error("Error loading pre-booking slots:", error);
+                tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">載入時段失敗: ${error.message}</td></tr>`;
+                updatePhotoArea(photoArea, null, '');
+                updateIntroArea(introArea, '載入失敗');
+                if (checkbox) syncCheckboxState(checkbox, tbody);
+            });
+    }
+
+    // --- END: New Pre-booking Zone Functions ---
+
+
     // --- Global Event Listener Setup (using event delegation) ---
     document.addEventListener('click', function(e) {
         const target = e.target;
@@ -1960,6 +2128,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Header Buttons to Open Modals
         if (targetClosest('#btnHallOfFameHeader')) { openModal('hallOfFameModal'); return; }
         if (targetClosest('#btnWeeklyScheduleHeader')) { openModal('weeklyScheduleModal'); return; }
+        if (targetClosest('#btnPreBookingHeader')) { openModal('preBookingModal'); return; } // <<<--- Add this handler
         if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
         if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
         if (targetClosest('#btnDailyRecommendationHeader')) { openModal('dailyRecommendationModal'); return; }
@@ -2043,6 +2212,16 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(err => {
                  imageArea.innerHTML = `<p style="color: red;">無法連接: ${escapeHtml(err.message)}</p>`;
             });
+            return;
+        }
+        // Date Menu Links (Pre-Booking) - <<<--- NEW ---<<<
+        if (targetClosest('#preBookingDateMenu a')) {
+            e.preventDefault();
+            const menu = targetClosest('#preBookingDateMenu');
+            const dateLink = targetClosest('#preBookingDateMenu a');
+            menu.querySelectorAll('a').forEach(item => item.classList.remove('active'));
+            dateLink.classList.add('active');
+            loadPreBookingSlots(dateLink.dataset.date); // Load slots for the clicked date
             return;
         }
 
@@ -2424,6 +2603,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
-    console.log("MyApp main script loaded (V20 - Desire Coins Fix).");
+    console.log("MyApp main script loaded (V21 - Pre-Booking Zone Added)."); // Updated version log
 
 }); // End of DOMContentLoaded listener

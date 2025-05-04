@@ -1,4 +1,4 @@
-# D:\bkgg\mybackend\myapp\admin.py (完整版 - 解決循環導入 & 更新顯示)
+# D:\bkgg\mybackend\myapp\admin.py (完整版 - 新增 PreBookingSlotAdmin)
 
 from django.contrib import admin, messages
 from django.utils.html import format_html
@@ -37,6 +37,7 @@ StoryReview = apps.get_model('myapp', 'StoryReview')
 WeeklySchedule = apps.get_model('myapp', 'WeeklySchedule')
 UserTitleRule = apps.get_model('myapp', 'UserTitleRule')
 ReviewFeedback = apps.get_model('myapp', 'ReviewFeedback')
+PreBookingSlot = apps.get_model('myapp', 'PreBookingSlot') # <<<--- 新增獲取 PreBookingSlot
 SiteConfiguration = apps.get_model('myapp', 'SiteConfiguration')
 # --- ---
 
@@ -290,6 +291,29 @@ class ReviewFeedbackAdmin(admin.ModelAdmin):
         elif obj.story_review: user_name = obj.story_review.user.username if obj.story_review.user else "未知用戶"; return f"限時動態 #{obj.story_review.id} (作者: {user_name})"
         return "N/A"
 # --- ReviewFeedback Admin 結束 ---
+
+
+# --- PreBookingSlot Admin (搶約專區時段管理) --- NEW ---
+@admin.register(PreBookingSlot)
+class PreBookingSlotAdmin(admin.ModelAdmin):
+    list_display = ('animal_display', 'date', 'time_slots', 'updated_at')
+    list_filter = ('date', 'animal__hall__is_active', 'animal__hall', 'animal__is_active')
+    search_fields = ('animal__name', 'time_slots', 'date__isoformat') # 允許搜尋 YYYY-MM-DD
+    autocomplete_fields = ['animal']
+    date_hierarchy = 'date'
+    list_select_related = ('animal', 'animal__hall')
+    ordering = ('-date', 'animal__name')
+    fields = ('animal', 'date', 'time_slots', 'created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at')
+
+    @admin.display(description='美容師 (館別)', ordering='animal__name')
+    def animal_display(self, obj):
+        hall_name = obj.animal.hall.name if obj.animal.hall else '未分館'
+        hall_status = ""
+        if obj.animal.hall and not obj.animal.hall.is_active: hall_status = " (館停用)"
+        animal_status = "" if obj.animal.is_active else " (停用)"
+        return f"{obj.animal.name}{animal_status} ({hall_name}{hall_status})"
+# --- PreBookingSlot Admin 結束 ---
 
 
 # --- SiteConfiguration Admin ---

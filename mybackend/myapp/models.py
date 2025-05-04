@@ -1,4 +1,4 @@
-# D:\bkgg\mybackend\myapp\models.py (完整版 - 已移除 Signals)
+# D:\bkgg\mybackend\myapp\models.py (完整版 - 新增 PreBookingSlot)
 
 from django.db import models
 from django.conf import settings
@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.db import transaction
 from django.db.models import Q, Count, F, Case, When, Value, OuterRef, Subquery # 保留 F
 from django.core.exceptions import ValidationError
-from datetime import timedelta
+from datetime import timedelta, date # <<<--- 導入 date
 import logging
 
 # --- django-solo import ---
@@ -334,6 +334,36 @@ class WeeklySchedule(models.Model):
         if self.hall and not self.hall.is_active: hall_status = " (館別停用)"
         return f"{hall_name}{hall_status} - 班表 {self.order} ({image_name}) - 更新於 {local_time_str}"
 # --- WeeklySchedule Model 結束 ---
+
+
+# --- PreBookingSlot Model (搶約專區時段) --- NEW ---
+class PreBookingSlot(models.Model):
+    animal = models.ForeignKey(
+        Animal,
+        on_delete=models.CASCADE,
+        verbose_name="美容師",
+        related_name='pre_booking_slots'
+    )
+    date = models.DateField("可約日期", db_index=True, help_text="此美容師可被預約的特定日期")
+    time_slots = models.CharField(
+        "可約時段",
+        max_length=255,
+        help_text='輸入此日期可預約的時段，例如 "14:00, 15:30, 17:00" 或 "下午班"',
+        blank=True # 允許空白，雖然通常應該有值
+    )
+    created_at = models.DateTimeField("建立時間", auto_now_add=True)
+    updated_at = models.DateTimeField("更新時間", auto_now=True)
+
+    class Meta:
+        ordering = ['-date', 'animal__hall__order', 'animal__order', 'animal__name']
+        unique_together = ('animal', 'date') # 一個美容師一天只應有一條搶約記錄
+        verbose_name = "搶約專區"
+        verbose_name_plural = "搶約專區"
+
+    def __str__(self):
+        hall_name = self.animal.hall.name if self.animal.hall else '未知館'
+        return f"{self.date.strftime('%Y-%m-%d')} - {hall_name} {self.animal.name} - 時段: {self.time_slots}"
+# --- PreBookingSlot Model 結束 ---
 
 
 # --- UserTitleRule Model ---

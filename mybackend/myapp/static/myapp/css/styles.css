@@ -1,3 +1,4 @@
+/* D:\bkgg\mybackend\myapp\static\myapp\css\styles.css (移除多餘的 60px padding) */
 /* --- 全站基本設定 --- */
 html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; /* Fallback for older browsers */ height: 100dvh; /* Use dynamic viewport height */ padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; font-size: 16px; background: #ccc; display: flex; flex-direction: column; line-height: 1.5; }
 *, *::before, *::after { box-sizing: inherit; }
@@ -162,7 +163,7 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; /* Fallback
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* 基礎表格/列表型 Modal (較低層級) */
-#pendingListModal, #latestReviewModal, #dailyRecommendationModal, #myNotesModal, #dailyScheduleModal, #findBeauticianModal, #weeklyScheduleModal, #hallOfFameModal, #profileModal, #loginModal {
+#pendingListModal, #latestReviewModal, #dailyRecommendationModal, #myNotesModal, #dailyScheduleModal, #preBookingModal, #findBeauticianModal, #weeklyScheduleModal, #hallOfFameModal, #profileModal, #loginModal {
     z-index: 3900;
 }
 
@@ -220,7 +221,10 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; /* Fallback
     flex-grow: 1; overflow-y: auto; min-height: 0; padding: 1rem; padding-bottom: 1rem;
 }
 #reviewSubmitModal .modal-footer {
-    flex-shrink: 0; padding: 1rem 1.25rem; padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); border-top: 1px solid #eee; background-color: #f8f9fa; text-align: right;
+    flex-shrink: 0; padding: 1rem 1.25rem;
+    /* --- MODIFIED: Removed + 60px --- */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid #eee; background-color: #f8f9fa; text-align: right;
 }
 
 .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background-color: #f8f9fa; border-radius: 15px 15px 0 0; /* 匹配父容器 */ }
@@ -256,7 +260,10 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; /* Fallback
    height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 5px 0 5px; margin: 0;
 }
 /* 特殊 Modal padding 調整 */
-#reviewModal .modal-body { padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); }
+#reviewModal .modal-body {
+    /* --- MODIFIED: Removed + 60px --- */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
 #noteModal .modal-body { display: flex; flex-direction: column; }
 #noteModal #noteForm { flex-grow: 1; display: flex; flex-direction: column; }
 #noteModal #noteForm .form-group:has(textarea[name="content"]), #noteModal #noteForm .form-group:last-of-type { flex-grow: 1; display: flex; flex-direction: column; margin-bottom: 0; }
@@ -275,7 +282,10 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; /* Fallback
 #profileModal .modal-body { padding: 1.5rem; }
 
 .modal-footer {
-    padding: 1rem 1.25rem; padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); border-top: 1px solid #eee; flex-shrink: 0; background-color: #f8f9fa; text-align: right;
+    padding: 1rem 1.25rem;
+    /* --- MODIFIED: Removed + 60px --- */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid #eee; flex-shrink: 0; background-color: #f8f9fa; text-align: right;
 }
 
 /* --- Sticky Header/Footer for Chat Modal --- */
@@ -326,7 +336,11 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100vh; /* Fallback
 .modal-body[data-layout="table"] .table-wrapper { margin-top: 0; background: #fff; border: none; border-radius: 0; overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .modal-body[data-layout="table"] .header-table { width: 100%; border-collapse: collapse; table-layout: fixed; flex-shrink: 0; }
 .modal-body[data-layout="table"] .header-table th { padding: 0.5rem 0.3rem; border-bottom: 2px solid #ccc; text-align: left; background: #e9ecef; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; vertical-align: middle; font-size: 0.85rem; color: #495057; font-weight: bold; }
-.modal-body[data-layout="table"] .body-wrapper { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; border-bottom: 1px solid #dee2e6; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px); }
+.modal-body[data-layout="table"] .body-wrapper {
+    flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; border-bottom: 1px solid #dee2e6;
+    /* --- MODIFIED: Removed + 60px --- */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
 .modal-body[data-layout="table"] .body-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .modal-body[data-layout="table"] .body-table td { padding: 0.3rem 0.3rem; border-top: 1px solid #dee2e6; text-align: left; white-space: normal; word-break: break-word; overflow-wrap: break-word; background: #fff; line-height: 1.4; vertical-align: middle; font-size: 0.95rem; color: #555; }
 .modal-body[data-layout="table"] .body-table tr:not(.note-row):hover { background: #f8f9fa; cursor: pointer; }
@@ -452,7 +466,8 @@ button[type="submit"]:hover { background-color: #0056b3; border-color: #0056b3; 
     .modal-body[data-layout="table"] > .top-section { height: 150px; }
     .modal-footer:not(#chatModal .modal-footer) { /* Exclude chat footer */
          padding: 0.75rem 1rem;
-         padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px);
+         /* --- MODIFIED: Removed + 60px --- */
+         padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
     }
      /* Chat Modal Footer Padding for Mobile */
      #chatModal .modal-footer {
@@ -462,10 +477,17 @@ button[type="submit"]:hover { background-color: #0056b3; border-color: #0056b3; 
 
     #reviewSubmitModal .modal-footer {
         padding: 0.75rem 1rem;
-        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px);
+        /* --- MODIFIED: Removed + 60px --- */
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
     }
-    .modal-body[data-layout="table"] .body-wrapper { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px); }
-    #reviewModal .modal-body { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 60px); }
+    .modal-body[data-layout="table"] .body-wrapper {
+        /* --- MODIFIED: Removed + 60px --- */
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    #reviewModal .modal-body {
+        /* --- MODIFIED: Removed + 60px --- */
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    }
     #noteModal .modal-body { padding-bottom: 0.75rem; }
     #profileModal .modal-body { padding: 1rem; }
     .modal-header .header-toggle-notes { padding-right: 0.5rem; }
@@ -514,7 +536,8 @@ button[type="submit"]:hover { background-color: #0056b3; border-color: #0056b3; 
     background: #fff; border-top: 1px solid #ccc; border-radius: 15px 15px 0 0;
     box-shadow: 0 -3px 8px rgba(0,0,0,0.15);
     z-index: 4000;
-    padding: 1rem 1rem calc(1.5rem + env(safe-area-inset-bottom, 0px) + 60px);
+    /* --- MODIFIED: Removed + 60px --- */
+    padding: 1rem 1rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
     transition: bottom 0.3s ease-in-out; max-height: 50vh; overflow-y: auto;
 }
 .dropdown-menu.open { bottom: 0; }
@@ -563,7 +586,12 @@ button[type="submit"]:hover { background-color: #0056b3; border-color: #0056b3; 
 .story-loading-message { padding: 1rem; font-style: italic; color: #666; text-align: center; width: 100%; }
 
 /* --- Story Detail Modal --- */
-#storyDetailModal .modal-body { overflow-y: auto; padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 60px); padding-left: 0; padding-right: 0; padding-top: 0; flex-grow: 1; }
+#storyDetailModal .modal-body {
+    overflow-y: auto;
+    /* --- MODIFIED: Removed + 60px --- */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    padding-left: 0; padding-right: 0; padding-top: 0; flex-grow: 1;
+}
 #storyDetailContent .review-card { border: none; box-shadow: none; padding: 0.5rem 1rem; margin-bottom: 0; }
 #storyDetailContent .review-header { padding-bottom: 0.5rem; margin-bottom: 0.75rem; }
 .story-detail-header-info { padding: 0.75rem 1rem; background-color: #f8f9fa; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-shrink: 0; }

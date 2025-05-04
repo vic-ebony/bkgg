@@ -1,5 +1,5 @@
-# D:\bkgg\mybackend\myapp\urls.py
-# --- 優化後的版本 ---
+# D:\bkgg\mybackend\myapp\urls.py (完整版 - 新增搶約專區的 URL)
+
 from django.urls import path
 from . import views # 確保導入 views
 
@@ -43,6 +43,11 @@ urlpatterns = [
 
     # --- 新增：每日班表的獨立 AJAX URL ---
     path('ajax/daily_schedule/', views.ajax_get_daily_schedule, name='ajax_get_daily_schedule'),
+
+    # --- 新增：搶約專區的 AJAX URLs --- NEW ---
+    path('ajax/pre_booking_dates/', views.ajax_get_pre_booking_dates, name='ajax_get_pre_booking_dates'),
+    path('ajax/pre_booking_slots/', views.ajax_get_pre_booking_slots, name='ajax_get_pre_booking_slots'),
+    # --- ---
 
     # --- 新增：其他常用列表的獨立 AJAX URLs (取代 home view 的 fetch 參數) ---
     # 注意：這些路徑可能與你原有的部分重複，請確保每個功能只有一個 URL

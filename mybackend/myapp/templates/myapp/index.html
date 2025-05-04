@@ -1,3 +1,5 @@
+{# D:\bkgg\mybackend\myapp\templates\myapp\index.html (完整版 - 新增搶約專區按鈕和 Modal) #}
+
 {% load static %}
 {% load my_filters %} {# 確保你的自訂過濾器已載入 #}
 <!DOCTYPE html>
@@ -34,6 +36,7 @@
                 <div class="header-actions">
                     <button id="btnHallOfFameHeader">紓壓名人堂</button>
                     <button id="btnWeeklyScheduleHeader">每週班表</button>
+                    <button id="btnPreBookingHeader">搶約專區</button> {# <<<--- 新增搶約按鈕 ---<<< #}
                     <button id="btnDailyScheduleHeader">每日班表</button>
                     <button id="latestReviewBtnHeader">最新心得</button>
                     <button id="btnDailyRecommendationHeader">每日推薦</button>
@@ -139,6 +142,38 @@
             <div id="noteModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2 id="noteModalTitle">筆記</h2><button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body"> <form id="noteForm" method="POST" style="display:none;"> {% csrf_token %} <input type="hidden" id="noteAnimalId" name="animal_id" value=""> <input type="hidden" id="currentNoteId" name="note_id" value=""> <div class="form-group"><label for="noteContent">筆記內容</label><textarea name="content" id="noteContent" rows="5" placeholder="請輸入筆記內容" required></textarea></div> </form> <div id="viewNoteSection" style="display:none;"> <div class="note-box" id="viewNoteContent"></div> </div> </div> <div class="modal-footer"> <button type="submit" form="noteForm" id="saveNoteBtn" style="display: none;">儲存筆記</button> <div id="viewNoteButtons" style="display: none;"> <button id="editNoteBtn" class="button-secondary">修改筆記</button> <button id="deleteNoteBtn" class="button-danger" data-animal-id="" style="margin-left: 0.5rem;">刪除筆記</button> </div> </div> </div> </div>
             {# --- My Notes Modal --- #}
             <div id="myNotesModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>我的筆記</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="myNotesTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="myNotesPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="myNotesIntroArea"><div class="intro-top"><p id="myNotesIntroductionContent">載入中...</p></div></div> </section> <nav class="hall-menu" id="myNotesHallMenu"> <a href="#" data-hall-id="all" class="active">全部</a> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} </nav> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="myNotesTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
+
+            {# --- Pre-Booking Modal (NEW) --- #}
+            <div id="preBookingModal" class="modal" role="dialog" aria-modal="true">
+                <div class="modal-content" draggable="false">
+                    <div class="modal-header">
+                        <h2>搶約專區</h2>
+                        <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="preBookingTable"> <span>顯示筆記</span></label></div>
+                        <button class="close-modal" aria-label="關閉">×</button>
+                    </div>
+                    <div class="modal-body" data-layout="table">
+                        <section class="top-section">
+                            <div class="photo-area" id="preBookingPhotoArea"><p style="color:#888;font-size:0.9rem;">請點擊下方日期載入</p></div>
+                            <div class="intro-area" id="preBookingIntroArea"><div class="intro-top"><p id="preBookingIntroductionContent">點擊下方日期載入介紹</p></div></div>
+                        </section>
+                        {# Navigation changed to Dates #}
+                        <nav class="hall-menu" id="preBookingDateMenu">
+                             {# Dates will be loaded here by JS #}
+                             <p style="color:#666; padding: 0.5rem 0.75rem;">載入可預約日期中...</p>
+                        </nav>
+                        <div class="table-wrapper">
+                            <table class="header-table"><thead><tr><th></th><th>美容師</th><th>可約時段</th><th>台費</th><th>心得</th></tr></thead></table>
+                            <div class="body-wrapper">
+                                <table class="body-table" id="preBookingTable">
+                                    <tbody><tr class="empty-table-message"><td colspan="5">請點擊上方日期載入可預約時段</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {# --- Pre-Booking Modal End --- #}
+
             {# --- Daily Schedule Modal --- #}
             <div id="dailyScheduleModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"> <h2>每日班表</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="dailyAnimalTable"> <span>顯示筆記</span></label></div> <button class="close-modal" aria-label="關閉">×</button> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="dailyPhotoArea"><p style="color:#888;font-size:0.9rem;">請點擊下方館別載入班表</p></div> <div class="intro-area" id="dailyIntroArea"><div class="intro-top"><p id="dailyIntroductionContent">點擊下方館別載入介紹</p></div></div> </section> <nav class="hall-menu" id="dailyHallMenu"> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} </nav> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="dailyAnimalTable"> <tbody><tr class="empty-table-message"><td colspan="5">請點擊上方館別載入班表</td></tr></tbody> </table> </div> </div> </div> </div> </div>
             {# --- Daily Recommendation Modal --- #}
@@ -189,7 +224,7 @@
             "remove_pending": "{% url 'myapp:remove_pending' %}",
             "add_review": "{% url 'myapp:add_review' %}",
             "add_story_review": "{% url 'myapp:add_story_review' %}",
-            "ajax_get_story_detail": "/ajax/story_detail/", {# Base URL, ID will be appended in JS #}
+            "ajax_get_story_detail": "/ajax/story_detail/",
             "ajax_get_active_stories": "{% url 'myapp:ajax_get_active_stories' %}",
             "ajax_get_weekly_schedule": "{% url 'myapp:ajax_get_weekly_schedule' %}",
             "ajax_get_hall_of_fame": "{% url 'myapp:ajax_get_hall_of_fame' %}",
@@ -203,7 +238,9 @@
             "ajax_get_my_notes": "{% url 'myapp:ajax_get_my_notes' %}",
             "ajax_get_latest_reviews": "{% url 'myapp:ajax_get_latest_reviews' %}",
             "ajax_get_recommendations": "{% url 'myapp:ajax_get_recommendations' %}",
-            "ajax_get_daily_schedule": "{% url 'myapp:ajax_get_daily_schedule' %}"
+            "ajax_get_daily_schedule": "{% url 'myapp:ajax_get_daily_schedule' %}",
+            "ajax_get_pre_booking_dates": "{% url 'myapp:ajax_get_pre_booking_dates' %}", {# <<<--- 新增 URL ---<<< #}
+            "ajax_get_pre_booking_slots": "{% url 'myapp:ajax_get_pre_booking_slots' %}"  {# <<<--- 新增 URL ---<<< #}
         }
     }
     </script>
