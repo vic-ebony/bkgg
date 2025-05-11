@@ -760,26 +760,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!reviewList) return;
         reviewList.innerHTML = '<p>載入心得中...</p>'; // Loading indicator
 
-        // *** Use URLS object and add parameter ***
         const baseUrl = URLS.add_review;
         if (!baseUrl) { console.error("Review URL not found"); reviewList.innerHTML = '<p>錯誤：URL配置錯誤</p>'; return; }
         const url = `${baseUrl}?animal_id=${animalId}`;
-        // *** ***
 
         fetch(url, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest' // Important for Django to recognize AJAX
+                'X-Requested-With': 'XMLHttpRequest'
             }
         })
         .then(response => {
             if (!response.ok) {
-                // Try to parse JSON error first
-                 return response.json().catch(() => ({ error: `HTTP error ${response.status}` })) // Provide fallback error
+                 return response.json().catch(() => ({ error: `HTTP error ${response.status}` }))
                        .then(errData => { throw new Error(errData.error || `HTTP error ${response.status}`); });
             }
-            // Check content type BEFORE parsing
             const contentType = response.headers.get("content-type");
             if (!contentType?.includes("application/json")) {
                 throw new TypeError(`伺服器未返回有效的 JSON (got ${contentType})`);
@@ -787,54 +783,46 @@ document.addEventListener('DOMContentLoaded', function() {
             return response.json();
         })
         .then(data => {
-            reviewList.innerHTML = ""; // Clear loading/previous content
+            reviewList.innerHTML = "";
             if (data?.reviews?.length > 0) {
                 data.reviews.forEach(review => {
                     const card = document.createElement('div');
                     card.className = 'review-card';
-                    card.dataset.reviewId = review.id; // Store review ID
-                    card.dataset.authorId = review.author_id || 'none'; // Store author ID
+                    card.dataset.reviewId = review.id;
+                    card.dataset.authorId = review.author_id || 'none';
 
                     const userTitleSpan = review.user_title ? `<span class="review-user-title">${escapeHtml(review.user_title)}</span>` : '';
 
-                    // Helper to create a review line only if value exists
                     const createReviewLine = (label, value) => {
                         if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) return '';
-
                         let displayValue = value;
-                        // Handle comma-separated fields
                         if (['臉蛋', '氣質', '尺度'].includes(label) && typeof value === 'string') {
                              displayValue = value.split(',').map(s => s.trim()).filter(s => s).join(', ');
                         }
-                        // Handle combined cup fields
                         if (label === '罩杯' && typeof value === 'object') {
                             displayValue = `${value.cup || ''}${value.cup && value.cup_size ? ' - ' : ''}${value.cup_size || ''}`.trim();
-                            if (!displayValue) return ''; // Don't show if both are empty
+                            if (!displayValue) return '';
                         }
-                         // Handle combined music/sports fields
                          if ((label === '音樂' || label === '體育') && typeof value === 'object') {
                             displayValue = `${value.type || ''}${value.type && value.price ? ` (${value.price})` : ''}`.trim();
-                            if (!displayValue) return ''; // Don't show if both are empty
+                            if (!displayValue) return '';
                         }
-
-                        // Decode potential unicode escapes in the final display value
                          const valueSpan = document.createElement('span');
                          valueSpan.className = 'review-value';
-                         const decodedDisplayValue = decodeUnicodeEscapes(displayValue); // Decode here
+                         const decodedDisplayValue = decodeUnicodeEscapes(displayValue);
                          valueSpan.textContent = decodedDisplayValue;
-
                         return `<div class="review-line"><span class="review-label">${escapeHtml(label)}:</span>${valueSpan.outerHTML}</div>`;
                     };
 
-                    // Feedback buttons
+                    // MODIFIED: Feedback buttons text
                     const feedbackButtonsHTML = `
                         <div class="review-feedback-buttons">
                             <button class="feedback-btn" data-review-id="${review.id}" data-type="good_to_have_you" ${USER_ID === review.author_id ? 'disabled' : ''}>
-                                <i class="fas fa-heart"></i> 有你真好
+                                <i class="fas fa-heart"></i> 好人
                                 <span class="feedback-count" id="count-gthy-${review.id}">${review.good_to_have_you_count || 0}</span>
                             </button>
                             <button class="feedback-btn" data-review-id="${review.id}" data-type="good_looking" ${USER_ID === review.author_id ? 'disabled' : ''}>
-                                <i class="fas fa-thumbs-up"></i> 人帥真好
+                                <i class="fas fa-thumbs-up"></i> 帥哥
                                 <span class="feedback-count" id="count-gl-${review.id}">${review.good_looking_count || 0}</span>
                             </button>
                         </div>
@@ -912,10 +900,8 @@ document.addEventListener('DOMContentLoaded', function() {
              return;
         }
 
-        // *** Use URLS object based on submission type ***
         const submitUrl = (submissionType === 'story') ? URLS.add_story_review : URLS.add_review;
         if (!submitUrl) { console.error(`${submissionType} submit URL not found`); alert("提交失敗：URL配置錯誤"); return; }
-        // *** ***
 
         fetch(submitUrl, {
             method: "POST",
@@ -923,21 +909,18 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRFToken': csrfToken,
-                'Accept': 'application/json' // Expect JSON response
+                'Accept': 'application/json'
             }
         })
         .then(res => {
             if (!res.ok) {
-                 // Try to parse JSON error first
                  return res.json().then(err => {
                      let errorMsg = err.error || `伺服器錯誤 ${res.status}`;
-                     // Append detailed errors if available
                      if (err.errors) {
                           errorMsg += ": " + Object.entries(err.errors).map(([key, value]) => `${key}: ${value}`).join(', ');
                      }
                      throw new Error(errorMsg);
                  }).catch(() => {
-                     // If parsing fails, throw generic HTTP error
                       throw new Error(`伺服器錯誤 ${res.status}`);
                  });
             }
@@ -946,11 +929,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if(data.success) {
                 console.log(data.message || '提交成功，待審核');
-                if(modal) closeModal(modal); // Close the submission modal
+                if(modal) closeModal(modal);
 
-                // Refresh relevant modals *after* successful submission if they are open
                  if (submissionType === 'review') {
-                    // Refresh lists that show regular reviews
                      const latestModal = document.getElementById('latestReviewModal');
                      if (latestModal && latestModal.style.display === 'block' && URLS.ajax_get_latest_reviews) {
                         loadModalContentDirect(URLS.ajax_get_latest_reviews, 'latestReviewModal');
@@ -964,15 +945,12 @@ document.addEventListener('DOMContentLoaded', function() {
                           const activeHallLink = scheduleModal.querySelector('#dailyHallMenu a.active');
                           if (activeHallLink) { loadFilteredDailySchedule(activeHallLink.dataset.hallId); }
                      }
-                      // Refresh Hall of Fame if open
                       const hofModal = document.getElementById('hallOfFameModal');
                       if (hofModal && hofModal.style.display === 'block') { loadHallOfFameData(); }
                  }
-                 // Refresh active stories if a story was submitted
                  if (submissionType === 'story') {
                      loadActiveStories();
                  }
-                 // Refresh profile data as review count might have changed (affecting title/coins eventually)
                  if (isLoggedIn) { loadProfileData(); }
 
 
@@ -1002,17 +980,14 @@ document.addEventListener('DOMContentLoaded', function() {
              return;
          }
 
-         // Show loading state
          tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
          updatePhotoArea(photoArea, null, '');
          updateIntroArea(introArea, '載入中...');
          if (checkbox) checkbox.disabled = true;
 
-         // *** Use URLS object and add parameter ***
          const baseUrl = URLS.ajax_get_daily_schedule;
          if (!baseUrl) { console.error("Daily schedule URL not found"); tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">錯誤：URL配置錯誤</td></tr>`; return; }
          const url = `${baseUrl}?hall_id=${hallId}`;
-         // *** ***
 
          fetch(url, {
              headers: {
@@ -1029,22 +1004,19 @@ document.addEventListener('DOMContentLoaded', function() {
          .then(data => {
              if (data.table_html !== undefined) {
                  tbody.innerHTML = data.table_html || '<tr class="empty-table-message"><td colspan="5">此館別目前無班表</td></tr>';
-                 processTimeSlotCellsInContainer(tbody); // Process new rows
+                 processTimeSlotCellsInContainer(tbody);
 
-                 // Update top section with first animal's data or clear if none
                  if (data.first_animal && Object.keys(data.first_animal).length > 0) {
                      updateTopSectionFromData(photoArea, introArea, data.first_animal);
                  } else {
                      updatePhotoArea(photoArea, null, '');
                      updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '此館別目前無班表' : '此館別目前無介紹');
                  }
-                 // Sync and apply note visibility checkbox state
                  if (checkbox) {
                     syncCheckboxState(checkbox, tbody);
                     applyNoteVisibility(tbody, checkbox.checked);
                  }
              } else {
-                 // Handle case where backend returned an error in JSON
                  tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">${data.error || '載入班表時發生錯誤'}</td></tr>`;
                  updatePhotoArea(photoArea, null, '');
                  updateIntroArea(introArea, '載入介紹時發生錯誤');
@@ -1063,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- loadFilteredNotes function ---
      function loadFilteredNotes(hallId) {
          const modal = document.getElementById('myNotesModal');
-         if (!modal) return; // Button shouldn't show if not logged in anyway
+         if (!modal) return;
 
          const modalBody = modal.querySelector('.modal-body[data-layout="table"]');
          const tbody = modalBody?.querySelector('#myNotesTable tbody');
@@ -1076,17 +1048,14 @@ document.addEventListener('DOMContentLoaded', function() {
              return;
          }
 
-         // Show loading state
          tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
          updatePhotoArea(photoArea, null, '');
          updateIntroArea(introArea, '載入中...');
-         if (checkbox) checkbox.disabled = true; // Disable checkbox during load
+         if (checkbox) checkbox.disabled = true;
 
-         // *** Use URLS object and add parameter ***
          const baseUrl = URLS.ajax_get_my_notes;
          if (!baseUrl) { console.error("My Notes URL not found"); tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">錯誤：URL配置錯誤</td></tr>`; return; }
          const url = `${baseUrl}?hall_id=${hallId}`;
-         // *** ***
 
          fetch(url, {
              headers: {
@@ -1103,16 +1072,14 @@ document.addEventListener('DOMContentLoaded', function() {
          .then(data => {
              if (data.table_html !== undefined) {
                  tbody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">${hallId === 'all' ? '尚無筆記' : '此館別尚無筆記'}</td></tr>`;
-                 processTimeSlotCellsInContainer(tbody); // Process new rows
+                 processTimeSlotCellsInContainer(tbody);
 
-                 // Update top section
                  if (data.first_animal && Object.keys(data.first_animal).length > 0) {
                      updateTopSectionFromData(photoArea, introArea, data.first_animal);
                  } else {
                      updatePhotoArea(photoArea, null, '');
                      updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? (hallId === 'all' ? '尚無筆記' : '此館別尚無筆記') : '無介紹');
                  }
-                 // Sync note checkbox state
                   if (checkbox) {
                     syncCheckboxState(checkbox, tbody);
                     applyNoteVisibility(tbody, checkbox.checked);
@@ -1148,21 +1115,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const checkbox = modal.querySelector('.toggle-notes-checkbox');
         const tableId = checkbox?.dataset.tableId;
 
-        // Check if essential elements exist
         if (!tableBody || !photoArea || !introArea) {
             console.warn("Required elements (tbody, photoArea, introArea) not found in modal:", modalId);
-            // Potentially display an error within the modal body here
             modalBody.innerHTML = `<p style="color:red; padding:1rem;">Modal structure error.</p>`;
             return;
         }
-        // Check if URL is provided
         if (!ajaxUrl) {
              console.error("loadModalContentDirect: URL is missing for modal:", modalId);
              tableBody.innerHTML = `<tr class="empty-table-message"><td colspan="5">錯誤：URL 未定義</td></tr>`;
              return;
         }
 
-        // Set loading state
         tableBody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
         updatePhotoArea(photoArea, null, '');
         updateIntroArea(introArea, '載入中...');
@@ -1183,27 +1146,23 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.table_html !== undefined) {
                 tableBody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">列表是空的</td></tr>`;
-                processTimeSlotCellsInContainer(tableBody); // Process time slots
+                processTimeSlotCellsInContainer(tableBody);
 
-                // Update top section
                 if (data.first_animal && Object.keys(data.first_animal).length > 0) {
                     updateTopSectionFromData(photoArea, introArea, data.first_animal);
                 } else {
                     updatePhotoArea(photoArea, null, '');
-                    // Determine appropriate empty message
                     let emptyMsg = "列表是空的";
                     if (modalId === 'pendingListModal') emptyMsg = '待約清單是空的';
                     else if (modalId === 'latestReviewModal') emptyMsg = '還沒有任何心得';
                     else if (modalId === 'dailyRecommendationModal') emptyMsg = '目前沒有推薦的美容師';
                     updateIntroArea(introArea, emptyMsg);
                 }
-                // Sync note checkbox state if it exists
                 if (checkbox && tableId) {
                     syncCheckboxState(checkbox, tableBody);
                     applyNoteVisibility(tableBody, checkbox.checked);
                 }
             } else {
-                // Handle case where backend explicitly sent an error in the JSON structure
                  throw new Error(data.error || '資料格式錯誤');
             }
         })
@@ -1212,60 +1171,55 @@ document.addEventListener('DOMContentLoaded', function() {
             tableBody.innerHTML = `<tr class="empty-table-message"><td colspan="5">載入失敗: ${error.message}</td></tr>`;
             updatePhotoArea(photoArea, null, '');
             updateIntroArea(introArea, '載入失敗');
-             if (checkbox && tableId) syncCheckboxState(checkbox, tableBody); // Still sync checkbox state on error
+             if (checkbox && tableId) syncCheckboxState(checkbox, tableBody);
         });
     }
 
 
     // --- Modal Open/Close Functions ---
     const closeModal = (modalElement) => {
-        // Ensure we are closing a modal and not the lightbox accidentally
         if (modalElement && modalElement.id !== 'imageLightbox') {
             modalElement.style.display = 'none';
-            // Only restore body scroll if NO OTHER modals are open
             const anyModalOpen = document.querySelector('.modal[style*="display: block"]:not(#imageLightbox)');
             if (!anyModalOpen) {
-                document.body.style.overflow = ''; // Restore scroll
+                document.body.style.overflow = '';
             }
         }
     };
 
-    // --- Modified openModal ---
-    const openModal = (modalId) => { // Redefine or modify existing
+    const openModal = (modalId) => {
          const modal = document.getElementById(modalId);
-         if (!modal) return false; // Modal doesn't exist
+         if (!modal) return false;
 
-        // Scroll specific modal bodies to top on open
         const modalBody = modal.querySelector('.modal-body');
         if(modalBody && ['reviewModal', 'reviewSubmitModal', 'noteModal', 'storyDetailModal', 'hallOfFameModal', 'profileModal', 'chatModal'].includes(modalId)) {
              modalBody.scrollTop = 0;
         }
 
-        // --- Modal Specific Initializations ---
         if (modalId === 'reviewModal') {
             const reviewList = document.getElementById('reviewList');
-            if (reviewList) reviewList.innerHTML = '<p>請點擊列表中的心得按鈕查看。</p>'; // Placeholder
+            if (reviewList) reviewList.innerHTML = '<p>請點擊列表中的心得按鈕查看。</p>';
         }
         if (modalId === 'storyDetailModal') {
             const headerDiv = document.getElementById('storyDetailHeader');
             const contentDiv = document.getElementById('storyDetailContent');
             if(headerDiv) headerDiv.innerHTML = '<div class="story-loading-message">載入中...</div>';
-            if(contentDiv) contentDiv.innerHTML = ''; // Clear previous content
+            if(contentDiv) contentDiv.innerHTML = '';
         }
         if (modalId === 'weeklyScheduleModal') {
             const imageArea = document.getElementById('weeklyScheduleImageArea');
             const hallMenu = document.getElementById('weeklyHallMenu');
-            if (imageArea) imageArea.innerHTML = '<p>請點擊上方館別查看班表</p>'; // Reset view
-            if (hallMenu) hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active')); // Deactivate tabs
+            if (imageArea) imageArea.innerHTML = '<p>請點擊上方館別查看班表</p>';
+            if (hallMenu) hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active'));
         }
         if (modalId === 'hallOfFameModal') {
             const listElement = document.getElementById('hallOfFameList');
-            if(listElement) listElement.innerHTML = '<li class="loading-message">載入中...</li>'; // Reset view
+            if(listElement) listElement.innerHTML = '<li class="loading-message">載入中...</li>';
         }
          if (modalId === 'profileModal') {
             const profileBody = document.getElementById('profileModalBody');
             if (profileBody) {
-                profileBody.innerHTML = '<div class="profile-loading">載入個人檔案中...</div>'; // Reset view
+                profileBody.innerHTML = '<div class="profile-loading">載入個人檔案中...</div>';
             }
         }
         if (modalId === 'findBeauticianModal') {
@@ -1273,49 +1227,37 @@ document.addEventListener('DOMContentLoaded', function() {
              const tbody = modal.querySelector('#findBeauticianTable tbody');
              const photoArea = modal.querySelector('#findBeauticianPhotoArea');
              const introArea = modal.querySelector('#findBeauticianIntroArea');
-             // Reset search/filter inputs
              if (searchInput) searchInput.value = '';
              modal.querySelectorAll('.filter-input').forEach(input => {
-                if (input.tagName === 'SELECT') input.value = ''; // Reset selects
-                else input.value = ''; // Reset number inputs
+                if (input.tagName === 'SELECT') input.value = '';
+                else input.value = '';
              });
-             // Reset table and top section
              if (tbody) tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請輸入姓名或使用篩選器</td></tr>';
              if (photoArea) updatePhotoArea(photoArea, null, '');
              if (introArea) updateIntroArea(introArea, '結果將顯示於下方');
-             // Reset notes checkbox
              const checkbox = modal.querySelector('.toggle-notes-checkbox');
              if(checkbox) {
                 checkbox.checked = false;
-                syncCheckboxState(checkbox, tbody); // Sync state based on potentially empty tbody
+                syncCheckboxState(checkbox, tbody);
              }
-              // Focus search input slightly delayed
              setTimeout(() => searchInput?.focus(), 100);
         }
-        // Ensure review submit modal title is correct if opened directly
         if (modalId === 'reviewSubmitModal' && !document.getElementById('plusDropdown')?.classList.contains('open')) {
              const modalTitle = document.getElementById('reviewSubmitModalTitle');
              const hiddenTypeInput = document.getElementById('submissionType');
-             if(modalTitle) modalTitle.textContent = "填寫心得"; // Default title
-             if(hiddenTypeInput) hiddenTypeInput.value = "review"; // Default type
+             if(modalTitle) modalTitle.textContent = "填寫心得";
+             if(hiddenTypeInput) hiddenTypeInput.value = "review";
         }
-        // Scroll chat to bottom on open
         if (modalId === 'chatModal') {
             const messagesContainer = document.getElementById('chat-messages');
             if (messagesContainer) {
-                // Delay slightly to ensure layout is calculated
                  setTimeout(() => { messagesContainer.scrollTop = messagesContainer.scrollHeight; }, 50);
             }
         }
-        // --- END Modal Specific Initializations ---
 
-
-        // Display the modal
         modal.style.display = 'block';
-        document.body.style.overflow = 'hidden'; // Prevent background scroll
+        document.body.style.overflow = 'hidden';
 
-        // --- Trigger data loading for specific modals ---
-        // Using loadModalContentDirect for simple list modals
         if (modalId === 'pendingListModal' && URLS.ajax_get_pending_list) {
              loadModalContentDirect(URLS.ajax_get_pending_list, modalId);
         }
@@ -1325,7 +1267,6 @@ document.addEventListener('DOMContentLoaded', function() {
         else if (modalId === 'dailyRecommendationModal' && URLS.ajax_get_recommendations) {
              loadModalContentDirect(URLS.ajax_get_recommendations, modalId);
         }
-        // Modals with internal logic or filtering trigger their own loads
         else if (modalId === 'dailyScheduleModal') {
              const firstHallLink = modal.querySelector('#dailyHallMenu a:first-of-type');
              const tbody = modal.querySelector('#dailyAnimalTable tbody');
@@ -1333,21 +1274,18 @@ document.addEventListener('DOMContentLoaded', function() {
              const introArea = modal.querySelector('#dailyIntroArea');
              const checkbox = modal.querySelector('.toggle-notes-checkbox[data-table-id="dailyAnimalTable"]');
              if (tbody && photoArea && introArea) {
-                // Reset to initial state before potentially loading
                  tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請點擊下方館別載入班表</td></tr>';
                  updatePhotoArea(photoArea, null, '');
                  updateIntroArea(introArea, '點擊下方館別載入介紹');
                  if (checkbox) syncCheckboxState(checkbox, tbody);
-                 modal.querySelectorAll('#dailyHallMenu a').forEach(link => link.classList.remove('active')); // Deactivate all
+                 modal.querySelectorAll('#dailyHallMenu a').forEach(link => link.classList.remove('active'));
 
                  if (firstHallLink) {
-                     // Automatically select and load the first hall
-                     setTimeout(() => { // Slight delay might help rendering
+                     setTimeout(() => {
                         firstHallLink.classList.add('active');
                         loadFilteredDailySchedule(firstHallLink.dataset.hallId);
                      }, 50);
                  } else {
-                      // Handle case with no halls
                       tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">目前沒有任何館別可顯示</td></tr>';
                       updatePhotoArea(photoArea, null, '無館別');
                       updateIntroArea(introArea, '目前沒有任何館別可顯示');
@@ -1358,22 +1296,19 @@ document.addEventListener('DOMContentLoaded', function() {
              }
         }
         else if (modalId === 'myNotesModal') {
-             // Activate 'All' tab and load all notes
              const hallMenu = modal.querySelector('#myNotesHallMenu');
              if (hallMenu) {
                  hallMenu.querySelectorAll('a').forEach(link => link.classList.remove('active'));
                  const allLink = hallMenu.querySelector('a[data-hall-id="all"]');
                  if (allLink) allLink.classList.add('active');
              }
-             loadFilteredNotes('all'); // Load all notes initially
+             loadFilteredNotes('all');
         }
         else if (modalId === 'weeklyScheduleModal') {
-             // Automatically trigger click on the first hall link, if exists
              const firstHallLink = modal.querySelector('#weeklyHallMenu a:first-of-type');
              if (firstHallLink) {
-                 setTimeout(() => { firstHallLink.click(); }, 50); // Trigger load
+                 setTimeout(() => { firstHallLink.click(); }, 50);
              } else {
-                  // Handle no halls case
                   const imageArea = document.getElementById('weeklyScheduleImageArea');
                   if (imageArea) imageArea.innerHTML = '<p>目前沒有任何館別可顯示</p>';
              }
@@ -1383,19 +1318,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
          else if (modalId === 'profileModal') {
             if (isLoggedIn) {
-                loadProfileData(); // Load profile data when modal opens
+                loadProfileData();
             } else {
-                 // Show login prompt if trying to access profile when not logged in
                  const profileBody = document.getElementById('profileModalBody');
                  if (profileBody) profileBody.innerHTML = '<div class="profile-error">請先登入以查看個人檔案。</div>';
             }
         }
-        else if (modalId === 'preBookingModal') { // <<<--- NEW: Load dates for Pre-Booking Modal
+        else if (modalId === 'preBookingModal') {
             loadPreBookingDates();
         }
-        // --- END Trigger data loading ---
-
-        return true; // Indicate modal was opened
+        return true;
     };
 
 
@@ -1406,17 +1338,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const contentDiv = document.getElementById('storyDetailContent');
         if (!modal || !headerDiv || !contentDiv) return;
 
-        // Show loading state
         headerDiv.innerHTML = '<div class="story-loading-message">載入動態標頭中...</div>';
         contentDiv.innerHTML = '<div class="story-loading-message">載入動態內容中...</div>';
-        openModal('storyDetailModal'); // Open the modal first
+        openModal('storyDetailModal');
 
-        // *** Construct URL using URLS object and parameter ***
-         let url = URLS.ajax_get_story_detail; // Get base URL
+         let url = URLS.ajax_get_story_detail;
          if (!url) { console.error("Story detail URL base not found"); headerDiv.innerHTML = `<div class="story-loading-message">錯誤</div>`; contentDiv.innerHTML = `<div class="story-loading-message">URL配置錯誤</div>`; return; }
-         // Append ID, ensuring correct slashes
          url = url.endsWith('/') ? `${url}${storyId}/` : `${url}/${storyId}/`;
-         // *** ***
 
         fetch(url, {
             headers: {
@@ -1426,7 +1354,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => {
             if (!response.ok) {
-                 return response.json().catch(() => null) // Try to parse error, fallback to null
+                 return response.json().catch(() => null)
                        .then(errData => { throw new Error(errData?.error || `HTTP error ${response.status}`); });
             }
             const contentType = response.headers.get("content-type");
@@ -1440,21 +1368,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 const story = data.story;
                 const userTitleSpan = story.user_title ? `<span class="review-user-title">${escapeHtml(story.user_title)}</span>` : '';
 
-                // Feedback buttons for story
+                // MODIFIED: Feedback buttons text for stories
                 const feedbackButtonsHTML = `
                     <div class="review-feedback-buttons">
                         <button class="feedback-btn" data-story-review-id="${story.id}" data-type="good_to_have_you" ${USER_ID === story.author_id ? 'disabled' : ''}>
-                            <i class="fas fa-heart"></i> 有你真好
+                            <i class="fas fa-heart"></i> 好人
                             <span class="feedback-count" id="count-story-gthy-${story.id}">${story.good_to_have_you_count || 0}</span>
                         </button>
                         <button class="feedback-btn" data-story-review-id="${story.id}" data-type="good_looking" ${USER_ID === story.author_id ? 'disabled' : ''}>
-                            <i class="fas fa-thumbs-up"></i> 人帥真好
+                            <i class="fas fa-thumbs-up"></i> 帥哥
                             <span class="feedback-count" id="count-story-gl-${story.id}">${story.good_looking_count || 0}</span>
                         </button>
                     </div>
                 `;
 
-                // Story Header
                 headerDiv.innerHTML = `
                     <div class="story-detail-header-info">
                         ${story.animal_photo_url ? `<img src="${escapeHtml(story.animal_photo_url)}" alt="${escapeHtml(story.animal_name)}">` : '<span class="placeholder" style="font-size: 2.5rem; color:#ccc;">👤</span>'}
@@ -1468,7 +1395,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
 
-                // Story Content (similar to review card)
                 const createDetailLine = (label, value) => {
                     if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) return '';
                     let displayValue = value;
@@ -1517,37 +1443,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // --- Hall of Fame functions ---
-    let hallOfFameDataStore = {}; // Cache fetched data
+    let hallOfFameDataStore = {};
 
     function displayRanking(rankType) {
         const listElement = document.getElementById('hallOfFameList');
-        const listContainer = document.querySelector('.hof-list-container'); // Get the scrollable container
+        const listContainer = document.querySelector('.hof-list-container');
         if (!listElement || !listContainer) return;
 
         const rankings = hallOfFameDataStore[rankType];
-        listElement.innerHTML = ''; // Clear previous list
-        listContainer.scrollTop = 0; // Scroll to top
+        listElement.innerHTML = '';
+        listContainer.scrollTop = 0;
 
         if (rankings && rankings.length > 0) {
             rankings.forEach(user => {
                 const li = document.createElement('li');
-                // Add rank class for styling top 3
                 if (user.rank >= 1 && user.rank <= 3) {
                     li.classList.add(`rank-${user.rank}`);
                 }
 
-                // Determine icon based on rank
-                let iconClass = 'fas fa-trophy'; // Default
+                let iconClass = 'fas fa-trophy';
                 if (user.rank === 1) iconClass = 'fas fa-medal';
                 else if (user.rank === 2) iconClass = 'fas fa-award';
                 else if (user.rank === 3) iconClass = 'fas fa-star';
 
                 const userTitleSpan = user.user_title ? `<span class="hof-user-title">${escapeHtml(user.user_title)}</span>` : '';
-                let countLabel = "次"; // Default
+                let countLabel = "次";
                 if (rankType === 'reviews') countLabel = "篇心得";
                 else if (rankType === 'stories') countLabel = "篇動態";
-                else if (rankType === 'good_looking') countLabel = "次人帥";
-                else if (rankType === 'good_to_have_you') countLabel = "次真好";
+                // MODIFIED: Hall of Fame count labels
+                else if (rankType === 'good_looking') countLabel = "次帥哥";
+                else if (rankType === 'good_to_have_you') countLabel = "次好人";
 
 
                 li.innerHTML = `
@@ -1567,13 +1492,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const tabsContainer = document.querySelector('#hallOfFameModal .hof-tabs');
         if (!listElement || !tabsContainer) return;
 
-        listElement.innerHTML = '<li class="loading-message">載入中...</li>'; // Show loading
-        tabsContainer.querySelectorAll('.hof-tab').forEach(tab => tab.disabled = true); // Disable tabs during load
+        listElement.innerHTML = '<li class="loading-message">載入中...</li>';
+        tabsContainer.querySelectorAll('.hof-tab').forEach(tab => tab.disabled = true);
 
-        // *** Use URLS object ***
          const url = URLS.ajax_get_hall_of_fame;
          if (!url) { console.error("HOF URL not found"); listElement.innerHTML = `<li class="empty-message" style="color: #ff8a8a;">錯誤：URL配置錯誤</li>`; tabsContainer.querySelectorAll('.hof-tab').forEach(tab => tab.disabled = false); return; }
-         // *** ***
 
         fetch(url, {
             headers: {
@@ -1593,11 +1516,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return response.json();
         })
         .then(data => {
-            tabsContainer.querySelectorAll('.hof-tab').forEach(tab => tab.disabled = false); // Re-enable tabs
+            tabsContainer.querySelectorAll('.hof-tab').forEach(tab => tab.disabled = false);
             if (data.success && data.rankings) {
-                hallOfFameDataStore = data.rankings; // Store fetched data
-                const defaultRankType = 'reviews'; // Or whichever tab should be active first
-                 // Activate default tab and display its ranking
+                hallOfFameDataStore = data.rankings;
+                const defaultRankType = 'reviews';
                  const activeTab = tabsContainer.querySelector(`.hof-tab[data-rank-type="${defaultRankType}"]`);
                  tabsContainer.querySelectorAll('.hof-tab').forEach(tab => {
                      tab.classList.remove('active');
@@ -1615,7 +1537,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error("Error loading Hall of Fame:", error);
             listElement.innerHTML = `<li class="empty-message" style="color: #ff8a8a;">無法載入名人堂: ${error.message}</li>`;
-            tabsContainer.querySelectorAll('.hof-tab').forEach(tab => tab.disabled = false); // Re-enable tabs on error too
+            tabsContainer.querySelectorAll('.hof-tab').forEach(tab => tab.disabled = false);
         });
     }
 
@@ -1627,32 +1549,29 @@ document.addEventListener('DOMContentLoaded', function() {
         const reviewId = button.dataset.reviewId;
         const storyReviewId = button.dataset.storyReviewId;
         const feedbackType = button.dataset.type;
-        const card = button.closest('.review-card'); // Find the parent card
-        const authorIdAttr = card?.dataset.authorId; // Get author ID from card
+        const card = button.closest('.review-card');
+        const authorIdAttr = card?.dataset.authorId;
 
         if ((!reviewId && !storyReviewId) || !feedbackType || !card || !authorIdAttr) {
             alert("無法處理此操作，缺少必要資訊。");
             return;
         }
-        // Prevent self-feedback
         if (authorIdAttr !== 'none' && USER_ID === parseInt(authorIdAttr, 10)) {
              alert("不能對自己的心得給予回饋！");
              return;
         }
 
 
-        button.disabled = true; // Disable button immediately
-        button.style.opacity = 0.7; // Visual cue
+        button.disabled = true;
+        button.style.opacity = 0.7;
 
         const formData = new FormData();
         formData.append('feedback_type', feedbackType);
         if (reviewId) formData.append('review_id', reviewId);
         else if (storyReviewId) formData.append('story_review_id', storyReviewId);
 
-        // *** Use URLS object ***
          const url = URLS.add_review_feedback;
          if (!url) { console.error("Feedback URL not found"); alert("操作失敗：URL配置錯誤"); button.disabled = false; button.style.opacity = 1; return; }
-         // *** ***
 
         fetch(url, {
             method: "POST",
@@ -1664,18 +1583,17 @@ document.addEventListener('DOMContentLoaded', function() {
             body: formData
         })
         .then(response => {
-             if (response.status === 409) { // Conflict - already voted
+             if (response.status === 409) {
                  return response.json().then(errData => {
                      alert(errData.error || '你已經給過這個回饋了');
-                     // Update counts even if already voted
                      const targetId = reviewId || storyReviewId;
                      const idPrefix = reviewId ? '' : 'story-';
                      const gthyCountSpan = document.getElementById(`count-${idPrefix}gthy-${targetId}`);
                      const glCountSpan = document.getElementById(`count-${idPrefix}gl-${targetId}`);
                      if (gthyCountSpan && errData.good_to_have_you_count !== undefined) gthyCountSpan.textContent = errData.good_to_have_you_count;
                      if (glCountSpan && errData.good_looking_count !== undefined) glCountSpan.textContent = errData.good_looking_count;
-                     button.classList.add('clicked'); // Style as clicked
-                     throw new Error('Already Voted'); // Special error to prevent further processing
+                     button.classList.add('clicked');
+                     throw new Error('Already Voted');
                  });
              }
             if (!response.ok) {
@@ -1685,27 +1603,25 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(data => {
              if (data.success) {
-                 // Update counts on success
                  const targetId = reviewId || storyReviewId;
-                 const idPrefix = reviewId ? '' : 'story-'; // Prefix for story review count IDs
+                 const idPrefix = reviewId ? '' : 'story-';
                  const gthyCountSpan = document.getElementById(`count-${idPrefix}gthy-${targetId}`);
                  const glCountSpan = document.getElementById(`count-${idPrefix}gl-${targetId}`);
                  if (gthyCountSpan && data.good_to_have_you_count !== undefined) gthyCountSpan.textContent = data.good_to_have_you_count;
                  if (glCountSpan && data.good_looking_count !== undefined) glCountSpan.textContent = data.good_looking_count;
-                 button.classList.add('clicked'); // Style as successfully clicked
+                 button.classList.add('clicked');
                  console.log(data.message || '回饋成功');
              } else {
                  alert(data.error || '給予回饋失敗');
-                 button.disabled = false; // Re-enable on failure
+                 button.disabled = false;
                  button.style.opacity = 1;
              }
         })
         .catch(error => {
-            // Don't show error for 'Already Voted'
             if (error.message !== 'Already Voted') {
                  console.error("Feedback Click Error:", error);
                  alert(`處理回饋時發生錯誤: ${error.message}`);
-                 button.disabled = false; // Re-enable on other errors
+                 button.disabled = false;
                  button.style.opacity = 1;
             }
         });
@@ -1718,10 +1634,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!profileBody) return;
         profileBody.innerHTML = '<div class="profile-loading">載入個人檔案中...</div>';
 
-        // *** Use URLS object ***
          const url = URLS.ajax_get_profile_data;
          if (!url) { console.error("Profile data URL not found"); profileBody.innerHTML = `<div class="profile-error">錯誤：URL配置錯誤</div>`; return; }
-         // *** ***
 
         fetch(url, {
             headers: {
@@ -1743,10 +1657,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success && data.profile_data) {
                 const p = data.profile_data;
                 const titleBadge = p.user_title ? `<span class="profile-modal-title-badge">${escapeHtml(p.user_title)}</span>` : '';
-
-                // *** Updated HTML for Desire Coins ***
                 const desireCoins = (p.desire_coins !== undefined && p.desire_coins !== null) ? p.desire_coins : '讀取失敗';
 
+                // MODIFIED: Profile stats text
                 profileBody.innerHTML = `
                     <div class="profile-modal-header">
                         <h3>${escapeHtml(p.first_name || p.username)}</h3>
@@ -1767,11 +1680,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <div class="profile-stat-item">
                             <strong>${p.good_to_have_you_received !== undefined ? p.good_to_have_you_received : '?'}</strong>
-                            <span><i class="fas fa-heart" style="color: #e83e8c;"></i> 收到的「有你真好」</span>
+                            <span><i class="fas fa-heart" style="color: #e83e8c;"></i> 好人次數</span>
                         </div>
                         <div class="profile-stat-item">
                             <strong>${p.good_looking_received !== undefined ? p.good_looking_received : '?'}</strong>
-                            <span><i class="fas fa-thumbs-up" style="color: #17a2b8;"></i> 收到的「人帥真好」</span>
+                            <span><i class="fas fa-thumbs-up" style="color: #17a2b8;"></i> 帥哥次數</span>
                         </div>
                          <div class="profile-stat-item">
                              <strong>${p.pending_count !== undefined ? p.pending_count : '?'}</strong>
@@ -1783,8 +1696,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                 `;
-
-                // Update any other coin displays (e.g., header)
                  updateCoinDisplay(p.desire_coins);
 
             } else {
@@ -1794,7 +1705,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error("Load Profile Data Error:", error);
             profileBody.innerHTML = `<div class="profile-error">無法載入個人檔案: ${error.message}</div>`;
-            // Clear header coin display on error
             updateCoinDisplay('?');
         });
     }
@@ -1842,7 +1752,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const maxHeight = maxHeightInput.value.trim();
         const minWeight = minWeightInput.value.trim();
         const maxWeight = maxWeightInput.value.trim();
-        const cupMin = cupSelectMin.value; // Select value is already trimmed
+        const cupMin = cupSelectMin.value;
         const cupMax = cupSelectMax.value;
         const minFee = minFeeInput.value.trim();
         const maxFee = maxFeeInput.value.trim();
@@ -1850,22 +1760,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const hasKeyword = searchTerm.length > 0;
         const hasFilters = minHeight || maxHeight || minWeight || maxWeight || cupMin || cupMax || minFee || maxFee;
 
-        // If no search term and no filters, show initial message
         if (!hasKeyword && !hasFilters) {
             tbody.innerHTML = '<tr class="empty-table-message"><td colspan="5">請輸入姓名或使用篩選器</td></tr>';
             updatePhotoArea(photoArea, null, '');
             updateIntroArea(introArea, '請輸入姓名或使用篩選器');
-            if (checkbox) syncCheckboxState(checkbox, tbody); // Sync checkbox based on empty state
+            if (checkbox) syncCheckboxState(checkbox, tbody);
             return;
         }
 
-        // Set loading state
         tbody.innerHTML = '<tr class="loading-message"><td colspan="5">搜尋中...</td></tr>';
         updatePhotoArea(photoArea, null, '');
         updateIntroArea(introArea, '搜尋中...');
         if (checkbox) checkbox.disabled = true;
 
-        // Build query parameters
         const params = new URLSearchParams();
         if (searchTerm) params.append('q', searchTerm);
         if (minHeight) params.append('min_height', minHeight);
@@ -1877,11 +1784,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (minFee) params.append('min_fee', minFee);
         if (maxFee) params.append('max_fee', maxFee);
 
-        // *** Use URLS object and add parameters ***
          const baseUrl = URLS.ajax_search_beauticians;
          if (!baseUrl) { console.error("Search URL not found"); tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">錯誤：URL配置錯誤</td></tr>`; if(checkbox) checkbox.disabled = false; return; }
          const url = `${baseUrl}?${params.toString()}`;
-         // *** ***
 
         fetch(url, {
             headers: {
@@ -1902,19 +1807,17 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.table_html !== undefined) {
                 tbody.innerHTML = data.table_html || '<tr class="empty-table-message"><td colspan="5">找不到符合條件的美容師</td></tr>';
-                processTimeSlotCellsInContainer(tbody); // Process results
+                processTimeSlotCellsInContainer(tbody);
 
-                // Update top section
                 if (data.first_animal && Object.keys(data.first_animal).length > 0) {
                     updateTopSectionFromData(photoArea, introArea, data.first_animal);
                 } else {
                     updatePhotoArea(photoArea, null, '');
                     updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '找不到符合條件的美容師' : '找不到介紹');
                 }
-                // Sync notes checkbox
                  if (checkbox) {
                     syncCheckboxState(checkbox, tbody);
-                    applyNoteVisibility(tbody, checkbox.checked); // Apply visibility based on current state
+                    applyNoteVisibility(tbody, checkbox.checked);
                  }
             } else {
                 throw new Error(data.error || '資料格式錯誤');
@@ -1925,20 +1828,18 @@ document.addEventListener('DOMContentLoaded', function() {
             tbody.innerHTML = `<tr class="empty-table-message"><td colspan="5">搜尋失敗: ${error.message}</td></tr>`;
             updatePhotoArea(photoArea, null, '');
             updateIntroArea(introArea, '搜尋失敗');
-             if (checkbox) syncCheckboxState(checkbox, tbody); // Sync checkbox on error
+             if (checkbox) syncCheckboxState(checkbox, tbody);
         });
     }
 
     // --- Debounced search handler ---
-    const debouncedSearch = debounce(performBeauticianSearch, 300); // 300ms delay
+    const debouncedSearch = debounce(performBeauticianSearch, 300);
 
 
-    // --- START: New Pre-booking Zone Functions --- NEW ---
-
-    // Function to format YYYY-MM-DD date string to MM/DD (週X)
+    // --- START: New Pre-booking Zone Functions ---
     function formatDateForDisplay(dateString) {
         try {
-            const date = new Date(dateString + 'T00:00:00'); // Ensure parsing as local date
+            const date = new Date(dateString + 'T00:00:00');
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
             const day = date.getDate().toString().padStart(2, '0');
             const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -1946,11 +1847,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return `${month}/${day} (週${weekday})`;
         } catch (e) {
             console.error("Error formatting date:", dateString, e);
-            return dateString; // Fallback
+            return dateString;
         }
     }
 
-    // Function to load available dates for the Pre-booking modal
     function loadPreBookingDates() {
         const dateMenu = document.getElementById('preBookingDateMenu');
         const modal = document.getElementById('preBookingModal');
@@ -1983,7 +1883,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                dateMenu.innerHTML = ''; // Clear loading message
+                dateMenu.innerHTML = '';
                 if (data.success && data.dates?.length > 0) {
                     data.dates.forEach(dateStr => {
                         const link = document.createElement('a');
@@ -1992,10 +1892,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         link.textContent = formatDateForDisplay(dateStr);
                         dateMenu.appendChild(link);
                     });
-                    // Automatically click the first date to load its slots
                     const firstLink = dateMenu.querySelector('a');
                     if (firstLink) {
-                        // Use setTimeout to allow the DOM to update before simulating click
                         setTimeout(() => {
                            firstLink.click();
                         }, 0);
@@ -2014,7 +1912,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Function to load slots for a specific pre-booking date
     function loadPreBookingSlots(dateString) {
         const modal = document.getElementById('preBookingModal');
         if (!modal) return;
@@ -2029,7 +1926,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Set loading state
         tbody.innerHTML = '<tr class="loading-message"><td colspan="5">載入中...</td></tr>';
         updatePhotoArea(photoArea, null, '');
         updateIntroArea(introArea, '載入中...');
@@ -2054,18 +1950,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.table_html !== undefined) {
                     tbody.innerHTML = data.table_html || `<tr class="empty-table-message"><td colspan="5">此日期目前無可預約時段</td></tr>`;
-                    // IMPORTANT: We use the time_slots from the override dict passed by the view
-                    // The processTimeSlotCellsInContainer function just formats what's already in the TD
                     processTimeSlotCellsInContainer(tbody);
 
-                    // Update top section
                     if (data.first_animal && Object.keys(data.first_animal).length > 0) {
                         updateTopSectionFromData(photoArea, introArea, data.first_animal);
                     } else {
                         updatePhotoArea(photoArea, null, '');
                         updateIntroArea(introArea, tbody.querySelector('.empty-table-message') ? '此日期目前無可預約時段' : '此日期無介紹');
                     }
-                    // Sync notes checkbox
                     if (checkbox) {
                         syncCheckboxState(checkbox, tbody);
                         applyNoteVisibility(tbody, checkbox.checked);
@@ -2082,16 +1974,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (checkbox) syncCheckboxState(checkbox, tbody);
             });
     }
-
     // --- END: New Pre-booking Zone Functions ---
 
 
     // --- Global Event Listener Setup (using event delegation) ---
     document.addEventListener('click', function(e) {
         const target = e.target;
-        const targetClosest = (selector) => target.closest(selector); // Helper
+        const targetClosest = (selector) => target.closest(selector);
 
-        // Hall of Fame Tab
         if (targetClosest('.hof-tab')) {
             e.preventDefault();
             const rankType = targetClosest('.hof-tab').dataset.rankType;
@@ -2105,30 +1995,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 targetClosest('.hof-tab').setAttribute('aria-selected', 'true');
                 displayRanking(rankType);
             }
-            return; // Handled
+            return;
         }
 
-        // Profile Button
         if (targetClosest('#btnProfileHeader')) {
             if (isLoggedIn) { openModal('profileModal'); } else { openModal('loginModal'); }
             return;
         }
-        // Feedback Button
         if (targetClosest('.feedback-btn')) {
             e.preventDefault();
             handleFeedbackClick(targetClosest('.feedback-btn'));
             return;
         }
-        // Story Item
         if (targetClosest('.story-item')) {
             const storyId = targetClosest('.story-item').dataset.storyId;
             if (storyId) { showStoryDetail(storyId); }
             return;
         }
-        // Header Buttons to Open Modals
         if (targetClosest('#btnHallOfFameHeader')) { openModal('hallOfFameModal'); return; }
         if (targetClosest('#btnWeeklyScheduleHeader')) { openModal('weeklyScheduleModal'); return; }
-        if (targetClosest('#btnPreBookingHeader')) { openModal('preBookingModal'); return; } // <<<--- Add this handler
+        if (targetClosest('#btnPreBookingHeader')) { openModal('preBookingModal'); return; }
         if (targetClosest('#btnDailyScheduleHeader')) { openModal('dailyScheduleModal'); return; }
         if (targetClosest('#latestReviewBtnHeader')) { openModal('latestReviewModal'); return; }
         if (targetClosest('#btnDailyRecommendationHeader')) { openModal('dailyRecommendationModal'); return; }
@@ -2139,15 +2025,13 @@ document.addEventListener('DOMContentLoaded', function() {
          if (targetClosest('#chat-toggle-button')) { if (isLoggedIn) { openModal('chatModal'); const indicator = document.getElementById('chat-unread-indicator'); if (indicator) indicator.style.display = 'none'; } else { openModal('loginModal'); } return; }
 
 
-        // Plus Menu Button (inside table rows)
         if (targetClosest('.plus-menu-btn')) {
-            e.stopPropagation(); // Prevent row click
+            e.stopPropagation();
             showPlusDropdown(targetClosest('.plus-menu-btn'));
             return;
         }
-        // Review Count Button (inside table rows)
         if (targetClosest('.review-count-btn')) {
-            e.stopPropagation(); // Prevent row click
+            e.stopPropagation();
             const animalId = targetClosest('.review-count-btn').dataset.animalId;
             if (animalId) {
                 loadReviews(animalId);
@@ -2156,7 +2040,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Hall Menu Links (Daily Schedule)
         if (targetClosest('#dailyHallMenu a')) {
             e.preventDefault();
             const menu = targetClosest('#dailyHallMenu');
@@ -2165,7 +2048,6 @@ document.addEventListener('DOMContentLoaded', function() {
             loadFilteredDailySchedule(targetClosest('#dailyHallMenu a').dataset.hallId);
             return;
         }
-        // Hall Menu Links (My Notes)
         if (targetClosest('#myNotesHallMenu a')) {
             e.preventDefault();
             const menu = targetClosest('#myNotesHallMenu');
@@ -2174,7 +2056,6 @@ document.addEventListener('DOMContentLoaded', function() {
             loadFilteredNotes(targetClosest('#myNotesHallMenu a').dataset.hallId);
             return;
         }
-         // Hall Menu Links (Weekly Schedule)
          if (targetClosest('#weeklyHallMenu a')) {
             e.preventDefault();
             const menu = targetClosest('#weeklyHallMenu');
@@ -2182,27 +2063,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const imageArea = document.getElementById('weeklyScheduleImageArea');
             if (!hallId || !imageArea) return;
 
-            // Activate tab
             menu.querySelectorAll('a').forEach(item => item.classList.remove('active'));
             targetClosest('#weeklyHallMenu a').classList.add('active');
-            imageArea.innerHTML = '<p>載入中...</p>'; // Loading indicator
+            imageArea.innerHTML = '<p>載入中...</p>';
 
-             // *** Use URLS object and add parameter ***
              const baseUrl = URLS.ajax_get_weekly_schedule;
              if (!baseUrl) { console.error("Weekly schedule URL not found"); imageArea.innerHTML = `<p style="color: red;">錯誤：URL配置錯誤</p>`; return; }
              const url = `${baseUrl}?hall_id=${hallId}`;
-             // *** ***
 
             fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
             .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
             .then(d => {
-                imageArea.innerHTML = ''; // Clear loading
+                imageArea.innerHTML = '';
                 if (d.success && d.schedule_urls?.length > 0) {
                     d.schedule_urls.forEach((imgUrl, i) => {
                         const img = document.createElement('img');
                         img.src = escapeHtml(imgUrl);
                         img.alt = `${escapeHtml(d.hall_name || '館別')} 班表 ${i + 1}`;
-                        img.loading = 'lazy'; // Lazy load schedule images
+                        img.loading = 'lazy';
                         imageArea.appendChild(img);
                     });
                 } else {
@@ -2214,62 +2092,53 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             return;
         }
-        // Date Menu Links (Pre-Booking) - <<<--- NEW ---<<<
         if (targetClosest('#preBookingDateMenu a')) {
             e.preventDefault();
             const menu = targetClosest('#preBookingDateMenu');
             const dateLink = targetClosest('#preBookingDateMenu a');
             menu.querySelectorAll('a').forEach(item => item.classList.remove('active'));
             dateLink.classList.add('active');
-            loadPreBookingSlots(dateLink.dataset.date); // Load slots for the clicked date
+            loadPreBookingSlots(dateLink.dataset.date);
             return;
         }
 
 
-        // Image Lightbox Trigger (Weekly Schedule or Profile Photo)
         const scheduleImage = targetClosest('#weeklyScheduleImageArea img');
-        const profileImage = targetClosest('.photo-area img'); // Target img within photo-area
+        const profileImage = targetClosest('.photo-area img');
         if (scheduleImage || profileImage) {
              const imageToShow = scheduleImage || profileImage;
              const lightbox = document.getElementById('imageLightbox');
              const lightboxImg = document.getElementById('lightboxImage');
              if (lightbox && lightboxImg) {
-                 lightboxImg.src = imageToShow.src; // Set image source
+                 lightboxImg.src = imageToShow.src;
                  lightboxImg.alt = imageToShow.alt || "放大圖片";
-                 lightbox.style.display = 'flex'; // Show lightbox (use flex for centering)
-                 document.body.style.overflow = 'hidden'; // Prevent background scroll
+                 lightbox.style.display = 'flex';
+                 document.body.style.overflow = 'hidden';
              }
-             return; // Handled
+             return;
         }
-        // Close Image Lightbox
         const lightbox = document.getElementById('imageLightbox');
-        if (lightbox && lightbox.style.display === 'flex') { // Check if lightbox is open
-             // Close if clicking the close button OR the background overlay itself
+        if (lightbox && lightbox.style.display === 'flex') {
              if (target.id === 'closeLightbox' || target.id === 'imageLightbox') {
                  lightbox.style.display = 'none';
                  const lightboxImg = document.getElementById('lightboxImage');
-                 if (lightboxImg) lightboxImg.src = ''; // Clear src
-                  // Restore body scroll only if no other modals are open
+                 if (lightboxImg) lightboxImg.src = '';
                  const anyModalOpen = document.querySelector('.modal[style*="display: block"]:not(#imageLightbox)');
                  if (!anyModalOpen) {
                      document.body.style.overflow = '';
                  }
-                 return; // Handled
+                 return;
              }
         }
-         // Prevent clicks on the lightbox image itself from closing it
          if (target.id === 'lightboxImage') {
             return;
          }
 
 
-        // Table Row Click (Update Top Section)
         const tableRow = targetClosest('.modal .body-table tbody tr[data-animal-id]:not(.note-row)');
         if (tableRow) {
-            // Check if the click was on an interactive element within the row
              if (!targetClosest('.plus-menu-btn, .review-count-btn, a, button, input, select, textarea, .feedback-btn')) {
                 const modal = tableRow.closest('.modal');
-                // Check if this modal HAS a top section before trying to update
                  if(modal?.querySelector('.modal-body[data-layout="table"] .top-section')){
                      const photoArea = modal.querySelector('.photo-area');
                      const introArea = modal.querySelector('.intro-area');
@@ -2278,79 +2147,65 @@ document.addEventListener('DOMContentLoaded', function() {
                      }
                  }
             }
-            // Don't return here, allow other handlers if needed (though unlikely for row click)
         }
 
-        // Close Modal Button
         const closeBtn = targetClosest('.close-modal');
         if (closeBtn) {
             closeModal(targetClosest('.modal'));
-            return; // Handled
+            return;
         }
 
-        // Click on Modal Backdrop (and not the lightbox backdrop)
         if (target.classList.contains('modal') && target.id !== 'imageLightbox') {
             closeModal(target);
-            // Also close plus dropdown if it's open
             if (document.getElementById('plusDropdown')?.classList.contains('open')) {
                 closePlusDropdown();
             }
-            return; // Handled
+            return;
         }
 
-        // Click on Bottom Overlay (to close dropdown)
         if (target === bottomOverlay && document.getElementById('plusDropdown')?.classList.contains('open')) {
             closePlusDropdown();
-            return; // Handled
+            return;
         }
 
-    }); // End of global click listener
+    });
 
 
-    // --- Add Listener for Search Input AND New Filters in Find Beautician Modal ---
     const findModal = document.getElementById('findBeauticianModal');
     if (findModal) {
         findModal.querySelectorAll('#findBeauticianSearchInput, .filter-input').forEach(input => {
-            // Trigger search on input change (debounced)
             input.addEventListener('input', function() {
                 debouncedSearch();
             });
-            // Trigger immediate search on Enter key for text/number inputs
             if (input.type === 'number' || input.type === 'search') {
                 input.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
-                        e.preventDefault(); // Prevent potential form submission
-                        performBeauticianSearch(); // Trigger immediately
+                        e.preventDefault();
+                        performBeauticianSearch();
                     }
                 });
             }
-             // Trigger immediate search on change for select inputs
              if (input.tagName === 'SELECT') {
                  input.addEventListener('change', function() {
-                      performBeauticianSearch(); // Trigger immediately
+                      performBeauticianSearch();
                  });
              }
         });
     }
 
 
-    // --- Initializations ---
-
-    // Initialize Choices.js for selects in the review form
     ['looks', 'physique', 'cup', 'cup_size', 'skin_texture', 'skin_color', 'music', 'sports'].forEach(id => {
         const el = document.getElementById(id);
-        // Check if element exists and hasn't already been initialized by Choices.js
         if (el && !el.choicesInstance && !el.hasAttribute('data-choice') && !el.classList.contains('choices__input')) {
             try {
-                // Determine if the first option is a placeholder
                 const ph = el.options[0]?.value === "";
                 el.choicesInstance = new Choices(el, {
-                    searchEnabled: false, // Disable search within dropdown
-                    itemSelectText: '', // Text shown on hover/focus selection
-                    allowHTML: false, // Prevent HTML injection
-                    shouldSort: false, // Keep original option order
-                    placeholder: ph, // Enable placeholder if first option is empty
-                    placeholderValue: ph ? el.options[0].text : null // Use first option's text as placeholder
+                    searchEnabled: false,
+                    itemSelectText: '',
+                    allowHTML: false,
+                    shouldSort: false,
+                    placeholder: ph,
+                    placeholderValue: ph ? el.options[0].text : null
                 });
             } catch (e) {
                  console.error(`Choices init error for #${id}:`, e);
@@ -2358,7 +2213,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Toggle price input visibility based on select value
     function togglePriceInput(selectId, priceInputId) {
         const sel = document.getElementById(selectId);
         const inp = document.getElementById(priceInputId);
@@ -2366,30 +2220,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const updateVisibility = () => {
              inp.style.display = (sel.value === '可加值') ? 'block' : 'none';
-             if (sel.value !== '可加值') inp.value = ''; // Clear price if not applicable
+             if (sel.value !== '可加值') inp.value = '';
         };
-
-        // Ensure listener isn't added multiple times if function is called again
         sel.removeEventListener('change', updateVisibility);
         sel.addEventListener('change', updateVisibility);
-        // Call once initially in case the form is pre-filled or re-opened
-        // Use a slight delay to ensure Choices.js might have initialized
         setTimeout(updateVisibility, 150);
     }
     togglePriceInput('music', 'music_price');
     togglePriceInput('sports', 'sports_price');
 
-    // Fade out login error message
     const loginErrorMsg = document.getElementById('login-error-message');
     if (loginErrorMsg) {
         setTimeout(() => {
             loginErrorMsg.style.transition = 'opacity 0.5s ease';
             loginErrorMsg.style.opacity = '0';
-            setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500); // Remove after fade
-        }, 4000); // Start fading after 4 seconds
+            setTimeout(() => { loginErrorMsg.style.display = 'none'; }, 500);
+        }, 4000);
     }
 
-    // Limit checkbox selections
     function limitCheckboxSelection(groupId, maxCount) {
         const group = document.getElementById(groupId);
         if (!group) return;
@@ -2399,27 +2247,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const checkedCount = group.querySelectorAll('input:checked').length;
             cbs.forEach(cb => {
                 const l = cb.closest('label');
-                // Disable unchecked boxes if limit is reached
                  cb.disabled = !cb.checked && checkedCount >= maxCount;
-                 // Add/remove disabled class to label for styling
                  if(l) l.classList.toggle('label-disabled', cb.disabled);
             });
         };
-        // Attach listener to each checkbox in the group
         cbs.forEach(cb => {
-             // Ensure listener isn't added multiple times
              cb.removeEventListener('change', checkLimit);
              cb.addEventListener('change', checkLimit);
         });
-        // Initial check in case form is pre-filled
         checkLimit();
     }
     limitCheckboxSelection('faceCheckboxes', 3);
     limitCheckboxSelection('temperamentCheckboxes', 3);
 
-     // Add change listeners to all "Toggle Notes" checkboxes
      function handleNoteCheckboxChange() {
-         if (this.disabled) return; // Don't do anything if disabled
+         if (this.disabled) return;
          const tableId = this.dataset.tableId;
          const modal = this.closest('.modal');
          if (!modal) return;
@@ -2428,11 +2270,9 @@ document.addEventListener('DOMContentLoaded', function() {
          applyNoteVisibility(tbody, this.checked);
      }
      document.querySelectorAll('.toggle-notes-checkbox').forEach(cb => {
-         // Ensure listener isn't added multiple times
          cb.removeEventListener('change', handleNoteCheckboxChange);
          cb.addEventListener('change', handleNoteCheckboxChange);
      });
-     // Initial sync after slight delay to allow dynamic content loading
      setTimeout(() => {
          document.querySelectorAll('.toggle-notes-checkbox').forEach(cb => {
               const tid = cb.dataset.tableId;
@@ -2445,21 +2285,17 @@ document.addEventListener('DOMContentLoaded', function() {
      }, 150);
 
 
-    // --- loadActiveStories function ---
     function loadActiveStories() {
         const storyPanel = document.getElementById('storyReviewPanel');
         if (!storyPanel) return;
 
-        // Only show loading message if panel is empty or previous load failed
         const existingMessage = storyPanel.querySelector('.story-loading-message');
         if (!storyPanel.innerHTML.trim() || (existingMessage && existingMessage.style.color === 'red')) {
              storyPanel.innerHTML = '<div class="story-loading-message">載入限時動態中...</div>';
         }
 
-        // *** Use URLS object ***
          const url = URLS.ajax_get_active_stories;
          if (!url) { console.error("Active stories URL not found"); storyPanel.innerHTML = `<div class="story-loading-message" style="color: red;">錯誤：URL配置錯誤</div>`; return; }
-         // *** ***
 
         fetch(url, {
             headers: {
@@ -2481,13 +2317,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return r.json();
         })
         .then(data => {
-            storyPanel.innerHTML = ''; // Clear previous stories/loading message
+            storyPanel.innerHTML = '';
             if (data.stories?.length > 0) {
                 data.stories.forEach(story => {
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'story-item';
                     itemDiv.dataset.storyId = story.id;
-                    itemDiv.dataset.animalId = story.animal_id; // Store animal ID if needed
+                    itemDiv.dataset.animalId = story.animal_id;
 
                     const photoDiv = document.createElement('div');
                     photoDiv.className = 'story-item-photo';
@@ -2495,8 +2331,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         const img = document.createElement('img');
                         img.src = escapeHtml(story.animal_photo_url);
                         img.alt = escapeHtml(story.animal_name);
-                        img.loading = 'lazy'; // Lazy load story photos
-                        img.onerror = function() { this.parentNode.innerHTML = '<span class="placeholder">👤</span>'; }; // Fallback
+                        img.loading = 'lazy';
+                        img.onerror = function() { this.parentNode.innerHTML = '<span class="placeholder">👤</span>'; };
                         photoDiv.appendChild(img);
                     } else {
                         const p = document.createElement('span');
@@ -2532,31 +2368,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Prevent dragging on non-selectable areas
     const dragPreventHandler = (event) => {
         const target = event.target;
         let allowDrag = false;
         let current = target;
 
-        // Check if the target or any parent allows text selection
         while (current && current !== document.body) {
-             // Explicitly allow drag/selection on form elements
             if (current.matches('input, textarea, select, [contenteditable="true"]')) {
                  allowDrag = true;
                  break;
             }
-            // Check computed style for user-select
             const userSelectStyle = window.getComputedStyle(current).webkitUserSelect || window.getComputedStyle(current).userSelect;
             if (userSelectStyle === 'text' || userSelectStyle === 'auto' || userSelectStyle === 'element') {
-                 // Allow if it's within a known selectable container, otherwise default to prevent
                  if (target.closest('.modal-body[data-layout="table"] .body-table td, .portal-content p, .introduction, .review-value, #viewNoteContent, #chat-messages .chat-message span:not(.chat-message-header):not(.chat-message-time):not(.chat-user-title), .note-box, #profileModal .modal-body, .quoted-message-preview')) {
                     allowDrag = true;
                  } else {
-                     allowDrag = false; // Prevent dragging on general 'auto'/'text' areas unless specified
+                     allowDrag = false;
                  }
-                 break; // Stop checking parent styles once a rule is found
+                 break;
             } else if (userSelectStyle === 'none') {
-                 allowDrag = false; // Explicitly disallowed
+                 allowDrag = false;
                  break;
             }
             current = current.parentElement;
@@ -2567,11 +2398,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Apply drag prevention to main content and modal contents
     const mainContent = document.querySelector('.content');
     if (mainContent) {
         mainContent.addEventListener('dragstart', dragPreventHandler);
-        mainContent.setAttribute('draggable', 'false'); // Discourage dragging appearance
+        mainContent.setAttribute('draggable', 'false');
     }
     const modalContents = document.querySelectorAll('.modal-content');
     modalContents.forEach(mc => {
@@ -2579,18 +2409,15 @@ document.addEventListener('DOMContentLoaded', function() {
         mc.setAttribute('draggable', 'false');
     });
 
-    // --- Initial function calls ---
-    loadActiveStories(); // Load stories on page load
-    setInterval(loadActiveStories, 60000); // Refresh stories every minute
+    loadActiveStories();
+    setInterval(loadActiveStories, 60000);
 
-    // Fetch initial profile data if logged in, to populate coin display early
     if (isLoggedIn && URLS.ajax_get_profile_data) {
-         // Don't put loading state in modal, just fetch in background
          fetch(URLS.ajax_get_profile_data, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
              .then(response => response.ok ? response.json() : Promise.reject('Failed initial profile load'))
              .then(data => {
                  if (data.success && data.profile_data && data.profile_data.desire_coins !== undefined) {
-                     updateCoinDisplay(data.profile_data.desire_coins); // Update display on page load
+                     updateCoinDisplay(data.profile_data.desire_coins);
                      console.log("Initial coin balance fetched:", data.profile_data.desire_coins);
                  } else {
                      console.warn("Initial profile fetch successful but no coin data.");
@@ -2598,11 +2425,11 @@ document.addEventListener('DOMContentLoaded', function() {
              })
              .catch(error => {
                  console.error("Error fetching initial profile data:", error);
-                 updateCoinDisplay('?'); // Show error state for coins
+                 updateCoinDisplay('?');
              });
     }
 
 
-    console.log("MyApp main script loaded (V21 - Pre-Booking Zone Added)."); // Updated version log
+    console.log("MyApp main script loaded (V21 - Pre-Booking Zone Added).");
 
-}); // End of DOMContentLoaded listener
+});

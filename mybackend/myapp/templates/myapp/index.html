@@ -178,8 +178,33 @@
             <div id="dailyRecommendationModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"><button class="close-modal" aria-label="返回"><i class="fas fa-chevron-left"></i></button><h2>每日推薦</h2> <div class="header-toggle-notes"><label><input type="checkbox" class="toggle-notes-checkbox" data-table-id="recommendationTable"> <span>顯示筆記</span></label></div> </div> <div class="modal-body" data-layout="table"> <section class="top-section"> <div class="photo-area" id="recommendationPhotoArea"><p style="color:#888;font-size:0.9rem;">載入中...</p></div> <div class="intro-area" id="recommendationIntroArea"><div class="intro-top"><p id="recommendationIntroductionContent">載入中...</p></div></div> </section> <div class="table-wrapper"> <table class="header-table"><thead><tr><th></th><th>美容師</th><th>時段</th><th>台費</th><th>心得</th></tr></thead></table> <div class="body-wrapper"> <table class="body-table" id="recommendationTable"> <tbody><tr class="loading-message"><td colspan="5">載入中...</td></tr></tbody> </table> </div> </div> </div> </div> </div>
             {# --- Weekly Schedule Modal --- #}
             <div id="weeklyScheduleModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"><button class="close-modal" aria-label="返回"><i class="fas fa-chevron-left"></i></button><h2>每週班表</h2> </div> <div class="modal-body"> <nav class="hall-menu" id="weeklyHallMenu"> {% for hall in halls %} <a href="#" data-hall-id="{{ hall.id }}">{{ hall.name }}</a> {% endfor %} {% if not halls %} <p style="color:#666; padding: 0.5rem 0.75rem;">沒有可選的館別</p> {% endif %} </nav> <div id="weeklyScheduleImageArea" class="schedule-image-container"> <p>請點擊上方館別查看班表</p> </div> </div> </div> </div>
+
             {# --- Hall of Fame Modal --- #}
-            <div id="hallOfFameModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <button class="close-modal" aria-label="返回"><i class="fas fa-chevron-left"></i></button> <div class="modal-header"> <h2><i class="fas fa-crown"></i> 紓壓名人堂</h2> </div> <div class="modal-body"> <div class="hof-tabs"> <button class="hof-tab active" data-rank-type="reviews" aria-selected="true"><i class="fas fa-comments"></i> 一般心得</button> <button class="hof-tab" data-rank-type="stories" aria-selected="false"><i class="fas fa-bolt"></i> 限時動態</button> <button class="hof-tab" data-rank-type="good_looking" aria-selected="false"><i class="fas fa-thumbs-up"></i> 人帥真好</button> <button class="hof-tab" data-rank-type="good_to_have_you" aria-selected="false"><i class="fas fa-heart"></i> 有你真好</button> </div> <div class="hof-list-container"> <ol id="hallOfFameList"> <li class="loading-message">載入中...</li> </ol> </div> </div> </div> </div>
+            <div id="hallOfFameModal" class="modal" role="dialog" aria-modal="true">
+                <div class="modal-content" draggable="false">
+                    {# MODIFIED: Ensure .close-modal is the FIRST child of .modal-header #}
+                    <div class="modal-header">
+                        <button class="close-modal" aria-label="返回"><i class="fas fa-chevron-left"></i></button>
+                        <h2>紓壓名人堂</h2>
+                        {# Optional: Add toggle notes here if needed for HOF, it will be styled by general .header-toggle-notes #}
+                    </div>
+                    <div class="modal-body">
+                        <div class="hof-tabs">
+                            <button class="hof-tab active" data-rank-type="reviews" aria-selected="true"><i class="fas fa-comments"></i> 心得</button>
+                            <button class="hof-tab" data-rank-type="stories" aria-selected="false"><i class="fas fa-bolt"></i> 動態</button>
+                            <button class="hof-tab" data-rank-type="good_looking" aria-selected="false"><i class="fas fa-thumbs-up"></i> 帥哥</button>
+                            <button class="hof-tab" data-rank-type="good_to_have_you" aria-selected="false"><i class="fas fa-heart"></i> 好人</button>
+                        </div>
+                        <div class="hof-list-container">
+                            <ol id="hallOfFameList">
+                                <li class="loading-message">載入中...</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {# --- Hall of Fame Modal End --- #}
+
             {# --- Profile Modal --- #}
             <div id="profileModal" class="modal" role="dialog" aria-modal="true"> <div class="modal-content" draggable="false"> <div class="modal-header"><button class="close-modal" aria-label="返回"><i class="fas fa-chevron-left"></i></button><h2>個人檔案</h2> </div> <div class="modal-body" id="profileModalBody"> <div class="profile-loading">載入個人檔案中...</div> </div> </div> </div>
             {# --- Find Beautician Modal --- #}
